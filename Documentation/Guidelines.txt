@@ -1,18 +1,29 @@
+Please read the following python guidelines
+https://www.python.org/dev/peps/pep-0020/
+https://www.python.org/dev/peps/pep-0008/
+
+The following are some guidelines we aim to follow in this project
+
 Variables:
 	1) should be no less than 3 characters
 	2) must clearly represent what they stand for
 		a) Example: use "TaxRate" not "TR"
 	3) should always start with a capital letter
-	4) can be more than one word but they must be stuck together
-		a) Variables with more than one word must have each first letter capitalized
-			- Example: TwoWords
+	4) can be more than one word but they must be stuck together using an underscore
+			- Example: two_words
 			
 Comments:
 	1) should always start your program
+		a) Starting comment should give:
+			- Name of author
+			- Organization (MSU)
+			- Start date
+			- End date ("work in progress" is fine if not complete)
+			- Description of what the program does
 	2) should be placed before each block of your program
 	3) should be place when ever there is doubt
-		a) for example if a methodology is unclear
-	4) should be clear and descriptive
+		a) for example if it is unclear why you are doing something
+	4) should be clear and descriptive (not generic)
 		- Good: #Print paychecks for 100 employees
 		- Bad:  #Print
 	
