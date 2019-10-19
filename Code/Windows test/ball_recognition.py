@@ -15,7 +15,10 @@ import cv2
 import numpy as np
 
 # Create function to calibrate filter
-def calibrate_filter():
+def calibrate_filter(calibrate = True):
+    """This module is used to fine tune the variables for filtering out
+    the color of the ball and ball detection parameters.
+    """
     variables = open("filter_variables.txt", "r")
     lower_limit = int(variables.readline())
     lower_limit2 = int(variables.readline())
@@ -31,35 +34,6 @@ def calibrate_filter():
     # Set buffer to increase size of the box around each circle
     buffer = 5
 
-    # Create functions to change parameters of hsv filter
-    def lower_change(pos):
-        nonlocal lower_limit
-        lower_limit = pos
-    def lower_change2(pos):
-        nonlocal lower_limit2
-        lower_limit2 = pos
-    def lower_change3(pos):
-        nonlocal lower_limit_hue
-        lower_limit_hue = pos
-
-    def upper_change(pos):
-        nonlocal upper_limit
-        upper_limit = pos
-    def upper_change2(pos):
-        nonlocal upper_limit2
-        upper_limit2 = pos
-    def upper_change3(pos):
-        nonlocal upper_limit_hue
-        upper_limit_hue = pos
-
-    # Create functions to change circle detection parameters
-    def circle_detect_change(pos):
-        nonlocal circle_detect_param
-        circle_detect_param = pos
-    def circle_detect_change2(pos):
-        nonlocal circle_detect_param2
-        circle_detect_param2 = pos
-
     # Create function to save adjusted parameters
     def file_save():
         string = str(lower_limit) + '\n'
@@ -74,31 +48,61 @@ def calibrate_filter():
         variables.write(string)
         variables.close()
 
-    # Create variable for track bar names to make it easy to change
-    filter_bars = "filter_bars"
-    # Create second windows name to accomodate all bars
-    circle_bars = "circle_bars"
-    # Create named window to put track bars
-    cv2.namedWindow(filter_bars)
-    cv2.namedWindow(circle_bars)
+    if calibrate:
+        # Create functions to change parameters of hsv filter
+        def lower_change(pos):
+            nonlocal lower_limit
+            lower_limit = pos
+        def lower_change2(pos):
+            nonlocal lower_limit2
+            lower_limit2 = pos
+        def lower_change3(pos):
+            nonlocal lower_limit_hue
+            lower_limit_hue = pos
 
-    # Create Track bars to adjust filter and circle detection parameters
-    cv2.createTrackbar("Lower bottom", filter_bars, lower_limit, 360,
-                       lower_change)
-    cv2.createTrackbar("Lower top", filter_bars, lower_limit2, 360,
-                       lower_change2)
-    cv2.createTrackbar("lower hue", filter_bars, lower_limit_hue, 360,
-                       lower_change3)
-    cv2.createTrackbar("upper bottom", filter_bars, upper_limit, 360,
-                       upper_change)
-    cv2.createTrackbar("upper top", filter_bars, upper_limit2, 360,
-                       upper_change2)
-    cv2.createTrackbar("upper hue", filter_bars, upper_limit_hue, 360,
-                       upper_change3)
-    cv2.createTrackbar("circle param", circle_bars, circle_detect_param, 500,
-                       circle_detect_change)
-    cv2.createTrackbar("circle param 2", circle_bars, circle_detect_param2,
-                       500, circle_detect_change2)
+        def upper_change(pos):
+            nonlocal upper_limit
+            upper_limit = pos
+        def upper_change2(pos):
+            nonlocal upper_limit2
+            upper_limit2 = pos
+        def upper_change3(pos):
+            nonlocal upper_limit_hue
+            upper_limit_hue = pos
+
+        # Create functions to change circle detection parameters
+        def circle_detect_change(pos):
+            nonlocal circle_detect_param
+            circle_detect_param = pos
+        def circle_detect_change2(pos):
+            nonlocal circle_detect_param2
+            circle_detect_param2 = pos
+
+        # Create variable for track bar names to make it easy to change
+        filter_bars = "filter_bars"
+        # Create second windows name to accomodate all bars
+        circle_bars = "circle_bars"
+        # Create named window to put track bars
+        cv2.namedWindow(filter_bars)
+        cv2.namedWindow(circle_bars)
+
+        # Create Track bars to adjust filter and circle detection parameters
+        cv2.createTrackbar("Lower bottom", filter_bars, lower_limit, 360,
+                           lower_change)
+        cv2.createTrackbar("Lower top", filter_bars, lower_limit2, 360,
+                           lower_change2)
+        cv2.createTrackbar("lower hue", filter_bars, lower_limit_hue, 360,
+                           lower_change3)
+        cv2.createTrackbar("upper bottom", filter_bars, upper_limit, 360,
+                           upper_change)
+        cv2.createTrackbar("upper top", filter_bars, upper_limit2, 360,
+                           upper_change2)
+        cv2.createTrackbar("upper hue", filter_bars, upper_limit_hue, 360,
+                           upper_change3)
+        cv2.createTrackbar("circle param", circle_bars, circle_detect_param, 500,
+                           circle_detect_change)
+        cv2.createTrackbar("circle param 2", circle_bars, circle_detect_param2,
+                           500, circle_detect_change2)
 
     # Start camera before loop to ensure it is working
     cap = cv2.VideoCapture(0)
@@ -163,7 +167,9 @@ def calibrate_filter():
 
         # Show full image with detected circles and filter
         cv2.imshow("Full image", frame)
-        cv2.imshow("filter", filtered_image)
+        # Only show filter window if calibration set to yes
+        if calibrate:
+            cv2.imshow("filter", filtered_image)
 
         # Check to see if user is done adjusting filter. End if user is done.
         k = cv2.waitKey(5) & 0xFF
@@ -190,8 +196,16 @@ def calibrate_filter():
     cap.release()
     cv2.destroyAllWindows()
 
+def track_ball():
+    """ This function will be to track the ball
+    incomplete.....
+    """
+    calibrate_filter(False)
+
+
+
 def main():
-    calibrate_filter()
+    track_ball()
 
 if __name__ == "__main__":
     main()
