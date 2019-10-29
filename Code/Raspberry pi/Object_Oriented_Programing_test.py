@@ -21,8 +21,11 @@ if platform.system() == "Linux":
 
 class Camera:
     """ This class is used to create a camera object. With this class
-    both windows and raspberry pi will be able to use the same object
-    which will handle the differences between the two operating systems.
+    both windows and raspberry pi will be able to use the same object because
+    this class will handle the differences between the two operating systems.
+
+    Additionally it will reduce code when implementing camera operations in
+    different functions.
     """
     # Set a default height and width (if the dimensions are off the programing
     # language will correct it automatically I think.
@@ -47,7 +50,7 @@ class Camera:
             self.cap.set(4, self.set_height)
         self.get_frame()
         # Get the actual width and height that was set.
-        self.height, self.set_width, self.channels = self.frame.shape
+        self.height, self.width, self.channels = self.frame.shape
 
     def get_frame(self):
         """ This function gets the current image in front of the camera"""
@@ -65,10 +68,16 @@ class Camera:
         else:
             self.cap.release()
 
+def draw_circles(image):
+    cv2.circle(image, (200,200), 10, (255,255,255), 5)
+
 
 def main():
     # Create camera object
     camera = Camera()
+    cv2.imshow("test", camera.frame)
+    cv2.waitKey(0)
+    draw_circles(camera.frame)
     cv2.imshow("test", camera.frame)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

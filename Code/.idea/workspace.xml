@@ -2,10 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="82485a27-1d35-4372-805e-be41114a373b" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/Raspberry pi/filter_variables/filter_variables.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Raspberry pi/ball_recognition.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Raspberry pi/filter_variables.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Raspberry pi/filter_variables.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Windows test/ball_recognition.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Raspberry pi/Object_Oriented_Programing_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/Raspberry pi/Object_Oriented_Programing_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Raspberry pi/ball_recognition_raspberry.py" beforeDir="false" afterPath="$PROJECT_DIR$/Raspberry pi/ball_recognition_raspberry.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Raspberry pi/filter_variables.txt" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -47,7 +48,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.Object_Oriented_Programing_test">
+  <component name="RunManager" selected="Python.ball_recognition_raspberry">
     <configuration name="Object_Oriented_Programing_test" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="Code" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -155,8 +156,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.Object_Oriented_Programing_test" />
         <item itemvalue="Python.ball_recognition_raspberry" />
+        <item itemvalue="Python.Object_Oriented_Programing_test" />
         <item itemvalue="Python.ball_recognition (2)" />
         <item itemvalue="Python.ball_recognition" />
       </list>
