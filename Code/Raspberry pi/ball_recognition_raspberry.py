@@ -12,7 +12,7 @@ the ability to make a ROI (region of interest) to use later when implementing
 Haar cascades.
 
 Programed on windows
- tested on windows 10 and raspberry pi (debian jessie).
+tested on windows 10 and raspberry pi (debian jessie).
 both: python 3
 raspberry pi: opencv version 4.0.0
 windows: opencv version 4.1.1
@@ -29,6 +29,7 @@ if platform.system() != "Windows":
     from picamera import PiCamera
 
 
+# Create class to handle camera object
 class Camera:
     """ This class is used to create a camera object. With this class
     both windows and raspberry pi will be able to use the same object because
@@ -78,6 +79,34 @@ class Camera:
             self.cam.close()
         else:
             self.cap.release()
+
+
+# Create class to handle robot object
+class Robot:
+    """ Currently this class is a place holder. Once completed this class
+    will be used to create the connection with the robot.
+
+    Additionally this class will have several actions that the robot can take.
+    Primarily it will have built in actions and a function to create motion
+    commands to send to the robot."""
+    # Variable to count how many times action is executed
+    action_count = 0
+    # Variable to set delay between executions of action (seconds)
+    action_delay = 5
+    # Variable to check the time action was executed last (time.time())
+    action_last_execution = 0
+
+    def action(self):
+        """ This function is just to prove that action can be taken. Once
+        the code is complete an actual action will be created.
+        """
+        delay = time.time() - self.action_last_execution
+        # Ensure enough time has elapsed since last execution call to prevent
+        # excesive calls to the same action.
+        if delay > self.action_delay:
+            self.action_count += 1
+            self.action_last_execution = time.time()
+            print("Action was called: ", self.action_count)
 
 
 # Create function to draw circles
@@ -328,7 +357,7 @@ def calibrate_filter():
     cv2.destroyAllWindows()
 
 
-def track_ball():
+def main():
     """ input: none
     Process: Get filter variables from file. Get frames from camera
     continuously. Detect circles in each frame and draw circles along with
@@ -351,6 +380,8 @@ def track_ball():
     circle_detect_param2 = int(variables.readline())
     variables.close()
 
+    # Create robot object to initiate connection with the robot
+    robot = Robot()
     # Create camera object
     camera = Camera()
     # time1 = time.time()  # for debugging group 2############################
@@ -384,26 +415,23 @@ def track_ball():
                                        minRadius=0, maxRadius=0)
             # Draw circles for visual representation of detection
             circles = np.uint16(np.around(circles))
-            draw_circles(camera.frame, circles, camera.width, camera.height)
+            num_circles = draw_circles(camera.frame, circles, camera.width,
+                                       camera.height)
+            if num_circles == 1:
+                robot.action()
         except Exception as e:
             # print(e) # for debugging #######################################
             pass
 
-
         # Show full image with detected circles and filter
         cv2.imshow("Full image", camera.frame)
 
-        # Check to see if user is done adjusting filter. End if user is done.
         k = cv2.waitKey(5) & 0xFF
         # End if user presses any key. 255 is the default value for windows.
         # -1 is the default on the raspberry pi
         if k != 255 and k != -1:
             break
     cv2.destroyAllWindows()
-
-
-def main():
-    track_ball()
 
 
 if __name__ == "__main__":
