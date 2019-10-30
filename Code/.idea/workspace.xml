@@ -4,6 +4,7 @@
     <list default="true" id="82485a27-1d35-4372-805e-be41114a373b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Raspberry pi/ball_recognition_raspberry.py" beforeDir="false" afterPath="$PROJECT_DIR$/Raspberry pi/ball_recognition_raspberry.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Raspberry pi/filter_variables/filter_variables.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Raspberry pi/filter_variables/filter_variables.txt" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

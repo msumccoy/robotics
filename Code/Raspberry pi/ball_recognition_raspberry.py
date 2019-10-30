@@ -428,11 +428,14 @@ def main():
 
         k = cv2.waitKey(5) & 0xFF
         # End if user presses any key. 255 is the default value for windows.
-        # -1 is the default on the raspberry pi
+        # -1 is the default on the raspberry pi. Save image if s is pressed
+        if k == ord("s"):
+            cv2.imwrite("full_image.jpg", camera.frame)
         if k != 255 and k != -1:
             break
     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
+    calibrate_filter()
     main()
