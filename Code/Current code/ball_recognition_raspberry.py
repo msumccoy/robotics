@@ -14,7 +14,7 @@ Haar cascades.
 Programed on windows
 tested on windows 10 and raspberry pi (debian jessie).
 both: python 3
-raspberry pi: opencv version 4.0.0
+raspberry pi: opencv version 4.0.0 (does not fuction correctly on idle)
 windows: opencv version 4.1.1
 """
 
@@ -29,12 +29,14 @@ import platform
 # noinspection PyUnresolvedReferences
 import ball_recognition_variables as variables
 
+
 # Check if running on rasp pi to import pi cam modules
 if platform.system() != "Windows":
     import serial
     from picamera.array import PiRGBArray
     from picamera import PiCamera
-else:
+variable_to_decide_if_to_execute_dummy_code = 1
+if variable_to_decide_if_to_execute_dummy_code:
     # Dummy code to handle lack of serial class on windows pc
     class dummy_robot:
         """ This class will be used just to mimic the wait times associated
@@ -45,10 +47,9 @@ else:
             the check sum. Later functionality to check command type will be
             added.
             """
-            # hex_string = "-1" + hex_string
+            pause = 0.3
+            pause_multiplier = 10
             hex_string_array = hex_string[2:].split(r"\x")
-            if len(hex_string_array) == int(hex_string_array[0], 16):
-                print("Legnth good")
             sum = 0
             for index in range(len(hex_string_array)):
                 if index != len(hex_string_array) - 1:
@@ -60,8 +61,17 @@ else:
             sum = hex(sum)[-2:]
             if sum == hex_string_array[-1]:
                 print("Check sum good")
-            time.sleep(5)
-            print(hex_string)
+            if len(hex_string_array) == int(hex_string_array[0], 16):
+                print("Length good")
+                motion = (int(hex_string_array[4], 16)
+                          + int(hex_string_array[3], 16))
+                motion = (motion - 11) / 8
+                for cycle in range(pause_multiplier):
+                    print(variables.full_motion_dictionary[motion])
+                    time.sleep(pause)
+            print("motion complete: ",
+                  variables.full_motion_dictionary[motion])
+            return variables.ok_response
 
     dummy = dummy_robot()
 
@@ -117,16 +127,18 @@ vision_control -- used to do object recognition and then sent action to
 def main():
     """
     """
+    calibrate_filter()
     robot = Robot()
     robot_thread = threading.Thread(target=robot_control, args=(robot,))
     manual_robot_thread = threading.Thread(target=robot.manual_control)
     object_detector_thread = threading.Thread(target=object_detection)
     robot_thread.start()
+    manual_robot_thread.start()
     object_detector_thread.start()
-    object_detector_thread.join()
+    manual_robot_thread.join()
+    # object_detector_thread.join()
     with variables.lock:
         variables.exit_code = 1
-    # variables.exit = input(" enter")
 
 
 # Create class to handle camera object
@@ -146,12 +158,14 @@ class Camera:
         # ("Linux"). The raspberry pi uses a pi cam and therefore needs
         # the pi cam implementation of the camera.
         if platform.system() == "Linux":
-            # print("starting camera") #for debugging#########################
+            if variables.debug_on:
+                print("starting camera")
             self.cam = PiCamera()
             self.cam.resolution = (variables.set_width, variables.set_height)
             self.raw_capture = PiRGBArray(self.cam)
         else:
-            # print("starting camera") #for debugging#########################
+            if variables.debug_on:
+                print("starting camera")
             self.cap = cv2.VideoCapture(0)
             self.cap.set(3, variables.set_width)
             self.cap.set(4, variables.set_height)
@@ -205,9 +219,8 @@ class Robot:
     def manual_control(self):
         # This module is used to manually control the robot
         print("Starting manual control")
-        exit_control = True
         # Continue until exit command requested
-        while exit_control:
+        while 1:
             motion_num = input("Enter motion number \n")
             # Give access to full range of motions
             if motion_num == "full control":
@@ -219,20 +232,27 @@ class Robot:
                         print(key, " : ",
                               variables.full_motion_dictionary[key])
                     motion_num = input("Enter motion number \n")
+                if int(motion_num) in variables.full_motion_dictionary:
+                    print(motion_num, " in hex ",
+                          self.send_motion_cmd(motion_num))
+                else:
+                    print("not valid -- full control ")
                 # Catch in case non int entered
                 try:
                     motion_num = int(motion_num)
                 except Exception as e:
                     print(e)
                     print("full control failed")
-                # Only excecute command if it is valid
-                if motion_num in variables.full_motion_dictionary:
-                    print(motion_num, " in hex ",
-                          self.send_motion_cmd(motion_num))
+                # Only execute command if it is valid
                 continue
-
-            if motion_num == "exit":
-                exit_control = False
+            try:
+                if motion_num == "exit" or int(motion_num) < 0:
+                    with variables.lock:
+                        variables.exit_code = 1
+                    print("exiting")
+                    break
+            except:
+                pass
             if motion_num == "dict":
                 for key in variables.motion_dictionary:
                     print(key, " : ",
@@ -241,6 +261,7 @@ class Robot:
             if motion_num == "stop":
                 print(motion_num, " in hex ",
                       self.send_motion_cmd(motion_num))
+                continue
             try:
                 motion_num = int(motion_num)
             except Exception as e:
@@ -258,11 +279,9 @@ class Robot:
         if motion_number == "stop":
             motion_number = 1  # Set to home position
         # self.ser.write(variables.stop_motion)
-        self.clear_cache()
-        # self.ser.write(variables.reset_counter)
-        self.clear_cache()
         motion_cmd = self.generate_motion_cmd(motion_number)
         self.ser.write( motion_cmd)
+        return motion_cmd
 
     def generate_motion_cmd(self, motion_number):
         """ This function generates a motion command hex string to send to
@@ -355,13 +374,12 @@ def robot_control(robot=Robot()):
                 break
             if variables.thread_motion_num != -1:
                 motion_num = variables.thread_motion_num
-                variables.thread_motion_num = -1
         if motion_num != -1:
             robot.send_motion_cmd(motion_num)
+            print("send complete")
             motion_num = -1
-
-
-
+            with variables.lock:
+                variables.thread_motion_num = -1
 
 def object_detection():
     """ input: none
@@ -380,16 +398,21 @@ def object_detection():
 
     # Create camera object
     camera = Camera()
-    # time1 = time.time()  # for debugging group 2############################
-    # cycles = 0  # for debugging group 2#####################################
+    if variables.debug_on:
+        time1 = time.time()
+        cycles = 0
     # Create infinite loop for camera frames
     while 1:
-        # Calculate average frame processing time
-        # cycles += 1  # for debugging group 2################################
-        # total_time = time.time() - time1  # for debugging group 2###########
-        # average = total_time / cycles  # for debugging group 2##############
-        # print("Total = ", total_time)  # for debugging group 2##############
-        # print("Average = ", average)  # for debugging group 2###############
+        if variables.debug_on:
+            # Calculate average frame processing time
+            cycles += 1
+            total_time = time.time() - time1
+            average = total_time / cycles
+            if (time.time() - variables.last_output
+                    > variables.output_frequency):
+                print("Total = ", total_time)
+                print("Average = ", average)
+                variables.last_output = time.time()
 
         # Refresh frame
         camera.get_frame()
@@ -414,10 +437,14 @@ def object_detection():
             # If object detected send message to robot control
             if num_circles == 1:
                 with variables.lock:
-                    variables.thread_motion_num = 1
+                    if variables.thread_motion_num == -1:
+                        variables.thread_motion_num = 2
         except Exception as e:
-            # print(e) # for debugging #######################################
-            pass
+            if variables.debug_on:
+                if (time.time() - variables.last_output_e
+                        > variables.output_frequency):
+                    print(e)
+                    variables.last_output_e = time.time()
 
         # Show full image with detected circles and filter
         cv2.imshow("Full image", camera.frame)
@@ -429,6 +456,9 @@ def object_detection():
             cv2.imwrite("full_image.jpg", camera.frame)
         if k != 255 and k != -1:
             break
+        with variables.lock:
+            if variables.exit_code == 1:
+                break
     cv2.destroyAllWindows()
     # Return 0 to report success
     return 0
@@ -479,7 +509,11 @@ def draw_circles(image, circles, width, height, max_circles=60, buffer=5):
             cv2.circle(image, (i[0], i[1]), 2, (0, 0, 255), 3)
         return num_circles
     else:
-        # print("error too many circles  ", num_circles) # For debugging######
+        if variables.debug_on:
+            if (time.time() - variables.last_output_c
+                    > variables.output_frequency):
+                print("error too many circles  ", num_circles)
+                variables.last_output_c = time.time()
         # Return error code
         return -1
 
@@ -601,16 +635,21 @@ def calibrate_filter():
                        500, circle_detect_change2)
 
     camera = Camera()
-    # time1 = time.time()  # for debugging group 1############################
-    # cycles = 0  # for debugging group 1#####################################
+    if variables.debug_on_calibrate:
+        time1 = time.time()
+        cycles = 0
     # Create infinite loop for camera frames
     while 1:
-        # Calculate average frame processing time
-        # cycles += 1  # for debugging group 1################################
-        # total_time = time.time() - time1  # for debugging group 1###########
-        # average = total_time / cycles  # for debugging group 1##############
-        # print("Total = ", total_time)  # for debugging group 1##############
-        # print("Average = ", average)  # for debugging group 1###############
+        if variables.debug_on_calibrate:
+            # Calculate average frame processing time
+            cycles += 1
+            total_time = time.time() - time1
+            average = total_time / cycles
+            if (time.time() - variables.last_output
+                    > variables.output_frequency):
+                print("Total = ", total_time)
+                print("Average = ", average)
+                variables.last_output = time.time()
 
         # Create arrays for filter parameters
         variables.lower_range = np.array([variables.lower_limit_hue,
@@ -640,8 +679,8 @@ def calibrate_filter():
             circles = np.uint16(np.around(circles))
             draw_circles(camera.frame, circles, camera.width, camera.height)
         except Exception as e:
-            # print(e)  # for debugging ######################################
-            pass
+            if variables.debug_on_calibrate:
+                print(e)
 
         # Show full image with detected circles and filter
         cv2.imshow("Full image", camera.frame)
@@ -674,4 +713,3 @@ def calibrate_filter():
 
 if __name__ == "__main__":
     main()
-

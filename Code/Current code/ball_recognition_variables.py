@@ -70,12 +70,9 @@ motion_dictionary = {  # Condensed dictionary for all accepted movements
     2: "Waving",
     3: "stretch",
     4: "Craw like motion",
-    5: "Dance (hard on servos)",
     7: "Clap 1",
     8: "Clap 2",
     9: "Push ups",
-    10: "Don't know (hard on servos)",
-    11: "Jump 3 times (worst on servo)",
     12: "Get off the ground (direction sensing)",
     13: "Get off the ground (face down)",
     14: "Get off the ground (face up)",
@@ -149,10 +146,19 @@ variables.close()
 lower_range = np.array([lower_limit_hue, lower_limit, lower_limit2])
 upper_range = np.array([upper_limit_hue, upper_limit, upper_limit2])
 
-# Create threading specific variables
+# Create threading specific variables  ***************************************
 lock = threading.Lock()
 thread_motion_num = -1
 exit_code = 0
+
+# Control debug specific variables *******************************************
+debug_on = 0
+debug_on_calibrate = 0
+# How often to output debug information (in seconds)
+output_frequency = 5
+last_output = 0
+last_output_e = 0
+last_output_c = 0
 
 if __name__ == "__main__":
     for i in motion_dictionary:

@@ -2,25 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="82485a27-1d35-4372-805e-be41114a373b" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/dictionaries/wykek.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Current code/ball_recognition_raspberry.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Current code/ball_recognition_variables.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Current code/filter_variables/filter_variables.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Raspberry pi test/Full image.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Raspberry pi test/Object_Oriented_Programing_test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Raspberry pi test/filter.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Raspberry pi test/result.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Raspberry pi test/test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../Old Files/.idea/Old Files.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Raspberry pi/Full image.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Raspberry pi/Object_Oriented_Programing_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Raspberry pi/ball_recognition_raspberry.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Raspberry pi/filter.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Raspberry pi/filter_variables/filter_variables.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Raspberry pi/result.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Raspberry pi/test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Windows test/ball_recognition_windows.py" beforeDir="false" afterPath="$PROJECT_DIR$/Windows test/ball_recognition_windows.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Current code/ball_recognition_raspberry.py" beforeDir="false" afterPath="$PROJECT_DIR$/Current code/ball_recognition_raspberry.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Current code/ball_recognition_variables.py" beforeDir="false" afterPath="$PROJECT_DIR$/Current code/ball_recognition_variables.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Current code/filter_variables/filter_variables.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Current code/filter_variables/filter_variables.txt" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
