@@ -1,7 +1,7 @@
 """ Kuwin Wyke
 Midwestern State University
 Start: 10 October 2019
-End: work in progress
+End: 20 October 2019
 
 This program detects a ball by using a filter that looks only for the color
 of the ball. There is a function to manually calibrate the filter. Once only
@@ -9,6 +9,9 @@ the color of the ball is detected as input, the program looks for a circle
 using a built ini OpenCV function.
 
 Programed and tested on windows.
+This is the base file used to test for execution of
+ball_recognition_raspberry.py. This program only focuses on the basics of
+filtered circle detection
 """
 
 import cv2
