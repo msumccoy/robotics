@@ -7,6 +7,8 @@ This program is to used primarily as a dictionary for the motion numbers
 
 """
 
+test_environment = True
+
 import numpy as np
 import threading
 
@@ -130,7 +132,7 @@ set_height = 240
 
 # Filter specific variables **************************************************
 # Set path to variables file
-variables_file = "filter_variables/filter_variables.txt"
+variables_file = "filter_variables.txt"
 variables = open(variables_file, "r")
 lower_limit = int(variables.readline())
 lower_limit2 = int(variables.readline())
