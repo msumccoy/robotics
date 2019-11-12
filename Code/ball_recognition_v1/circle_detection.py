@@ -322,16 +322,6 @@ def get_filtered_image(image, lower_range, upper_range):
     Process: take image and remove all colors out side of color range to
     create a mask. This mask is then used to create a filtered image.
     """
-    """"
-    Input:  image - 
-            lower_range - 
-            upper_range - 
-
-    Process: take image and remove all colors out side of color range to
-    create a mask. This mask is then used to create a filtered image.
-
-    output: colored filtered image and gray filtered image.
-    """
     # Create filter
     # Get hsv color scheme
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
