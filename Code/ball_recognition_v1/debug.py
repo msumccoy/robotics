@@ -15,7 +15,7 @@ Functions:
 
 import time
 
-
+debug_gen = 0
 debug_cam = 0
 debug_circles = 0
 debug_cycles = 0
@@ -29,6 +29,31 @@ if debug_all:
     debug_robot = 1
 
 output_frequency = 5
+
+
+def debug_on():
+    global debug_cam
+    global debug_circles
+    global debug_cycles
+    global debug_robot
+    debug_cam = 1
+    debug_circles = 1
+    debug_cycles = 1
+    debug_robot = 1
+    print("debug on")
+
+
+def debug_off():
+    global debug_cam
+    global debug_circles
+    global debug_cycles
+    global debug_robot
+    debug_cam = 0
+    debug_circles = 0
+    debug_cycles = 0
+    debug_robot = 0
+    print("debug off")
+
 
 class ExecutionTiming:
     # This class is used to check the duration something start to execute
@@ -54,11 +79,12 @@ class ExecutionTiming:
 
 class ErrorOutput:
     last_output = 0
+
     def __init__(self):
         pass
 
     def error_output(self, error):
         if (time.time() - self.last_output > output_frequency
-                and debug_circles) :
+                and debug_circles):
             print(error)
             self.last_output = time.time()

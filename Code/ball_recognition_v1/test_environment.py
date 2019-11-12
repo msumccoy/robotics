@@ -13,58 +13,62 @@ import time
 
 # Project specific modules
 import variables
+import control_functions
 
 
 # Dummy code to handle lack of serial class on windows pc
-class DummyRobot:
-    """ This class will be used just to mimic the wait times associated
-    with operating the real robot.
+def decode(hex_string):
+    """
+    This function decodes hex strings. Currently only decodes motion strings
+    to in a minimal degree.
+    :param hex_string: this is a hex string that would be sent to the robot
+    :return:
     """
 
-    @staticmethod
-    def decode(hex_string):
-        """ This function decodes hex strings and checks the length and
-        the check sum. Later functionality to check command type will be
-        added.
-        """
-        pause = 0.3
-        pause_multiplier = 10
-        hex_string_array = hex_string[2:].split(r"\x")
-        sum = 0
-        for index in range(len(hex_string_array)):
-            if index != len(hex_string_array) - 1:
-                try:
-                    sum += int(hex_string_array[index], 16)
-                except:
-                    print("Hex to decimal fail")
-        # Convert sum to hex and truncate to only the last two digits
-        sum = hex(sum)[-2:]
-        if sum == hex_string_array[-1]:
-            print("Check sum good")
-        if len(hex_string_array) == int(hex_string_array[0], 16):
-            print("Length good")
-            motion = (int(hex_string_array[4], 16)
-                      + int(hex_string_array[3], 16))
-            motion = (motion - 11) / 8
-            for cycle in range(pause_multiplier):
-                print(variables.full_motion_dictionary[motion])
-                time.sleep(pause)
-        print("motion complete: ",
-              variables.full_motion_dictionary[motion])
-        return variables.ok_response
-
-
-dummy = DummyRobot()
+    alert_window = control_functions.AlertWindow("Robot action")
+    pause = 0.3
+    pause_multiplier = 10
+    hex_string_array = hex_string[2:].split(r"\x")
+    sum = 0
+    for index in range(len(hex_string_array)):
+        if index != len(hex_string_array) - 1:
+            try:
+                sum += int(hex_string_array[index], 16)
+            except:
+                print("Hex to decimal fail")
+    # Convert sum to hex and truncate to only the last two digits
+    sum = hex(sum)[-2:]
+    if sum == hex_string_array[-1]:
+        print("Check sum good")
+    if len(hex_string_array) == int(hex_string_array[0], 16):
+        print("Length good")
+        motion = (int(hex_string_array[4] + hex_string_array[3], 16))
+        motion = (motion - 11)
+        motion = motion/ 8
+        for cycle in range(pause_multiplier, 0, -1):
+            message = (variables.full_motion_dictionary[motion])
+            message += " " + str(cycle)
+            alert_window.output_window(message)
+            time.sleep(pause)
+    print("motion complete: ",
+          variables.full_motion_dictionary[motion])
+    return variables.ok_response
 
 
 class serial:
-    global dummy
+    """
+    This is a dummy used as a place holder in lieu of the actual serial
+    module on the raspberry pi.
+    """
+    # Place holders
     EIGHTBITS = None
     PARITY_EVEN = None
     STOPBITS_ONE = None
 
     class Serial:
         def __init__(self, *args, **kwargs):
+            # This is just so that there is a place for the arguments that
+            # would normally be passed.
             pass
 
         count = 0
@@ -89,4 +93,4 @@ class serial:
 
         def write(self, hex_string=""):
             # print("serial write : ", hex_string)
-            dummy.decode(hex_string)
+            decode(hex_string)

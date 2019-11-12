@@ -2,10 +2,16 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="82485a27-1d35-4372-805e-be41114a373b" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/ball_recognition_v1/const.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ball_recognition_v1/control_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Current code/ball_recognition_raspberry.py" beforeDir="false" afterPath="$PROJECT_DIR$/Current code/ball_recognition_raspberry.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Current code/ball_recognition_variables.py" beforeDir="false" afterPath="$PROJECT_DIR$/Current code/ball_recognition_variables.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Current code/filter_variables/filter_variables.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Current code/filter_variables/filter_variables.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ball_recognition_v1/circle_detection.py" beforeDir="false" afterPath="$PROJECT_DIR$/ball_recognition_v1/circle_detection.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ball_recognition_v1/debug.py" beforeDir="false" afterPath="$PROJECT_DIR$/ball_recognition_v1/debug.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ball_recognition_v1/filter_variables.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ball_recognition_v1/filter_variables.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ball_recognition_v1/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/ball_recognition_v1/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ball_recognition_v1/robot_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/ball_recognition_v1/robot_control.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ball_recognition_v1/test_environment.py" beforeDir="false" afterPath="$PROJECT_DIR$/ball_recognition_v1/test_environment.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ball_recognition_v1/variables.py" beforeDir="false" afterPath="$PROJECT_DIR$/ball_recognition_v1/variables.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -51,8 +57,8 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.ball_recognition_raspberry">
-    <configuration name="ball_recognition_raspberry" type="PythonConfigurationType" factoryName="Python" temporary="true">
+  <component name="RunManager" selected="Python.main">
+    <configuration name="keyboard_remote" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="Code" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -60,11 +66,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Current code" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/ball_recognition_v1" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Current code/ball_recognition_raspberry.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/ball_recognition_v1/keyboard_remote.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -73,7 +79,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="ball_recognition_variables" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="Code" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -81,11 +87,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Current code" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/ball_recognition_v1" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Current code/ball_recognition_variables.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/ball_recognition_v1/main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -96,8 +102,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.ball_recognition_raspberry" />
-        <item itemvalue="Python.ball_recognition_variables" />
+        <item itemvalue="Python.main" />
+        <item itemvalue="Python.keyboard_remote" />
       </list>
     </recent_temporary>
   </component>
