@@ -3,14 +3,20 @@ Midwestern State University
 Start: 1 November 2019
 End: Work in progress
 
-This program is to used primarily as a dictionary for the motion numbers
+This module is designed to be used in the ball recognition program in the
+folder named "ball_recognition_v1". It possess most of the variables to be
+used within the program including dictionaries with all valid motions in
+heart2heart.
 
+ALL debug related variables and functions can be found in debug.py
 """
 
+# Used for testing purposes. This activates the test environment in the event
+# the robot is not available or there is risky code to be tested
 test_environment = True
 
 import numpy as np
-import threading
+from threading import Lock
 
 # Motion number dictionaries**************************************************
 full_motion_dictionary = {  # Full dictionary with all motions in Heart2Heart
@@ -98,9 +104,6 @@ motion_dictionary = {  # Condensed dictionary for all accepted movements
     37: "pose",
 }
 
-
-
-
 # Robot motion specific variables*********************************************
 ok_response = r"\x04\xfe\x06\x08"
 stop_motion = r"\x09\x00\x02\x00\x00\x00\x10\x83\x9e"
@@ -116,23 +119,19 @@ com_port = "/dev/rfcomm2"
 connection_time_out = 5
 # Set wait time for blue tooth connection
 serial_port_time_out = 5
-# Variable to count how many times action is executed
-action_count = 0
-# Variable to set delay between executions of action (seconds)
-action_delay = 5
-# Variable to check the time action was executed last (time.time())
-action_last_execution = 0
 
 # Camera specific variables **************************************************
 
 # Set a default height and width (if the dimensions are off (incorrect) they
-# may change will correct it automatically I think.
+# may change.
 set_width = 320
 set_height = 240
 
 # Filter specific variables **************************************************
+
 # Set path to variables file
 variables_file = "filter_variables.txt"
+# Read variables from file
 variables = open(variables_file, "r")
 lower_limit = int(variables.readline())
 lower_limit2 = int(variables.readline())
@@ -149,18 +148,16 @@ lower_range = np.array([lower_limit_hue, lower_limit, lower_limit2])
 upper_range = np.array([upper_limit_hue, upper_limit, upper_limit2])
 
 # Create threading specific variables  ***************************************
-lock = threading.Lock()
+lock = Lock()
 thread_motion_num = -1
-exit_code = 0
-
-# Control debug specific variables *******************************************
-debug_on = 0
-debug_on_calibrate = 0
-# How often to output debug information (in seconds)
-output_frequency = 5
-last_output = 0
-last_output_e = 0
-last_output_c = 0
+# General exit flag
+exit_gen = 0
+# Exit flag for ball detection
+exit_detect = 0
+# Exit flag for calibration loop
+exit_calibrate = 0
+# Used to activate and deactivate automatic movement of the robot
+automatic_control = 1
 
 if __name__ == "__main__":
     for i in motion_dictionary:
