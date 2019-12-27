@@ -1,2 +1,6 @@
 *.pyc
 *.xml
+Code/label_maker/images/
+Code/photo_dowloader/neg/
+Code/photo_dowloader/bg.txt
+Code/photographer/images/ball1.jpg
