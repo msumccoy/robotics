@@ -118,7 +118,7 @@ class Robot:
                           + r'\x' + motion_hex_lower
                           + r'\x' + motion_hex_higher
                           + r"\x00\x" + check_sum)
-        return command_string
+        return command_string.decode("string_escape")
 
     def clear_cache(self):
         """ This function clears the serial cache and checks the response from
