@@ -5,3 +5,7 @@ Code/photo_dowloader/neg/
 Code/photo_dowloader/bg.txt
 Code/photographer/images/ball1.jpg
 Code/spider_control/play_spider.py
+Code/opencv_cascade_creator/label_maker/images/
+Code/opencv_cascade_creator/photo_dowloader/neg/
+Code/opencv_cascade_creator/photo_dowloader/bg.txt
+*.jpg
