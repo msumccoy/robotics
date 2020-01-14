@@ -13,152 +13,144 @@ ALL debug related variables and functions can be found in debug.py
 
 # Used for testing purposes. This activates the test environment in the event
 # the robot is not available or there is risky code to be tested
-test_environment = True
-
 import numpy as np
-from threading import Lock
 
-# Motion number dictionaries**************************************************
-full_motion_dictionary = {  # Full dictionary with all motions in Heart2Heart
-    0: "Bow -- not working",
-    1: "Home position",
-    2: "Waving",
-    3: "stretch",
-    4: "Craw like motion",
-    5: "Dance (hard on servos)",
-    6: "Don't know",
-    7: "Clap 1",
-    8: "Clap 2",
-    9: "Push ups",
-    10: "Don't know (hard on servos)",
-    11: "Jump 3 times (worst on servo)",
-    12: "Get off the ground (direction sensing)",
-    13: "Get off the ground (face down)",
-    14: "Get off the ground (face up)",
-    15: "Move forward 5 steps (slowly)",
-    16: "Move backward 5 steps (slowly)",
-    17: "Move left 5 steps (slowly)",
-    18: "Move right 5 steps (slowly)",
-    19: "Turn left (5 step turn)",
-    20: "Turn right (5 step turn)",
-    21: "Move forward 5 steps (fast but more unstable)",
-    22: "Move backward 5 steps (fast but more unstable)",
-    23: "Move left 5 steps (fast but more unstable)",
-    24: "Move right 5 steps (fast but more unstable)",
-    25: "Kick forward with left foot",
-    26: "Kick forward with right foot",
-    27: "*not sure* kick with left foot",
-    28: "*not sure* kick with right foot",
-    29: "Kick back with left foot",
-    30: "Kick back with right foot",
-    31: "Empty",
-    32: "Defense (fighting)",
-    33: "Punch forward (fighting)",
-    34: "Left punch (fighting)",
-    35: "Right punch (fighting)",
-    36: "pose",
-    37: "pose",
-    38: "Empty",
-    39: "cannot use",
-    40: "cannot use",
-    41: "cannot use",
-    42: "cannot use",
-    43: "cannot use",
-    44: "cannot use",
-    45: "cannot use",
-    46: "cannot use",
-    47: "cannot use",
-    48: "cannot use",
-    49: "cannot use",
-    50: "cannot use",
-}
 
-motion_dictionary = {  # Condensed dictionary for all accepted movements
-    1: "Home position",
-    2: "Waving",
-    3: "stretch",
-    4: "Craw like motion",
-    7: "Clap 1",
-    8: "Clap 2",
-    9: "Push ups",
-    12: "Get off the ground (direction sensing)",
-    13: "Get off the ground (face down)",
-    14: "Get off the ground (face up)",
-    15: "Move forward 5 steps (slowly)",
-    16: "Move backward 5 steps (slowly)",
-    17: "Move left 5 steps (slowly)",
-    18: "Move right 5 steps (slowly)",
-    19: "Turn left (5 step turn)",
-    20: "Turn right (5 step turn)",
-    21: "Move forward 5 steps (fast but more unstable)",
-    22: "Move backward 5 steps (fast but more unstable)",
-    23: "Move left 5 steps (fast but more unstable)",
-    24: "Move right 5 steps (fast but more unstable)",
-    25: "Kick forward with left foot",
-    26: "Kick forward with right foot",
-    27: "*not sure* kick with left foot",
-    28: "*not sure* kick with right foot",
-    29: "Kick back with left foot",
-    30: "Kick back with right foot",
-    36: "pose",
-    37: "pose",
-}
+class RobotCom:
+    # Used to activate and deactivate automatic movement of the robot
+    automatic_control = 1
 
-# Robot motion specific variables*********************************************
-ok_response = r"\x04\xfe\x06\x08"
-stop_motion = r"\x09\x00\x02\x00\x00\x00\x10\x83\x9e"
-reset_counter = (
-    r"\x11\x00\x02\x02\x00\x00\x4b\x04\x00\x00\x00\x00\x00\x00\x00\x00\x64")
-
-# Robot control variables*****************************************************
-
-# Create variable for the communication port name
-com_port = "/dev/rfcomm2"
-# Set time wait time for port communication (initial) must be long enough to
-# accommodate robot action
-connection_time_out = 5
-# Set wait time for blue tooth connection
-serial_port_time_out = 5
-
-# Camera specific variables **************************************************
-
-# Set a default height and width (if the dimensions are off (incorrect) they
-# may change.
-set_width = 320
-set_height = 240
 
 # Filter specific variables **************************************************
+class FilterVariables:
+    _inst = None
 
-# Set path to variables file
-variables_file = "filter_variables.txt"
-# Read variables from file
-variables = open(variables_file, "r")
-lower_limit = int(variables.readline())
-lower_limit2 = int(variables.readline())
-lower_limit_hue = int(variables.readline())
-upper_limit = int(variables.readline())
-upper_limit2 = int(variables.readline())
-upper_limit_hue = int(variables.readline())
-circle_detect_param = int(variables.readline())
-circle_detect_param2 = int(variables.readline())
-variables.close()
+    @staticmethod
+    def get_inst():
+        if FilterVariables._inst is None:
+            FilterVariables._inst = FilterVariables()
+        return FilterVariables._inst
 
-# Create arrays for filter parameters
-lower_range = np.array([lower_limit_hue, lower_limit, lower_limit2])
-upper_range = np.array([upper_limit_hue, upper_limit, upper_limit2])
+    def __init__(self):
+        # Set path to variables file
+        self._file = "filter_variables.txt"
+        # Read variables from file
+        with open(self._file, "r") as file:
+            self.lower_limit = int(file.readline())
+            self.lower_limit2 = int(file.readline())
+            self.lower_limit_hue = int(file.readline())
+            self.upper_limit = int(file.readline())
+            self.upper_limit2 = int(file.readline())
+            self.upper_limit_hue = int(file.readline())
+            self.circle_detect_param = int(file.readline())
+            self.circle_detect_param2 = int(file.readline())
 
-# Create threading specific variables  ***************************************
-lock = Lock()
-thread_motion_num = -1
-# General exit flag
-exit_gen = 0
-# Exit flag for ball detection
-exit_detect = 0
-# Exit flag for calibration loop
-exit_calibrate = 0
-# Used to activate and deactivate automatic movement of the robot
-automatic_control = 1
+        # Create arrays for filter parameters
+        self.lower_range = np.array(
+            [
+                self.lower_limit_hue,
+                self.lower_limit,
+                self.lower_limit2
+            ]
+        )
+        self.upper_range = np.array(
+            [
+                self.upper_limit_hue,
+                self.upper_limit,
+                self.upper_limit2
+            ]
+        )
 
-if __name__ == "__main__":
-    for i in motion_dictionary:
-        print(i, " : ", motion_dictionary[i])
+    def save_file(self):
+        print("saving filter variables file")
+        string = str(self.lower_limit) + '\n'
+        string += str(self.lower_limit2) + '\n'
+        string += str(self.lower_limit_hue) + '\n'
+        string += str(self.upper_limit) + '\n'
+        string += str(self.upper_limit2) + '\n'
+        string += str(self.upper_limit_hue) + '\n'
+        string += str(self.circle_detect_param) + '\n'
+        string += str(self.circle_detect_param2)
+        with open(self._file, "w") as file:
+            file.write(string)
+
+    def get_ranges(self):
+        ary = [
+            self.lower_range,
+            self.upper_range
+        ]
+        return ary
+
+    def get_circle_params(self):
+        ary = [
+            self.circle_detect_param,
+            self.circle_detect_param2
+        ]
+        return ary
+
+    def get_lower(self):
+        ary = [
+            self.lower_limit,
+            self.lower_limit2,
+            self.lower_limit_hue,
+        ]
+        return ary
+
+    def get_upper(self):
+        ary = [
+            self.upper_limit,
+            self.upper_limit2,
+            self.upper_limit_hue,
+        ]
+        return ary
+
+    def update_ranges(self):
+        # Create arrays for filter parameters
+        self.lower_range = np.array(
+            [
+                self.lower_limit_hue,
+                self.lower_limit,
+                self.lower_limit2
+            ]
+        )
+        self.upper_range = np.array(
+            [
+                self.upper_limit_hue,
+                self.upper_limit,
+                self.upper_limit2
+            ]
+        )
+
+    def update_lower_limit(self, value):
+        self.lower_limit = value
+
+    def update_lower_limit2(self, value):
+        self.lower_limit2 = value
+
+    def update_lower_limit_hue(self, value):
+        self.lower_limit_hue = value
+
+    def update_upper_limit(self, value):
+        self.upper_limit = value
+
+    def update_upper_limit2(self, value):
+        self.upper_limit2 = value
+
+    def update_upper_limit_hue(self, value):
+        self.upper_limit_hue = value
+
+    def update_circle_detect_param(self, value):
+        self.circle_detect_param = value
+
+    def update_circle_detect_param2(self, value):
+        self.circle_detect_param2 = value
+
+
+class ExitControl:
+    # General exit flag
+    gen = 0
+    remote = 0
+    # Exit flag for ball detection
+    detection = 0
+    # Exit flag for calibration loop
+    calibrate = 0

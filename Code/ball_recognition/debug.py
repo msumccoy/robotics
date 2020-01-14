@@ -15,44 +15,39 @@ Functions:
 
 import time
 
-debug_gen = 0
-debug_cam = 0
-debug_circles = 0
-debug_cycles = 0
-debug_robot = 0
 
-debug_all = 0
-if debug_all:
-    debug_cam = 1
-    debug_circles = 1
-    debug_cycles = 1
-    debug_robot = 1
+class Debug:
+    output_frequency = 5
 
-output_frequency = 5
+    gen = 0
+    cam = 0
+    circles = 0
+    cycles = 0
+    robot = 0
 
+    debug_all = 1
+    if debug_all:
+        gen = 1
+        cam = 1
+        circles = 1
+        cycles = 1
+        robot = 1
 
-def debug_on():
-    global debug_cam
-    global debug_circles
-    global debug_cycles
-    global debug_robot
-    debug_cam = 1
-    debug_circles = 1
-    debug_cycles = 1
-    debug_robot = 1
-    print("debug on")
+    @staticmethod
+    def debug_on():
+        Debug.cam = 1
+        Debug.circles = 1
+        Debug.cycles = 1
+        Debug.robot = 1
+        print("debug on")
 
-
-def debug_off():
-    global debug_cam
-    global debug_circles
-    global debug_cycles
-    global debug_robot
-    debug_cam = 0
-    debug_circles = 0
-    debug_cycles = 0
-    debug_robot = 0
-    print("debug off")
+    @staticmethod
+    def debug_off():
+        Debug.cam = 0
+        Debug.circles = 0
+        Debug.cycles = 0
+        Debug.robot = 0
+        print("debug off")
 
 
 class ExecutionTiming:
@@ -61,30 +56,28 @@ class ExecutionTiming:
     cycles = 0
     last_output = 0
 
-    def __init__(self):
-        self.start()
-
-    def start(self):
+    def __init__(self,):
         self.start_time = time.time()
+        self.cycles = 0
+        self.last_output = 0
 
     def check(self):
         self.cycles += 1
-        total_time = time.time() - self.start_time
-        average = total_time / self.cycles
-        if time.time() - self.last_output > output_frequency and debug_cycles:
-            print("Total time = ", total_time)
-            print("Average execution time = ", average)
-            self.last_output = time.time()
+        if Debug.cycles:
+            total_time = time.time() - self.start_time
+            average = total_time / self.cycles
+            if time.time() - self.last_output > Debug.output_frequency:
+                print("Total time = ", total_time)
+                print("Average execution time = ", average)
+                self.last_output = time.time()
 
 
 class ErrorOutput:
-    last_output = 0
-
     def __init__(self):
-        pass
+        self.last_output = 0
 
     def error_output(self, error):
-        if (time.time() - self.last_output > output_frequency
-                and debug_circles):
-            print(error)
-            self.last_output = time.time()
+        if Debug.circles:
+            if time.time() - self.last_output > Debug.output_frequency:
+                print(error)
+                self.last_output = time.time()

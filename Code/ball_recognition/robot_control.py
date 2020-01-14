@@ -9,16 +9,14 @@ robot, a function to control the robot through object detection and a function
 to control the robot manually.
 """
 
+import serial
 import time
 
 # Project specific modules
-import variables
-from debug import debug_robot
-
-if variables.test_environment:
-    from test_environment import serial
-else:
-    import serial
+from variables import ExitControl, RobotCom
+from config import Conf
+from constants import HexConst, Locks, SerConst
+from debug import Debug
 
 
 # Create class to handle robot object
@@ -27,67 +25,96 @@ class Robot:
     serial module and bluetooth on the raspberry pi. Once closed this class
     will automatically close the connection with the robot.
     """
+    _inst1 = None
+    _inst2 = None
 
-    def __init__(self):
+    @staticmethod
+    def get_inst(robot_type):
+        if robot_type == 1:
+            if Robot._inst1 is None:
+                Robot._inst1 = Robot(1)
+            return Robot._inst1
+        elif robot_type == 2:
+            if Robot._inst2 is None:
+                Robot._inst2 = Robot(2)
+            return Robot._inst2
+        else:
+            raise ValueError(
+                "{} is not a valid option for Robot".format(robot_type))
+
+    def __init__(self, robot_type):
+        if robot_type == 1:
+            com_port = Conf.HUMANOID_PORT
+            print("Initializing Humanoid")
+        else:
+            com_port = Conf.SPIDER_PORT
+            print("Initializing spider")
+
         # Create serial port object for connection to the robot
-        self.ser = serial.Serial(variables.com_port, 115200, serial.EIGHTBITS,
-                                 serial.PARITY_EVEN, serial.STOPBITS_ONE,
-                                 timeout=1)
+        self.ser = serial.Serial(
+            com_port,
+            Conf.BAUDRATE,
+            Conf.BYTESIZE,
+            Conf.PARITY,
+            timeout=Conf.SER_TIMEOUT
+        )
         start_time = time.time()
         # Loop until serial connection made or connection times out
+        print(self.ser.isOpen())
         while not self.ser.isOpen():
-            self.ser.Open()
-            if (not self.ser.isOpen() and
-                    (time.time() - start_time)
-                    > variables.serial_port_time_out):
+            if (time.time() - start_time) > SerConst.PORT_TIME_OUT:
                 raise Exception("Connection timed out")
-        if debug_robot:
+            self.ser.Open()
+        if Debug.robot:
             print("The connection took ", time.time() - start_time, "seconds")
 
-    def automatic_control(self):
-        """ This function is to be used to send commands to the robot."""
-        # Create robot object to initiate connection with the robot
+    def play_rcb4_motion(self, motion_cmd):
+        with Locks.ROBOT_LOCK:
+            try:
+                self.send_motion_cmd(HexConst.STOP)
+                self.send_motion_cmd(HexConst.RESET)
+                print("motion command ", motion_cmd)
+                self.send_motion_cmd(motion_cmd)
+                self.send_motion_cmd(HexConst.RESUME)
+                self.ser.flush()
+            except serial.SerialException as e:
+                self.ser.flush()
+                print("A serial exception was hit: {}".format(e))
 
-        # Set to default state
-        motion_num = -1
-        while not variables.exit_gen:
-            # Determine if motion command has been issued
-            with variables.lock:
-                if variables.thread_motion_num != -1:
-                    motion_num = variables.thread_motion_num
-            # Send issued motion command without tying up the shared variable
-            if motion_num != -1:
-                self.send_motion_cmd(motion_num)
-                print("send complete")
-                motion_num = -1
-                with variables.lock:
-                    variables.thread_motion_num = -1
+    def send_motion_cmd(self, hex_cmd, cache_wait=.05):
+        if Debug.robot:
+            print("sending motion command: {}".format(hex_cmd))
+        # with Locks.ROBOT_LOCK:
+        self.ser.write(hex_cmd)
+        self.clear_cache(cache_wait)
 
-    def send_motion_cmd(self, motion_number):
-        """This function gets a motion number converts it to a hex string
-        using the generate_motion_cmd function and then sends that string to
-        the physical robot
-        :param motion_number: A valid motion number that is coded in
-        heart2heart
-        :return motion_cmd: return hex string in case post processing is
-        desired
+    def clear_cache(self, wait=.05):
+        if Debug.robot:
+            print("Clearing cache with wait time {}sec".format(wait))
+        check = ""
+        while check == "":
+            check = self.ser.read()
+        time.sleep(wait)
+
+    @staticmethod
+    def get_motion_cmd(motion_num):
+        if motion_num in HexConst.HUMANOID_MOTION_DICT:
+            return HexConst.HUNDRED_NUM_DICT[motion_num]
+        else:
+            print("Motion number {} not allowed".format(motion_num))
+            return HexConst.STOP
+
+    @staticmethod
+    def generate_motion_cmd(motion_number):
         """
+        This function potentially can't be used in python 3
 
-        if motion_number == "stop":
-            motion_number = 1  # Set to home position
-        # self.ser.write(variables.stop_motion)
-        motion_cmd = self.generate_motion_cmd(motion_number)
-        self.ser.write(motion_cmd)
-        return motion_cmd
-
-    def generate_motion_cmd(self, motion_number):
-        """ This function is used to generate a custom hex string for the
+        This function is used to generate a custom hex string for the
         robot.
         :param motion_number: This is a valid number that is programmed in
         heart2heart.
         :return command_string: return custom hex string for robot command
         """
-
         # Motion numbers start at position 11 with 8 spaces (bytes) between
         # in Heart2Heart
         motion_hex = (int(motion_number) * 8) + 11
@@ -118,29 +145,34 @@ class Robot:
                           + r'\x' + motion_hex_lower
                           + r'\x' + motion_hex_higher
                           + r"\x00\x" + check_sum)
-        return command_string.decode("string_escape")
+        return command_string
 
-    def clear_cache(self):
-        """ This function clears the serial cache and checks the response from
-        the robot. Currently it only clears the cache.
+    @staticmethod
+    def background_control(robot_type):
+        """ This function is to be used to send commands to the robot."""
+        # Create robot object to initiate connection with the robot
+        robot = Robot.get_inst(robot_type)
+        print("robot robot robot ", robot)
 
-        :return:
-        """
-        check = ""
-        start_time = time.time()
-        # Try to get response from cache until retrieved or timed out
-        while check == "":
-            check = self.ser.read()
-            # print("clear_cache check: ", check)
-            # Check for timeout
-            if (check == "" and
-                    (time.time() - start_time)
-                    > variables.connection_time_out):
-                raise Exception("Connection port time out")
-        # If the wrong response is retrieved exit and print response
-        # print("Response: ", check)
+        # Set to default state
+        motion_num = -1
+        while not ExitControl.gen:
+            # Determine if motion command has been issued
+            with Locks.ROBOT_LOCK:
+                if RobotCom.motion_num != -1:
+                    motion_num = RobotCom.motion_num
+                    if type(motion_num) is int:
+                        motion_num = Robot.get_motion_cmd(motion_num)
+            # Send issued motion command without tying up the shared variable
+            if motion_num != -1:
+                robot.play_rcb4_motion(motion_num)
+                print("send complete")
+                motion_num = -1
+                with Locks.ROBOT_LOCK:
+                    RobotCom.motion_num = -1
 
     def __del__(self):
         # Destructor. This function is called when an object is deleted or the
         # program ends
+        self.ser.flush()
         self.ser.close()

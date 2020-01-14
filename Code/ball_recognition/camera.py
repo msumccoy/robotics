@@ -8,17 +8,13 @@ folder named "ball_recognition_v1". It contains a class to connect to the
 camera on either a raspberry pi or windows computer.
 """
 
-import platform
-import cv2
+from picamera.array import PiRGBArray
+from picamera import PiCamera
 
 # Project specific modules
-import variables
-from debug import debug_cam
-# Check if running on rasp pi to import pi cam modules
-if platform.system() != "Windows":
-    import serial
-    from picamera.array import PiRGBArray
-    from picamera import PiCamera
+from config import Conf
+from constants import Locks
+from debug import Debug
 
 
 # Create class to handle camera object
@@ -27,41 +23,33 @@ class Camera:
     both windows and raspberry pi will be able to use the same object because
     this class will handle the differences between the two operating systems.
     """
+    _inst = None
+
+    @staticmethod
+    def get_inst():
+        if Camera._inst is None:
+            Camera._inst = Camera()
+        return Camera._inst
 
     # Initialize the class. No variables are required because the only
     # condition is the operating system.
     def __init__(self):
-        # Check if the operating system is linux, (raspberry pi will return
-        # ("Linux"). The raspberry pi uses a pi cam and therefore needs
-        # the pi cam implementation of the camera.
-        if platform.system() == "Linux":
-            if debug_cam:
-                print("starting camera")
-            self.cam = PiCamera()
-            self.cam.resolution = (variables.set_width, variables.set_height)
-            self.raw_capture = PiRGBArray(self.cam)
-        else:
-            if debug_cam:
-                print("starting camera")
-            self.cap = cv2.VideoCapture(0)
-            self.cap.set(3, variables.set_width)
-            self.cap.set(4, variables.set_height)
+        if Debug.cam:
+            print("starting camera")
+        self._cam = PiCamera()
+        self._cam.resolution = (Conf.SET_WIDTH, Conf.SET_HEIGHT)
+        self._raw_capture = PiRGBArray(self._cam)
+        self._frame = None
         self.get_frame()
-        # Get the actual width and height that was set.
-        self.height, self.width, self.channels = self.frame.shape
 
     def get_frame(self):
         """ This function gets the current image in front of the camera"""
-        if platform.system() == "Linux":
-            self.cam.capture(self.raw_capture, "bgr", True)
-            self.frame = self.raw_capture.array
-            self.raw_capture.truncate(0)
-        else:
-            _, self.frame = self.cap.read()
+        # with Locks.CAM_LOCK:
+        self._cam.capture(self._raw_capture, "bgr", True)
+        self._frame = self._raw_capture.array
+        self._raw_capture.truncate(0)
+        return self._frame
 
     # Create the destructor to close the camera connections.
     def __del__(self):
-        if platform.system() == "Linux":
-            self.cam.close()
-        else:
-            self.cap.release()
+        self._cam.close()

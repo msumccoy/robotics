@@ -46,7 +46,7 @@ class Conf:
     up and down several times; fast prance; wiggle
     12 turn right (slow big turn)
     13 turn left (slow big turn)
-    14 fast forward and then fast back
+    14 forward then back (fast)
     15 dance (wiggle then remain mid height)
     16 slow wiggle
     17 stand mid height
