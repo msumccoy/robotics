@@ -25,7 +25,7 @@ class Debug:
     cycles = 0
     robot = 0
 
-    debug_all = 1
+    debug_all = 0
     if debug_all:
         gen = 1
         cam = 1

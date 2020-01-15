@@ -40,7 +40,7 @@ class ObjectDetector:
         * -1 for fail
         * 0 for success
         """
-        robot = Robot.get_inst(robot_type)
+        # robot = Robot.get_inst(robot_type)  # disabled because robot not present
 
         # Create camera object
         camera = Camera.get_inst()
@@ -76,12 +76,13 @@ class ObjectDetector:
                 num_circles = draw_circles(frame, circles, width, height)
                 # If object detected send message to robot control
                 if num_circles == 1:
-                    if RobotCom.automatic_control:
-                        robot.play_rcb4_motion(
-                            DICTS.HUMANOID_FULL[
-                                MotionLogic.create_motion_num()
-                            ]
-                        )
+                    print("BALL FOUND")
+                #     if RobotCom.automatic_control:
+                #         robot.play_rcb4_motion(
+                #             DICTS.HUMANOID_FULL[
+                #                 MotionLogic.create_motion_num()
+                #             ]
+                #         )
             except Exception as e:
                 error_handle.error_output(e)
 

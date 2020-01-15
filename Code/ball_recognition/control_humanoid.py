@@ -25,7 +25,7 @@ def control_humanoid():
                 motion_num = Generic.get_int("Enter motion num: ")
                 # Print dictionary
                 if motion_num == KeyWordControl.DICTIONARY:
-                    for key in DICTS.full_motion_dictionary:
+                    for key in DICTS.HUMANOID_FULL:
                         print("{} :{} ".format(
                             key, DICTS.HUMANOID_FULL[key]))
                         motion_num = Generic.get_int("Enter motion num: ")

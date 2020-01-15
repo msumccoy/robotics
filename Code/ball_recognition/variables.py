@@ -61,7 +61,7 @@ class FilterVariables:
             ]
         )
 
-    def save_file(self):
+    def file_save(self):
         print("saving filter variables file")
         string = str(self.lower_limit) + '\n'
         string += str(self.lower_limit2) + '\n'
