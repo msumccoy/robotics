@@ -9,3 +9,11 @@ Code/opencv_cascade_creator/label_maker/images/
 Code/opencv_cascade_creator/photo_dowloader/neg/
 Code/opencv_cascade_creator/photo_dowloader/bg.txt
 *.jpg
+Code/opencv_cascade_creator/C++/positive_image_creator/.vs/
+*.vcxproj
+*.filters
+Code/opencv_cascade_creator/C++/positive_image_creator/positive_image_creator.sln
+Code/opencv_cascade_creator/C++/
+Code/opencv_cascade_creator/photo_dowloader/negatives.txt
+Code/opencv_cascade_creator/photo_dowloader/logs/download_log.txt
+Code/opencv_cascade_creator/label_maker/raw_pos.txt
