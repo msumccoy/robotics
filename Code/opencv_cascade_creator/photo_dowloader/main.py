@@ -1,18 +1,17 @@
 """ Kuwin Wyke
 Midwestern State University
-Start: 26 December 2019
-End: work in progress
 
-***Description to be made***
+This program downloads negative images and creates a text file specifying the
+location of the images using a relative path.
 """
 
-import make_negatives
-import create_bg
+from make_negatives import download_negatives_and_create_text_file
 
 
 def main():
-    # make_negatives.store_raw_images()
-    create_bg.create_pos_n_neg()
+    download_negatives_and_create_text_file(
+        output_name="negatives_main_thread"
+    )
 
 
 if __name__ == '__main__':

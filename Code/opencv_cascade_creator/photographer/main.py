@@ -1,9 +1,7 @@
 """ Kuwin Wyke
 Midwestern State University
-Start: 23 December 2019
-End: work in progress
 
-***Description to be made***
+NOT USED
 """
 
 from photo_loop import photo_loop
