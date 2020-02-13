@@ -4,7 +4,7 @@ import cv2
 # Project specific modules
 from misc import Generic
 from variables import ExitControl, RobotCom
-from constants import Locks, KeyWordControl, R_Control, DICTS
+from constants import Locks, KeyWordControl, R_Control, DICTS, HexConst
 from circle_detection import ObjectDetector
 from robot_control import Robot
 from debug import Debug
@@ -18,19 +18,26 @@ def control_humanoid():
         # Loop until exit flag set to True(1)
         while not ExitControl.gen:
             # Get users desired action
-            motion_num = Generic.get_int("Enter motion num: ")
+            motion_num = input("Enter motion num: ")
             # Give access to full range of motions
             if motion_num == KeyWordControl.FULL_CONTROL:
                 print("full control")
-                motion_num = Generic.get_int("Enter motion num: ")
+                motion_num = input("Enter motion num: ")
                 # Print dictionary
                 if motion_num == KeyWordControl.DICTIONARY:
                     for key in DICTS.HUMANOID_FULL:
                         print("{} :{} ".format(
                             key, DICTS.HUMANOID_FULL[key]))
-                        motion_num = Generic.get_int("Enter motion num: ")
+                    motion_num = input("Enter motion num: ")
+                try:
+                    motion_num = int(motion_num)
+                except ValueError as e:
+                    print(
+                        "{} is not a number, full control"
+                        " exit".format(motion_num))
+                    print(e)
                 if motion_num in DICTS.HUMANOID_FULL:
-                    robot.play_rcb4_motion(DICTS.HUNDRED_NUM[motion_num])
+                    robot.play_rcb4_motion(HexConst.HUNDRED_NUM[motion_num])
 
             # Create keyboard remote
             elif motion_num == KeyWordControl.REMOTE:
@@ -43,10 +50,10 @@ def control_humanoid():
                     command = cv2.waitKey(0)
 
                     # Stop robot motion
-                    if command == KeyWordControl.STOP:
+                    if command == R_Control.STOP:
                         message = "Robot stop"
                         alert_window.output(message)
-                        robot.play_rcb4_motion(DICTS.HUNDRED_NUM[1])
+                        robot.play_rcb4_motion(HexConst.HUNDRED_NUM[1])
 
                     # Enable and disable detection motion command
                     elif command == R_Control.DETECT_ON:
@@ -63,19 +70,19 @@ def control_humanoid():
                         message = "forward"
                         alert_window.output(message)
                         robot.play_rcb4_motion(
-                            DICTS.HUNDRED_NUM[15])
+                            HexConst.HUNDRED_NUM[15])
                     elif command == R_Control.BACKWARD:
                         message = "backward"
                         alert_window.output(message)
-                        robot.play_rcb4_motion(DICTS.HUNDRED_NUM[16])
+                        robot.play_rcb4_motion(HexConst.HUNDRED_NUM[16])
                     elif command == R_Control.LEFT:
                         message = "left"
                         alert_window.output(message)
-                        robot.play_rcb4_motion(DICTS.HUNDRED_NUM[17])
+                        robot.play_rcb4_motion(HexConst.HUNDRED_NUM[17])
                     elif command == R_Control.RIGHT:
                         message = "right"
                         alert_window.output(message)
-                        robot.play_rcb4_motion(DICTS.HUNDRED_NUM[18])
+                        robot.play_rcb4_motion(HexConst.HUNDRED_NUM[18])
 
                     # Turn the robot
                     elif command == R_Control.TURN:
@@ -85,11 +92,11 @@ def control_humanoid():
                         if command == R_Control.LEFT:
                             message = "turn left"
                             alert_window.output(message)
-                            robot.play_rcb4_motion(DICTS.HUNDRED_NUM[19])
+                            robot.play_rcb4_motion(HexConst.HUNDRED_NUM[19])
                         elif command == R_Control.RIGHT:
                             message = "turn right"
                             alert_window.output(message)
-                            robot.play_rcb4_motion(DICTS.HUNDRED_NUM[20])
+                            robot.play_rcb4_motion(HexConst.HUNDRED_NUM[20])
                         else:
                             message = "invalid turn"
                             alert_window.output(message)
@@ -117,7 +124,7 @@ def control_humanoid():
             # Stop robot current motion
             elif (motion_num == KeyWordControl.STOP1
                   or motion_num == KeyWordControl.STOP2):
-                robot.play_rcb4_motion(DICTS.HUNDRED_NUM[1])
+                robot.play_rcb4_motion(HexConst.HUNDRED_NUM[1])
 
             # Start calibration
             elif motion_num == KeyWordControl.CALIBRATE:
@@ -155,13 +162,17 @@ def control_humanoid():
                   or motion_num == KeyWordControl.EXIT2):
                 Funcs.exit_program()
             else:
+                try:
+                    motion_num = int(motion_num)
+                except ValueError:
+                    print("motion unknown try again")
                 if motion_num in DICTS.HUMANOID_MOTION:
-                    robot.play_rcb4_motion(DICTS.HUNDRED_NUM[motion_num])
+                    robot.play_rcb4_motion(HexConst.HUNDRED_NUM[motion_num])
     except Exception as e:
         print("Main program exiting with exception: \n", e)
 
     finally:
-        with Locks.gen:
+        with Locks.GEN_LOCK:
             # Set exit flag for all threads
             ExitControl.gen = 1
         del robot

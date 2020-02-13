@@ -37,20 +37,20 @@ from picamera import PiCamera
 
 
 def main():
-    robot_type = 2
+    robot_type = 1
     # Create objects to control robot and circle detection/calibration
     # control_humanoid()
-    ObjectDetector.calibrate_filter()
+    # ObjectDetector.calibrate_filter()
     object_detector = threading.Thread(
         target=ObjectDetector.object_detection, args=(robot_type,)
     )
 
-    object_detector.start()
+    # object_detector.start()
 
-    # if robot_type == 1:
-    #     control_humanoid()
-    # elif robot_type == 2:
-    #     control_spider()
+    if robot_type == 1:
+        control_humanoid()
+    elif robot_type == 2:
+        control_spider()
 
 
 if __name__ == "__main__":
