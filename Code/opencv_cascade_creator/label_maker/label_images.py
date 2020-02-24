@@ -45,7 +45,11 @@ def label_images(image_location):
         cv2.destroyWindow(CV_Window.REQUEST_WINDOW)
         if img_handler.item_count is not None and img_handler.item_count > 0:
             k = cv2.waitKey(1000)
-            if k == 27 or k == ord("s"):  # Esc = 27
+            if k == 27 or k == ord("s"):
                 img_handler.end = True
+            elif k == ord("x") or k == ord("X"):
+                img_handler.skip()
+            elif k == ord("r") or k == ord("R"):
+                img_handler.restart()
     cv2.destroyAllWindows()
     img_handler.finish()

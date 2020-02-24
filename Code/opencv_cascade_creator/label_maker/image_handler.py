@@ -50,18 +50,12 @@ class ImageHandler:
             # self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, CamConf.WIDTH)
             # self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CamConf.HEIGHT)
             # Give camera time to warm up
-            time.sleep(1)
+            time.sleep(2)
         elif self._location is IMG_LOC_TYPE.FILE:
-            self._images = [
-                Conf.POS_PATH + img for img in os.listdir(Conf.POS_PATH)
-            ]
+            self._images = [img for img in os.listdir(Conf.IMG_PATH)]
             self._num_images = len(self._images)
-        if not os.path.exists(Conf.CAM_IMG_PATH):
-            os.mkdir(Conf.CAM_IMG_PATH)
-        # Clear the file to ensure it is empty for writing
-        # This action is needed for now but me be removed later
-        with open(Conf.RAW_LABEL_FILE, "w") as file:
-            pass
+        if not os.path.exists(Conf.IMG_PATH):
+            os.mkdir(Conf.IMG_PATH)
         cv2.namedWindow(CV_Window.WINDOW_NAME)
         cv2.setMouseCallback(CV_Window.WINDOW_NAME, mouse_click, location)
 
@@ -90,17 +84,31 @@ class ImageHandler:
             self.item_count = 0
             if self._location is IMG_LOC_TYPE.CAM:
                 _, self._img = self._cap.read()
-                self._img_name = "cam" + str(self._index) + ".jpg"
+                self._img_name = (
+                        Conf.IMG_PATH + "_cam" + str(self._index) + ".jpg"
+                )
                 self._index += 1
-            if self._location is IMG_LOC_TYPE.FILE:
+            elif self._location is IMG_LOC_TYPE.FILE:
                 if self._index < self._num_images:
-                    self._img_name = self._images[self._index]
-                    self._img = cv2.imread(self._img_name)
+                    self._img = cv2.imread(
+                        Conf.IMG_PATH + str(self._images[self._index])
+                    )
+                    self._img_name =(
+                            Conf.IMG_PATH + "_file"
+                            + str(self._images[self._index])
+                    )
+                    os.rename(
+                        Conf.IMG_PATH + str(self._images[self._index]),
+                        Conf.IMG_PATH + "_file"
+                        + str(self._images[self._index])
+                    )
                     self._index += 1
                 else:
                     self.end = True
                     return
-            self._img = cv2.resize(self._img, (CamConf.RESIZE, CamConf.RESIZE))
+            self._img = cv2.resize(
+                self._img, (CamConf.RESIZE, CamConf.RESIZE)
+            )
             self._img_copy = self._img.copy()
             add_text_to_img(self._img_name, self._img_copy)
             self.show_image()
@@ -145,7 +153,9 @@ class ImageHandler:
                     self._next_img = True
                 elif k != -1 and k != 255:  # -1 or 255 is default
                     # Save the image and the labels
-                    cv2.imwrite(Conf.CAM_IMG_PATH + self._img_name, self._img)
+                    if self._location is IMG_LOC_TYPE.CAM:
+                        print(self._img_name)
+                        cv2.imwrite(self._img_name, self._img)
                     self._coord_dict[self._img_name] = self._bb_coords
                     self._next_img = True
                     print(self._coord_dict[self._img_name])
@@ -174,20 +184,50 @@ class ImageHandler:
         else:
             return False
 
+    def update_box(self, x, y):
+        self._img_copy = self._img.copy()
+        add_text_to_img(self._img_name, self._img_copy)
+        cv2.rectangle(
+            self._img_copy,
+            (self._x, self._y),
+            (x, y),
+            CV_Window.COLOR
+        )
+        self.show_image()
+
+    def draw_cross(self, x, y):
+        self._img_copy = self._img.copy()
+        add_text_to_img(self._img_name, self._img_copy)
+        width, height, depth = self._img_copy.shape
+        cv2.line(self._img_copy, (x, 0), (x, height), CV_Window.COLOR)
+        cv2.line(self._img_copy, (0, y), (width, y), CV_Window.COLOR)
+        self.show_image()
+
+    def skip(self):
+        print("skipping")
+        self._next_img = True
+
+    def restart(self):
+        print("restarting labeling process")
+        self._img_copy = self._img.copy()
+        add_text_to_img(self._img_name, self._img_copy)
+
     def save_raw(self):
         # Save labeling data
         print("Writing to file")
         with open(Conf.RAW_LABEL_FILE, "a") as file:
-            for key in self._coord_dict:
-                line = "{} {} ".format(key, len(self._coord_dict[key]))
-                for coords in self._coord_dict[key]:
-                    width = coords[1][0] - coords[0][0]
-                    height = coords[1][1] - coords[0][1]
-                    line += "{} {} {} {} ".format(
-                        coords[0][0], coords[0][1], width, height
-                    )
-                line += "\n"
-                file.write(line)
+            with open(Conf.FULL_LABEL_FILE, "a") as full_file:
+                for key in self._coord_dict:
+                    line = "{} {} ".format(key, len(self._coord_dict[key]))
+                    for coords in self._coord_dict[key]:
+                        width = coords[1][0] - coords[0][0]
+                        height = coords[1][1] - coords[0][1]
+                        line += "{} {} {} {} ".format(
+                            coords[0][0], coords[0][1], width, height
+                        )
+                    line += "\n"
+                    file.write(line)
+                    full_file.write(line)
 
     def finish(self):
         # Perform post operation clean up

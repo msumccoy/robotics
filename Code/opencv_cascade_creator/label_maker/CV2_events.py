@@ -18,3 +18,10 @@ def mouse_click(event, x, y, flags, param):
             else:
                 img_handler.set_bottom_right(x, y)
             img_handler.show_image()
+    elif event == cv2.EVENT_MOUSEMOVE:
+        img_handler = image_handler.ImageHandler.get_inst(param)
+        if img_handler.accept_label_points():
+            if img_handler.first_point:
+                img_handler.draw_cross(x, y)
+            else:
+                img_handler.update_box(x, y)

@@ -8,10 +8,10 @@ import cv2
 
 
 class Conf:
-    POS_PATH = "raw_pos_images/"
-    CAM_IMG_PATH = "label_images/"
+    IMG_PATH = "info/"
     RAW_LABEL_FILE = "raw_pos.txt"
-    FULL_LABEL_FILE = "info.list"
+    FULL_LABEL_FILE = "info.lst"
+    FINAL_POS_SIZE = 50
 
 
 class CamConf:
