@@ -68,24 +68,6 @@ class PicNumMaster:
         if num_files == 0:
             return num
         range_files = range(num_files)
-        try:
-            file_names = [int(file[:-4]) for file in files]
-            file_names.sort()
-            reorder = False
-        except ValueError:
-            reorder = True
-        end = False
-        i = 0
-        while not end and not reorder:
-            # make sure files are in numerical order
-            if i not in file_names:
-                reorder = True
-            elif i == range_files[-1]:
-                end = True
-            else:
-                i += 1
-        if reorder:
-            reorder_folder()
 
         for root, dirs, files in os.walk(Conf.NEG_FOLDER):
             range_files = range(len(files))
@@ -104,22 +86,6 @@ class PicNumMaster:
 
 def validate_images(wait=1):
     image_list = os.listdir(Conf.NEG_FOLDER)
-    index = 0
-    end = False
-    while not end:
-        image_with_path = Conf.NEG_FOLDER + image_list[index]
-        img = cv2.imread(image_with_path)
-        try:
-            cv2.imshow("image", img)
-            cv2.waitKey(0)
-            end = True
-        except cv2.error as e:
-            os.remove(image_with_path)
-            print(
-                "{} was removed because of error {}".format(
-                    image_with_path, e
-                )
-            )
     for image in image_list:
         image_with_path = Conf.NEG_FOLDER + image
         img = cv2.imread(image_with_path)
@@ -136,31 +102,10 @@ def validate_images(wait=1):
         if k == 27:
             break
     cv2.destroyAllWindows()
-    reorder_folder()
     with open(Conf.NEG_FILE, "w") as file:
         for img in os.listdir(Conf.NEG_FOLDER):
             line = Conf.NEG_FOLDER + img + "\n"
             file.write(line)
-
-
-def reorder_folder():
-    files = os.listdir(Conf.NEG_FOLDER)
-    i = 0
-    for file in files:
-        # Give files a random name
-        os.rename(
-            Conf.NEG_FOLDER + file, Conf.NEG_FOLDER + file + str(i)
-        )
-        i += 1
-    files2 = os.listdir(Conf.NEG_FOLDER)
-    i = 0
-    for file in files2:
-        # rename files orderly
-        os.rename(
-            Conf.NEG_FOLDER + file,
-            Conf.NEG_FOLDER + str(i) + Conf.IMG_TYPE
-        )
-        i += 1
 
 
 class URL_Retrieval:
@@ -178,7 +123,13 @@ class URL_Retrieval:
         ]
         for file in all_files:
             with open(file) as url_file:
-                line = url_file.readline()
+                end = False
+                while not end:
+                    try:
+                        line = url_file.readline()
+                        end = True
+                    except Exception as e:
+                        print(e)
                 while line != "":
                     self._neg_image_urls.append(line[:-1])
                     try:
