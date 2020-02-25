@@ -1,1 +1,0 @@
-debug_cam = 1
