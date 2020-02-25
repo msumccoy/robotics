@@ -13,3 +13,5 @@ Code/.idea/
 Code/opencv_cascade_creator/C++/bg.txt
 *.vec
 *.lst
+Code/opencv_cascade_creator/random_neg_rename/neg/bg.txt
+Code/opencv_cascade_creator/vector_creator/bg.txt
