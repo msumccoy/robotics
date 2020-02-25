@@ -8,17 +8,14 @@ import cv2
 
 
 class Conf:
-    IMG_PATH = "info/"
-    RAW_LABEL_FILE = "raw_pos.txt"
-    FULL_LABEL_FILE = "info.lst"
-    FINAL_POS_SIZE = 50
-
-
-class CamConf:
-    WIDTH = 640
-    HEIGHT = 380
-    # Target length of square after resizing positive image
-    RESIZE = 300
+    IMG_PATH = "labeled"
+    IMG_PATH_FILE = "orig_images"
+    IMG_PATH_CROP = "cropped_images"
+    LABEL_FILE = IMG_PATH + "/info.lst"
+    CROP_SIZE = 50
+    MAX_IMG_WIDTH = 700
+    CAM_PREFIX = "_cam"
+    FILE_PREFIX = "_file"
 
 
 class CV_Window:
@@ -38,4 +35,5 @@ class CV_Window:
     FONT = cv2.QT_FONT_NORMAL
     FONT_SCALE = .75
     COLOR = (3, 252, 78)
+    COLOR2 = (3, 252, 3)
     THICKNESS = 1

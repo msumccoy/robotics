@@ -6,8 +6,9 @@ labeled images and crop out the item. The cropped image is then resized to
 the final desired size of the positive objects
 """
 import cv2
+import os
 
-from config import Conf, CamConf, CV_Window
+from config import Conf, CV_Window
 
 
 def cut_out_objects():
@@ -21,7 +22,9 @@ class ImageCropper:
 
     def __init__(self):
         self._labels = {}
-        with open(Conf.RAW_LABEL_FILE) as file:
+        if not os.path.exists(Conf.IMG_PATH_CROP):
+            os.mkdir(Conf.IMG_PATH_CROP)
+        with open(Conf.LABEL_FILE) as file:
             line = file.readline()
             while line != "":
                 temp = line.split(" ")
@@ -31,14 +34,14 @@ class ImageCropper:
                 # correct
                 if int(temp[1]) * 4 == len(temp) - 2:
                     name = temp[0]
-                    if "_cam" in name or "_file" in name:
-                        num_labels = int(temp[1])
-                        temp.pop(0)
-                        temp.pop(0)
-                        self._labels[name] = [num_labels]
-                        for _ in range(num_labels):
-                            # Save top left coordinates
-                            # and the width and height
+                    num_labels = int(temp[1])
+                    temp.pop(0)
+                    temp.pop(0)
+                    self._labels[name] = [num_labels]
+                    for _ in range(num_labels):
+                        # Save top left coordinates
+                        # and the width and height
+                        try:
                             self._labels[name].append(
                                 [
                                     (int(temp[0]), int(temp[1])),
@@ -50,9 +53,11 @@ class ImageCropper:
                             temp.pop(0)
                             temp.pop(0)
                             temp.pop(0)
-                    else:
-                        print("Malformed string --> {}".format(line))
-                    line = file.readline()
+                        except ValueError:
+                            print("{} not a valid name".format(name))
+                else:
+                    print("Malformed string --> {}".format(line))
+                line = file.readline()
 
     @staticmethod
     def get_inst():
@@ -63,25 +68,19 @@ class ImageCropper:
     def show_image(self):
         index = 0
         for key in self._labels:
-            img = cv2.imread(key, cv2.IMREAD_GRAYSCALE)
-            img = cv2.resize(img, (CamConf.RESIZE, CamConf.RESIZE))
+            print(key, self._labels[key])
+            img = cv2.imread(Conf.IMG_PATH + "/" + key, cv2.IMREAD_GRAYSCALE)
             num_labels = self._labels[key][0]
             for i in range(num_labels):
                 x, y = self._labels[key][i+1][0]
                 width, height = self._labels[key][i+1][1]
-                print(key)
                 crop_img = img[y:y+height, x:x+width]
                 crop_img = cv2.resize(
-                    crop_img, (Conf.FINAL_POS_SIZE, Conf.FINAL_POS_SIZE)
+                    crop_img, (Conf.CROP_SIZE, Conf.CROP_SIZE)
                 )
                 cv2.rectangle(
                     img, (x, y), (x + width, y + height), CV_Window.COLOR
                 )
-            name = Conf.IMG_PATH + "_crop" + str(index) + ".jpg"
-            cv2.imwrite(name, crop_img)
-            index += 1
-            with open(Conf.FULL_LABEL_FILE, "a") as file:
-                line = "{} 1 0 0 {} {}\n".format(
-                    name, Conf.FINAL_POS_SIZE, Conf.FINAL_POS_SIZE
-                )
-                file.write(line)
+                name = Conf.IMG_PATH_CROP + "/_crop" + str(index) + ".jpg"
+                cv2.imwrite(name, crop_img)
+                index += 1

@@ -12,3 +12,4 @@ Code/opencv_cascade_creator/label_maker/raw_pos.txt
 Code/.idea/
 Code/opencv_cascade_creator/C++/bg.txt
 *.vec
+*.lst

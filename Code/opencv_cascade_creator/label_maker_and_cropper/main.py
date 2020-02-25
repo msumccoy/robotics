@@ -13,11 +13,8 @@ from label_images import label_images
 
 
 def main():
-    # Clear the file to ensure it is empty for writing
-    # with open(Conf.RAW_LABEL_FILE, "w") as file:
-    #     pass
     # label_images(IMG_LOC_TYPE.CAM)
-    label_images(IMG_LOC_TYPE.FILE)
+    # label_images(IMG_LOC_TYPE.FILE)
     cut_out_objects()
 
 
