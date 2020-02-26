@@ -13,9 +13,9 @@ from label_images import label_images
 
 
 def main():
-    # label_images(IMG_LOC_TYPE.CAM)
+    label_images(IMG_LOC_TYPE.CAM)
     # label_images(IMG_LOC_TYPE.FILE)
-    cut_out_objects()
+    # cut_out_objects()
 
 
 if __name__ == '__main__':

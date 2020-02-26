@@ -12,6 +12,7 @@ file in the original "info.lst" file.
 """
 import os
 
+import cv2
 from config import Conf
 
 
@@ -21,44 +22,50 @@ def main():
         directory for directory in os.listdir(Conf.IMG_ROOT)
         if os.path.isdir(directory)
         and Conf.INFO_FILE in os.listdir(Conf.IMG_ROOT + directory)
+        and directory != Conf.MASTER_LABEL_FOLDER
     ]
 
-    # Count total number of labeled images
-    count = 0
+    # Create folder for all labeled images
+    if not os.path.exists(Conf.IMG_ROOT + Conf.MASTER_LABEL_FOLDER):
+        os.mkdir(Conf.IMG_ROOT + Conf.MASTER_LABEL_FOLDER)
+
+    # Make sure master folder is empty
+    for file in os.listdir(Conf.IMG_ROOT + Conf.MASTER_LABEL_FOLDER):
+        os.remove(Conf.IMG_ROOT + Conf.MASTER_LABEL_FOLDER + "/" + file)
+
+    # Count maximum number of labeled images
+    count = 0; i = 0
     for directory in directory_list:
         count += len(os.listdir(Conf.IMG_ROOT + directory))
+    count += len(directory_list)
 
     # Rename each file with a unique name, recreate label file and create
     # master label file
-    name_gen = (Conf.NAME + str(i) + Conf.IMG_TYPE for i in range(count))
+    name_gen = (str(i) + Conf.IMG_TYPE for i in range(count))
 
-    master = Conf.IMG_ROOT + Conf.INFO_FILE
+    master = Conf.IMG_ROOT + Conf.MASTER_LABEL_FOLDER + "/" + Conf.INFO_FILE
     with open(master, "w") as master_file:
         for directory in directory_list:
             main_info = Conf.IMG_ROOT + directory + "/" + Conf.INFO_FILE
-            temp_info = Conf.IMG_ROOT + directory + "/" + Conf.INFO_FILE_TEMP
             with open(main_info) as info_file:
-                with open(temp_info, "w") as temp_file:
+                line = info_file.readline()
+                while line != "":
+                    segments = line.split(" ")
+                    old_name = segments[0]
+                    new_name = name_gen.__next__()
+                    img = cv2.imread(
+                        Conf.IMG_ROOT + directory + "/" + old_name
+                    )
+                    cv2.imwrite(
+                        Conf.IMG_ROOT + Conf.MASTER_LABEL_FOLDER + "/"
+                        + new_name,
+                        img
+                    )
+                    print("old: {} --> new: {}".format(old_name, new_name))
+                    master_file.write(new_name)
+                    for segment in segments[1:]:
+                        master_file.write(" " + segment)
                     line = info_file.readline()
-                    while line != "":
-                        segments = line.split(" ")
-                        old_name = segments[0]
-                        new_name = name_gen.__next__()
-                        print("old name --> {}: new name --> {}".format(
-                            old_name, new_name
-                        ))
-                        os.rename(
-                            Conf.IMG_ROOT + directory + "/" + old_name,
-                            Conf.IMG_ROOT + directory + "/" + new_name
-                        )
-                        master_file.write(new_name)
-                        temp_file.write(new_name)
-                        for segment in segments[1:]:
-                            master_file.write(" " + segment)
-                            temp_file.write(" " + segment)
-                        line = info_file.readline()
-            os.remove(main_info)
-            os.rename(temp_info, main_info)
 
 
 if __name__ == '__main__':

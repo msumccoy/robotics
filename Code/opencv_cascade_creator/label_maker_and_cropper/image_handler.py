@@ -70,7 +70,7 @@ class ImageHandler:
                 if pic_num > self._index:
                     self._index = pic_num
             # Give camera time to warm up
-            time.sleep(1)
+            time.sleep(.1)
         elif self._location is IMG_LOC_TYPE.FILE:
             self._images = [img for img in os.listdir(Conf.IMG_PATH_FILE)]
             self._num_images = len(self._images)
@@ -101,7 +101,13 @@ class ImageHandler:
             self._next_img = False
             self.item_count = 0
             if self._location is IMG_LOC_TYPE.CAM:
-                _, self._img = self._cap.read()
+                good = False
+                while not good:
+                    _, self._img = self._cap.read()
+                    cv2.imshow(CV_Window.WINDOW_NAME, self._img)
+                    k = cv2.waitKey(1)
+                    if k != -1 and k != 255:
+                        good = True
                 self._img_name = ("_cam" + str(self._index) + ".jpg")
                 self._index += 1
             elif self._location is IMG_LOC_TYPE.FILE:
@@ -169,6 +175,7 @@ class ImageHandler:
                 cv2.imshow(CV_Window.REQUEST_WINDOW, blank_image)
                 self.show_image()
                 k = cv2.waitKey()
+                cv2.destroyWindow(CV_Window.REQUEST_WINDOW)
                 if k == 27:  # Esc
                     print("Not saving and exiting")
                     self.end = True
@@ -247,7 +254,9 @@ class ImageHandler:
 
     def restart(self):
         print("restarting labeling process")
+        self.item_count = 0
         self._bb_coords = []
+        self.first_point = True
 
     def save_raw(self):
         # Save labeling data

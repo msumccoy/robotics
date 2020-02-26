@@ -35,5 +35,5 @@ class CV_Window:
     FONT = cv2.QT_FONT_NORMAL
     FONT_SCALE = .75
     COLOR = (3, 252, 78)
-    COLOR2 = (3, 252, 3)
+    COLOR2 = (255, 78, 3)
     THICKNESS = 1
