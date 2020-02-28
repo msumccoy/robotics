@@ -52,19 +52,22 @@ def main():
                 while line != "":
                     segments = line.split(" ")
                     old_name = segments[0]
-                    new_name = name_gen.__next__()
                     img = cv2.imread(
                         Conf.IMG_ROOT + directory + "/" + old_name
                     )
-                    cv2.imwrite(
-                        Conf.IMG_ROOT + Conf.MASTER_LABEL_FOLDER + "/"
-                        + new_name,
-                        img
-                    )
-                    print("old: {} --> new: {}".format(old_name, new_name))
-                    master_file.write(new_name)
-                    for segment in segments[1:]:
-                        master_file.write(" " + segment)
+                    if img is not None:
+                        new_name = name_gen.__next__()
+                        cv2.imwrite(
+                            Conf.IMG_ROOT + Conf.MASTER_LABEL_FOLDER + "/"
+                            + new_name,
+                            img
+                        )
+                        print(
+                            "old: {} --> new: {}".format(old_name, new_name)
+                        )
+                        master_file.write(new_name)
+                        for segment in segments[1:]:
+                            master_file.write(" " + segment)
                     line = info_file.readline()
 
 

@@ -40,12 +40,12 @@ def main():
         if os.path.isfile(Conf.TARGET_FOLDER + "/" + name)
         and name != Conf.NEG
     ]
-    with open(Conf.TARGET_FOLDER + "/" + Conf.NEG, "w") as file:
+    with open(Conf.NEG, "w") as file:
         i = 0
         for name in name_list:
             name_change = str(i) + ".jpg"
             os.rename(name, Conf.TARGET_FOLDER + "/" + name_change)
-            file.write(name_change + "\n")
+            file.write(Conf.TARGET_FOLDER + "/" + name_change + "\n")
             i += 1
 
 

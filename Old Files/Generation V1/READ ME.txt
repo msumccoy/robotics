@@ -1,0 +1,2 @@
+This folder contains early scripts. The primary function of these files are for
+individuals to familiarize themselves with controlling the robot
