@@ -1,0 +1,2 @@
+This folder contains files used for testing and familiarizing ones self with
+the OpenCV library.

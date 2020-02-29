@@ -8,7 +8,7 @@ Variables:
 	1) should be no less than 3 characters
 	2) must clearly represent what they stand for
 		a) Example: use "TaxRate" not "TR"
-	3) should always start with a capital letter
+	3) should start with lower case letters
 	4) can be more than one word but they must be stuck together using an underscore
 			- Example: two_words
 			
@@ -17,8 +17,6 @@ Comments:
 		a) Starting comment should give:
 			- Name of author
 			- Organization (MSU)
-			- Start date
-			- End date ("work in progress" is fine if not complete)
 			- Description of what the program does
 	2) should be placed before each block of your program
 	3) should be place when ever there is doubt
@@ -27,20 +25,26 @@ Comments:
 		- Good: #Print paychecks for 100 employees
 		- Bad:  #Print
 	
-Note: Try to keep lines of code bellow 80 characters
+Note: Try to keep lines of code bellow 78 characters
 
 Order of program:
 	1) Start Program with comment:
 		Programmer’s name
 		Organization (Midwestern State University)
-		Date of commencement - Date of completion (if not completed put “in progress”)
 		Description of programs functions
 		
 		Example:
 			#Kuwin Wyke
 			#Midwestern State University
-			#September 9, 2019 - in progress
 			#Program to print the square root of a number after two seconds
+			
+			OR
+			
+			"""
+			Kuwin Wyke
+			Midwestern State University
+			Program to print the square root of a number after two seconds
+			"""
 
 	2) 	Import necessary libraries
 		Place each import on a seperate line
@@ -50,42 +54,36 @@ Order of program:
 			
 	3) Declare global variable (variables accessible by the whole program) 
 
-	4) Declare functions
+	4) Declare functions (main function first)
 		Put function in chronological order 
-			(functions that call another function should be placed after said function)
+			(functions that call another function should be placed after said function with the exception of main)
 		Declare all local variables at the start of the function
 
 	5) Place main program in a function called main and then call that function
-
-	Note: While it is legal to call of a function that is declared later in the program, this is bad practice.
 
 	Sample program:
 
 		#Kuwin Wyke
 		#Midwestern State University
-		#September 9, 2019 - in progress
 		#Sample program to print the square root of a number after two seconds.
 		
 		import math
 		import time
 		
-		#Time to wait before printing answer.
-		#This variable is accessable to the entire program (global).
-		WaitTime = 2
-		
+		#Main function to perform primary function of the program.
+		def main():
+			#Time to wait before printing answer.
+			WaitTime = 2
+			Number = 4
+			time.sleep(WaitTime)
+			print(GetSqrRoot(Number))
+				
 		#Function to get the square root of a given number.
 		def GetSqrRoot(Num):
 			Num = math.sqrt(Num)
 			return Num
 		
-		#Main function to perform primary function of the program.
-		def main():
-			#Number is only accessable to the main function (local)
-			Number = 4
-			time.sleep(WaitTime)
-			print(GetSqrRoot(Number))
-		
-		#Check to see if the program is calling it self.
+		#Check to see if the program is not being called by an external function.
 		#If an external program is calling on this function for access to the 
 		#functions in this program then  this block will not be executed.
 		if __name__ == "__main__":

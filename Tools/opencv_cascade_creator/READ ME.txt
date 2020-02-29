@@ -1,0 +1,27 @@
+This folders primary goal is to help in the creation of Haar Cascades.
+It does not contain the training data as these files are too large.
+
+The "label_maker_and_cropper" is used to hand label photos either from 
+a web cam or photos from a file. This will create an lst file containing
+the labels and it will also crop the images to be used with OpenCV_createsamples
+
+The "photo_downloader" is used to download negative images from urls. The URLs
+currently in this folder (found in "photo_downloader/urls/negative_urls" were 
+obtained from image-net.org.
+
+The "random_neg_rename" is used to rename already downloaded photos to allow a 
+wider range of negative photos to be used with OpenCV_createsamples when creating
+multiple samples. OpenCV_createsamples uses the same negative image names each 
+time it is used from my experience.
+
+The "create_cumulative_lst_file" is the last folder to be used before creating the
+.vec file. To use this folder, place all positive labeled image folders into this folder
+and run the script. The .lst files for each respective positive set should be contained
+within the respective folder and contain only the positive image name. The master_label
+folder that is created is what is to be used to create the .vec file.
+
+Ultimately the actual OpenCV_createsamples and OpeCV_traincascade will have to be
+obtained from the OpenCV github https://github.com/opencv/opencv
+If you compile OpenCV from source using Cmake and Visual Studios (which is how I did it)
+the OpenCV_createsamples.exe and OpeCV_traincascade.exe and the necesary dll can be found
+within the folder it was compiled to.
