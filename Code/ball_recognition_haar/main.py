@@ -12,7 +12,7 @@ import logging
 import time
 
 from ball_recognition_haar import log_set_up
-from ball_recognition_haar.config import Conf, Log, Templates
+from ball_recognition_haar.config import Conf, Log, Templates, Active
 from ball_recognition_haar.detection import dual_detect
 
 
@@ -20,7 +20,13 @@ def main():
     logger = logging.getLogger(Log.NAME)
     # Start Camera
     cam = cv2.VideoCapture(0)
+    _, frame = cam.read()
+    frame_height, frame_width, _ = frame.shape
     end = False
+    video_file = cv2.VideoWriter(
+        Conf.VIDEO_FILE, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),
+        30, (frame_width, frame_height)
+    )
     while not end:
         # Get camera frame and separate left and right images
         _, frame = cam.read()
@@ -44,9 +50,13 @@ def main():
         cv2.imshow(Conf.BALL_WINDOW_LEFT, frame_left)
         cv2.imshow(Conf.BALL_WINDOW_RIGHT, frame_right)
         k = cv2.waitKey(1)
+        if Active.RECORD:
+            video_file.write(frame)
         if k == 27:  # Esc = 27
             end = True
     cv2.destroyAllWindows()
+    video_file.release()
+    cam.release()
 
 
 if __name__ == '__main__':

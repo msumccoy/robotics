@@ -15,6 +15,7 @@ class Conf:
     BALL_WINDOW_RIGHT = "Right lens output"
     CASCADE_FILE = "cascade_files/tennis_ball_20x20_stage14_3500samples.xml"
     BALL_DETECTOR = cv2.CascadeClassifier(CASCADE_FILE)
+    VIDEO_FILE = "Output_recording"
 
 
 class Templates:
@@ -32,3 +33,7 @@ class Log:
     FILE_LEVEL = logging.INFO
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
     WRITE_FREQUENCY = 30
+
+
+class Active:
+    RECORD = False

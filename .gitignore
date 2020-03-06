@@ -10,3 +10,4 @@ Tools/opencv_cascade_creator/photo_dowloader/logs/download_log.txt
 Tools/opencv_cascade_creator/random_neg_rename/bg.txt
 Tools/opencv_cascade_creator/random_neg_rename/neg/bg.txt
 *.pb
+*.avi
