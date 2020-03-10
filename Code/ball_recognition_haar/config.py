@@ -15,7 +15,9 @@ class Conf:
     BALL_WINDOW_RIGHT = "Right lens output"
     CASCADE_FILE = "cascade_files/tennis_ball_20x20_stage14_3500samples.xml"
     BALL_DETECTOR = cv2.CascadeClassifier(CASCADE_FILE)
-    VIDEO_FILE = "Output_recording"
+    VIDEO_FILE = "Output_recording.avi"
+    DISPLAY_AREA = 400
+    TEXT_COLOR = (3, 78, 255)
 
 
 class Templates:
@@ -36,4 +38,4 @@ class Log:
 
 
 class Active:
-    RECORD = False
+    RECORD = True

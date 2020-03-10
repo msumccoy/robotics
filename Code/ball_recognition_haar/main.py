@@ -14,20 +14,31 @@ import time
 from ball_recognition_haar import log_set_up
 from ball_recognition_haar.config import Conf, Log, Templates, Active
 from ball_recognition_haar.detection import dual_detect
+from ball_recognition_haar.record_video import record_video
 
 
 def main():
+    check_time = time.time()
     logger = logging.getLogger(Log.NAME)
     # Start Camera
     cam = cv2.VideoCapture(0)
-    _, frame = cam.read()
-    frame_height, frame_width, _ = frame.shape
+    if Active.RECORD:
+        _, frame = cam.read()
+        frame_height, frame_width, _ = frame.shape
+        if frame_height < Conf.DISPLAY_AREA:
+            frame_height *= 2
+        else:
+            frame_height += Conf.DISPLAY_AREA
+        video_file = cv2.VideoWriter(
+            Conf.VIDEO_FILE, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),
+            30, (frame_width, frame_height)
+        )
+        print(frame_height)
+        print(frame.shape)
     end = False
-    video_file = cv2.VideoWriter(
-        Conf.VIDEO_FILE, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),
-        30, (frame_width, frame_height)
-    )
     while not end:
+        time_elapsed = time.time() - check_time
+        check_time = time.time()
         # Get camera frame and separate left and right images
         _, frame = cam.read()
         height, width, _ = frame.shape
@@ -46,13 +57,22 @@ def main():
         if len(xy_left) == len(xy_right):
             for xy1, xy2 in zip(xy_left, xy_right):
                 print("xy_left: {} -- xy_right: {}".format(xy1, xy2))
-        cv2.imshow(Conf.BALL_WINDOW_MAIN, frame)
+            num_detections = len(xy_right)
+        else:
+            num_detections = "Not equal"
         cv2.imshow(Conf.BALL_WINDOW_LEFT, frame_left)
         cv2.imshow(Conf.BALL_WINDOW_RIGHT, frame_right)
-        k = cv2.waitKey(1)
         if Active.RECORD:
-            video_file.write(frame)
-        if k == 27:  # Esc = 27
+            record_video(
+                img=frame,
+                img_writer=video_file,  # video_file
+                time_elapsed=time_elapsed,
+                num_detections=num_detections,
+            )
+        else:
+            cv2.imshow(Conf.BALL_WINDOW_MAIN, frame)
+        k = cv2.waitKey(1)
+        if k != -1 and k != 255:
             end = True
     cv2.destroyAllWindows()
     video_file.release()
