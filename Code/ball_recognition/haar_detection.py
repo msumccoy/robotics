@@ -7,7 +7,7 @@ This module is used to execute haar detection
 import time
 import cv2
 
-from ball_recognition.config import Conf, Display
+from config import Conf, Display
 
 
 def haar_detection(img):

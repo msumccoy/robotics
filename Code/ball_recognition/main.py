@@ -15,9 +15,9 @@ import os
 import time
 import numpy as np
 
-from ball_recognition.camera_control import CameraControl
-from ball_recognition.config import Conf, Log, Display, Templates
-from ball_recognition.haar_detection import haar_detection
+from camera_control import CameraControl
+from config import Conf, Log, Display, Templates
+from haar_detection import haar_detection
 
 
 def main():
@@ -45,6 +45,7 @@ def main():
     tf_file_handler.setFormatter(formatter)
 
     stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
 
     main_logger.addHandler(main_file_handler)
     main_logger.addHandler(stream_handler)
@@ -91,12 +92,12 @@ def main():
         ######################################################################
         # Detect balls in left image, time the detection, draw bounding boxes
         # around the detected balls
-        tf_l_detect_time, tf_l_points = 0, (0, 0)
+        tf_l_detect_time, tf_l_points = 0, ((0, 0),)
         tf_l_num_balls = len(tf_l_points)
 
         # Detect balls in right image, time the detection, draw bounding boxes
         # around the detected balls
-        tf_r_detect_time, tf_r_points = 0, (0, 0)
+        tf_r_detect_time, tf_r_points = 0, ((0, 0),)
         tf_r_num_balls = len(tf_r_points)
 
         if tf_l_num_balls == tf_r_num_balls:

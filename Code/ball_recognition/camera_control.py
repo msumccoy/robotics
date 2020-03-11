@@ -7,7 +7,7 @@ project
 """
 import cv2
 
-from ball_recognition.config import Templates, Conditionals, Conf, Display
+from config import Templates, Conditionals, Conf, Display
 
 
 class CameraControl:
