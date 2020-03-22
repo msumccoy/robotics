@@ -1,5 +1,4 @@
 import time
-
 import numpy as np
 import os
 import six.moves.urllib as urllib
@@ -15,6 +14,7 @@ from PIL import Image
 
 from ball_recognition_tensorflow.object_detection.utils import label_map_util
 from ball_recognition_tensorflow.object_detection.utils import visualization_utils as vis_util
+
 
 def main():
     start = time.time()
