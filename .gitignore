@@ -11,3 +11,4 @@ Tools/opencv_cascade_creator/random_neg_rename/bg.txt
 Tools/opencv_cascade_creator/random_neg_rename/neg/bg.txt
 *.pb
 *.avi
+Tools/.idea/
