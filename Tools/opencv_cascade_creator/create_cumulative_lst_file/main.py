@@ -5,10 +5,9 @@ Midwestern State University
 This program is used to create a cumulative text file containing the paths to
 all positive photos for training.
 
-To use this program, place labeled images with "info.lst" file in the root
-of this program then run the script. The program will rename all labeled
-images and create a master "info.lst" with all labels and rename each labeled
-file in the original "info.lst" file.
+To use this program, place labeled images with "info.lst" file in a folder
+then place all folders in the root of this project. The program will rename
+all labeled images and create a master folder with an "info.lst" file
 """
 import os
 
