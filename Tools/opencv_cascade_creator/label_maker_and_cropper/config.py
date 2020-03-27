@@ -13,6 +13,8 @@ class Conf:
     ORIG_IMG_FOLDER = "orig_images"
     CROPPED_IMG_FOLDER = "cropped_images"
     DELETED_IMG_FOLDER = "images_to_delete"
+    SKIP_FOLDER = "skipped"
+    ORIG_AFTER_LABEL = "originals_after_labeling"
     LABEL_FILE = LABELED_IMG_FOLDER + "/info.lst"
     CROP_SIZE = 50
     # Max width before image resizing

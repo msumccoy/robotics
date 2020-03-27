@@ -28,10 +28,19 @@ class ImageHandler:
         # Ensure the correct environment exist
         if not os.path.exists(Conf.CROPPED_IMG_FOLDER):
             os.mkdir(Conf.CROPPED_IMG_FOLDER)
+
         if not os.path.exists(Conf.DELETED_IMG_FOLDER):
             os.mkdir(Conf.DELETED_IMG_FOLDER)
+
+        if not os.path.exists(Conf.ORIG_AFTER_LABEL):
+            os.mkdir(Conf.ORIG_AFTER_LABEL)
+
+        if not os.path.exists(Conf.SKIP_FOLDER):
+            os.mkdir(Conf.SKIP_FOLDER)
+
         if not os.path.exists(Conf.LABELED_IMG_FOLDER):
             os.mkdir(Conf.LABELED_IMG_FOLDER)
+
         if os.listdir(Conf.LABELED_IMG_FOLDER):
             raise AssertionError(
                 "The label folder is not empty. "
@@ -181,7 +190,15 @@ class ImageHandler:
     def save_labels(self):
         if self.bb_coords:
             print(f"Saving {self.img_name}")
-            cv2.imwrite(f"{Conf.LABELED_IMG_FOLDER}/{self.img_name}", self.img)
+            print(f"Moving {self.img_name} to {Conf.ORIG_AFTER_LABEL} folder")
+            os.rename(
+                f"{Conf.ORIG_IMG_FOLDER}/{self.img_name}",
+                f"{Conf.ORIG_AFTER_LABEL}/{self.img_name}"
+            )
+            cv2.imwrite(
+                f"{Conf.LABELED_IMG_FOLDER}/{self.img_name}",
+                self.img
+            )
             self.coord_dict[self.img_name] = self.bb_coords
             self.num_labeled_images += 1
             self.next_img = True
@@ -251,6 +268,11 @@ class ImageHandler:
 
     def skip(self):
         print("skipping")
+        print(f"Moving {self.img_name} to skip folder: {Conf.SKIP_FOLDER}")
+        os.rename(
+            f"{Conf.ORIG_IMG_FOLDER}/{self.img_name}",
+            f"{Conf.SKIP_FOLDER}/{self.img_name}"
+        )
         self.next_img = True
         self.bb_coords = []
 
@@ -293,7 +315,24 @@ class ImageHandler:
                     file.write(line)
 
 
-def validate_labled_images():
+class ImageValidator(ImageHandler):
+    def __init__(self, image):
+        super().__init__()
+        self.images = [image]
+        self.num_images = len(self.images)
+        print(self.images)
+
+
+def validate_labeled_images():
+    # This function is a work in progress. It is not entirely necessary for
+    # image labeling
+
+    # validator = ImageValidator(f"cam_pic0.jpg")  #testing
+
+    print(
+        "This function (validate_labeled_images) is still under construction"
+    )
+    return
     if not os.listdir(Conf.LABELED_IMG_FOLDER):
         raise AssertionError(
             "The label folder is empty. "
