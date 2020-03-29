@@ -180,6 +180,7 @@ class ImageHandler:
         cv2.setMouseCallback(CV_Window.MAIN_WINDOW, mouse_events)
 
     def get_next(self):
+        self.first_point = True
         if self.num_remaining > 0:
             self.get_unlabeled()
         elif self.num_labeled_images > 0:

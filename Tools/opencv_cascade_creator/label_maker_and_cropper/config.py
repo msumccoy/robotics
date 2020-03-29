@@ -35,7 +35,7 @@ class TK_Window:
 
     SAVE_CURRENT = "Press 'Space Bar' or 'Enter' to Save bounding boxes"
     SAVE_ALL = "Press 's' to Force save info.lst file"
-    GO_BACK = "Press 'backspace' OR 'b' to go back"
+    GO_BACK = "Press 'backspace' or 'b' to go back"
     RESTART = "Press 'r' to Restart labeling"
     SKIP = "Press 'x' to Skip image"
     DELETE = "Press 'd' to Delete current image"
