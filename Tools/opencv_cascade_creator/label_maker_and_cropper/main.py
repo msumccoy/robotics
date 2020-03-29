@@ -4,22 +4,29 @@ Midwestern State University
 
 This program is used to label images for OpenCV's C++ application to train
 haar cascades. If the images are larger than config.Conf.MAX_IMG_WIDTH they
-will be resized. The program also has the power to used the labeled images to
-crop out the object to be used with OpenCV's application to create images.
+will be resized. The program also has the power to crop out the object to be
+used with OpenCV's application to create images.
 
 *** HOW TO USE ***
 To use this program place the images you want to label in the folder
 designated by config.Conf.ORIG_IMG_FOLDER. Once completed the labeled images
 will be in the folder designated by config.Conf.LABELED_IMG_FOLDER.
 
-OUTDATED!!!!!!!!!!
+*****************
+This program is still under construction.
+
+- All UI elements work but still need to be styled
+- The building blocks for creating tensor flow labels have been put in place.
+*****************
 """
 import cv2
 import os
+import psutil
 import numpy as np
 import tkinter as tk
 from tkinter import messagebox
 from functools import partial
+
 try:
     from pynput import keyboard
     from win32gui import GetWindowText, GetForegroundWindow
@@ -38,10 +45,6 @@ except ModuleNotFoundError:
 from config import Conf, CV_Window, TK_Window
 from enums import IMG_LOC_TYPE, COORDS
 
-############################################
-import psutil
-############################################
-
 
 ##############################################################################
 ##############################################################################
@@ -50,7 +53,7 @@ import psutil
 ##############################################################################
 class ImageHandler:
     """
-    This class controls the behaviour of the image labeling system.
+    This class controls the behavior of retrieving and labeling the images
     """
     _inst = None
 
@@ -76,10 +79,9 @@ class ImageHandler:
 
         if not os.path.exists(Conf.ORIG_IMG_FOLDER):
             os.mkdir(Conf.ORIG_IMG_FOLDER)
-            # If this folder does not exist there is nothing we can do
             print(
-                "The folder with the original images was not found. "
-                f"Folder name: {Conf.ORIG_IMG_FOLDER}"
+                "The folder with the original images was not found and "
+                f"had to be created. Folder name: {Conf.ORIG_IMG_FOLDER}"
             )
 
         self.labeled_image = False
@@ -88,28 +90,51 @@ class ImageHandler:
         self.mask_section = False
         self.end = False
 
-        # Dummy initialize variables
         self.img = None
         self.img_copy = None
         self.img_name = None
+        self.last_labeled = None
+        self.current_img = None
         self.x = None
         self.y = None
 
         self.unlabeled_images = [
             img for img in os.listdir(Conf.ORIG_IMG_FOLDER)
         ]
+        # Remove files with invalid file types
+        for img in self.unlabeled_images:
+            if img[-3:] == "jpg" or img[-3:] == "JPG":
+                pass
+            else:
+                invalid_file = self.unlabeled_images.pop(
+                    self.unlabeled_images.index(img)
+                )
+                try:
+                    os.rename(
+                        f"{Conf.ORIG_IMG_FOLDER}/{invalid_file}",
+                        f"{Conf.INVALID_IMG_FOLDER}/{invalid_file}"
+                    )
+                    print(
+                        f"'{invalid_file}' has an invalid file type\n"
+                        f"Moved to '{Conf.INVALID_IMG_FOLDER}'"
+                    )
+                except FileExistsError:
+                    print(
+                        f"Failed to move '{invalid_file}' to "
+                        f"'{Conf.INVALID_IMG_FOLDER}' because file "
+                        f"already exist in the folder\nDeleting PERMANENTLY"
+                    )
+                    os.remove(f"{Conf.ORIG_IMG_FOLDER}/{invalid_file}")
         self.num_unlabeled = len(self.unlabeled_images)
         self.num_remaining = self.num_unlabeled
-        self.last_labeled = None
-        self.current_img = None
-        # Number of items in the image
         self.item_count = 0
-        # All the coordinates for the bounding box (bb)
+        self.num_labeled_objects = 0
+        # All the coordinates for the bounding box (bb) and number of items
         self.bb_coords = []
         # Each image name and the bb coordinates
-        self.num_labeled_objects = 0
-        self.cv_label_dict_temp = {}
+        self.cv_label_dict_temp = {}  # Prevents excessive writing to file
         self.cv_label_dict = {}
+        # Decode info.lst
         if os.path.exists(f"{Conf.LABEL_FILE}"):
             with open(f"{Conf.LABEL_FILE}") as file:
                 line = file.readline()
@@ -122,7 +147,9 @@ class ImageHandler:
                         segments = segments[2:]
                         coords = []
                         for i in range(num_labels):
+                            # Top Left Corner
                             xy1 = (int(segments[0]), int(segments[1]))
+                            # Bottom Right Corner
                             xy2 = (
                                 int(segments[0]) + int(segments[2]),
                                 int(segments[1]) + int(segments[3])
@@ -140,6 +167,7 @@ class ImageHandler:
                             "REMOVING from label file"
                         )
                     line = file.readline()
+            # Check that all images in folder have been labeled
             images_in_folder = os.listdir(f"{Conf.LABELED_IMG_FOLDER}")
             for image in images_in_folder:
                 if image not in self.cv_label_dict and image != "info.lst":
@@ -147,7 +175,7 @@ class ImageHandler:
         self.num_labeled_images = len(self.cv_label_dict)
         self.labeled_index = 0
 
-        # Create OpenCV windows and set call back functions ##################
+        # Create OpenCV windows and set call back functions
         cv2.namedWindow(CV_Window.MAIN_WINDOW)
         cv2.setMouseCallback(CV_Window.MAIN_WINDOW, mouse_events)
 
@@ -167,19 +195,24 @@ class ImageHandler:
             main_app.after(0, bt_close.invoke)
 
     def get_last_labeled(self):
-        if len(self.cv_label_dict) < 1:
+        if self.num_labeled_images < 1:
             messagebox.showinfo(
                 "Alert",
                 "There are no labeled images to show"
             )
             return
         if self.labeled_image:
+            # Go back by 2 beacuse current index number is one ahead of
+            # current image
             self.labeled_index -= 2
+            # If we were on the last image
             if self.labeled_index < -1:
                 self.labeled_index = self.num_labeled_images - 2
+            # If we were on the first image
             elif self.labeled_index < 0:
                 self.labeled_index = self.num_labeled_images - 1
         else:
+            # Ensure that at least one image has been labeled since start
             if self.last_labeled and self.last_labeled in self.cv_label_dict:
                 i = 0
                 for key in self.cv_label_dict:
@@ -189,14 +222,26 @@ class ImageHandler:
                 self.labeled_index = i + 1
             else:
                 self.labeled_index = self.num_labeled_images - 1
+            # But current unlabeled image back into the list because it is
+            # automatically taken out by the function that retrieves it
             self.unlabeled_images.insert(0, self.current_img)
             self.num_remaining += 1
+        # Ensure there is more than one labeled image
         if not self.labeled_index < self.num_labeled_images:
             self.labeled_index = self.num_labeled_images - 1
         self.get_labeled()
 
     def get_labeled(self, image_name=None):
+        # check if current image has been labeled
+        if (
+                self.current_img and
+                self.current_img not in self.cv_label_dict and
+                self.current_img not in self.unlabeled_images
+        ):
+            self.unlabeled_images.insert(0, self.current_img)
+            self.num_remaining += 1
         if image_name is None:
+            # Get Image by index
             i = 0
             for key in self.cv_label_dict:
                 if i == self.labeled_index:
@@ -208,6 +253,7 @@ class ImageHandler:
                 i += 1
         elif image_name in self.cv_label_dict:
             self.img_name = image_name
+            # Get index for image
             i = 0
             for key in self.cv_label_dict:
                 if image_name == key:
@@ -249,35 +295,13 @@ class ImageHandler:
         self.labeled_image = False
         if self.num_remaining > 0:
             self.item_count = 0
-            self.img_name = "0000"
-            while self.img_name[-3:] != "jpg" and self.img_name[-3:] != "JPG":
-                self.img_name = self.unlabeled_images[0]
-                if self.img_name[-3:] == "jpg" or self.img_name[-3:] == "JPG":
-                    self.last_labeled = self.current_img
-                    self.current_img = self.unlabeled_images.pop(0)
-                else:
-                    invalid_file = self.unlabeled_images.pop(0)
-                    try:
-                        os.rename(
-                            f"{Conf.ORIG_IMG_FOLDER}/{invalid_file}",
-                            f"{Conf.INVALID_IMG_FOLDER}/{invalid_file}"
-                        )
-                        print(
-                            f"'{invalid_file}' has an invalid file type\n"
-                            f"Moved to '{Conf.INVALID_IMG_FOLDER}'"
-                        )
-                    except FileExistsError:
-                        print(
-                            f"Failed to move '{invalid_file}' to "
-                            f"'{Conf.INVALID_IMG_FOLDER}' because file "
-                            f"already exist\nDeleting PERMANENTLY"
-                        )
-                        os.remove(f"{Conf.ORIG_IMG_FOLDER}/{invalid_file}")
-                self.num_remaining -= 1
-            self.img = cv2.imread(
-                f"{Conf.ORIG_IMG_FOLDER}/{self.img_name}"
-            )
+            self.img_name = self.unlabeled_images[0]
+            self.num_remaining -= 1
+            self.last_labeled = self.current_img
+            self.current_img = self.unlabeled_images.pop(0)
+            self.img = cv2.imread(f"{Conf.ORIG_IMG_FOLDER}/{self.img_name}")
             height, width, _ = self.img.shape
+            # Limit width of image and resize proportionally
             if width > Conf.MAX_IMG_WIDTH:
                 quotient = width / Conf.MAX_IMG_WIDTH
                 width = Conf.MAX_IMG_WIDTH
@@ -306,60 +330,8 @@ class ImageHandler:
             self.img = None
             self.img_copy = None
 
-    def save_labels(self):
-        if (
-                self.labeled_image and
-                self.cv_label_dict[self.img_name][1] == self.bb_coords
-        ):
-            self.skip()
-        elif self.bb_coords:
-            print(f"Saving: {self.img_name}")
-            if self.labeled_image:
-                self.file_change = True
-                self.num_labeled_objects -= self.cv_label_dict[self.img_name]
-            else:
-                try:
-                    os.rename(
-                        f"{Conf.ORIG_IMG_FOLDER}/{self.img_name}",
-                        f"{Conf.ORIG_AFTER_LABEL}/{self.img_name}"
-                    )
-                    print(
-                        f"Moving '{self.img_name}' to "
-                        f"'{Conf.ORIG_AFTER_LABEL}' folder"
-                    )
-                except FileExistsError:
-                    print(
-                        f"Could not move '{self.img_name}' to "
-                        f"'{Conf.ORIG_AFTER_LABEL}' because file already "
-                        f"exists in the folder\nDeleting PERMANENTLY"
-                    )
-                    os.remove(f"{Conf.ORIG_IMG_FOLDER}/{self.img_name}")
-            cv2.imwrite(
-                f"{Conf.LABELED_IMG_FOLDER}/{self.img_name}",
-                self.img
-            )
-            self.num_labeled_objects += self.item_count
-            self.cv_label_dict[self.img_name] = (
-                self.item_count,
-                self.bb_coords
-            )
-            self.cv_label_dict_temp[self.img_name] = (
-                self.item_count,
-                self.bb_coords
-            )
-            if len(self.cv_label_dict_temp) >= Conf.MAX_UNSAVED:
-                self.save_label_file()
-            self.bb_coords = []
-            self.num_labeled_images = len(self.cv_label_dict)
-            self.get_next()
-        else:
-            print(
-                "Cannot save because you have no bounding boxes defined\n"
-                f"{TK_Window.SKIP}"
-            )
-
     def skip(self):
-        print("skipping")
+        print(f"skipping: {self.img_name}")
         if not self.labeled_image:
             try:
                 os.rename(
@@ -367,8 +339,8 @@ class ImageHandler:
                     f"{Conf.SKIP_FOLDER}/{self.img_name}"
                 )
                 print(
-                    f"Moving '{self.img_name}' to skip folder:"
-                    f" {Conf.SKIP_FOLDER}"
+                    f"Moving '{self.img_name}' to skip folder: "
+                    f"{Conf.SKIP_FOLDER}"
                 )
             except FileExistsError:
                 print(
@@ -392,6 +364,7 @@ class ImageHandler:
             folder = Conf.LABELED_IMG_FOLDER
             del self.cv_label_dict[self.img_name]
             self.num_labeled_images = len(self.cv_label_dict)
+            self.num_labeled_objects -= self.cv_label_dict[self.img_name][0]
             self.file_change = True
         else:
             folder = Conf.ORIG_IMG_FOLDER
@@ -434,33 +407,15 @@ class ImageHandler:
         )
         for coords in self.bb_coords:
             cv2.rectangle(
-                self.img_copy, coords[0], coords[1], CV_Window.COLOR
+                self.img_copy,
+                coords[0],
+                coords[1],
+                CV_Window.COLOR
             )
         cv2.imshow(CV_Window.MAIN_WINDOW, self.img_copy)
 
-    def validate_coords(self, x, y):
-        # Edge detection algorithm to ensure boxes do not overlap.
-        count = 0
-        for coords in self.bb_coords:
-            if (
-                    coords[COORDS.POINT2.value][COORDS.X.value] < self.x
-                    or
-                    coords[COORDS.POINT1.value][COORDS.X.value] > x
-                    or
-                    coords[COORDS.POINT2.value][COORDS.Y.value] < self.y
-                    or
-                    coords[COORDS.POINT1.value][COORDS.Y.value] > y
-            ):
-                count += 1
-        validated = True
-        if not count == len(self.bb_coords):
-            validated = messagebox.askyesno(
-                "Alert",
-                "did you mean to make your bounding boxes intersect?"
-            )
-        return validated
-
     def update_box(self, x, y):
+        # Update moving bounding box for current object labeling
         self.refresh_img()
         if self.mask_section:
             color = CV_Window.COLOR4
@@ -474,7 +429,7 @@ class ImageHandler:
         )
         cv2.imshow(CV_Window.MAIN_WINDOW, self.img_copy)
 
-    def draw_cross(self, x, y):
+    def update_cross(self, x, y):
         self.refresh_img()
         if self.mask_section:
             color = CV_Window.COLOR4
@@ -486,11 +441,9 @@ class ImageHandler:
         cv2.imshow(CV_Window.MAIN_WINDOW, self.img_copy)
 
     def set_top_left(self, x, y):
-        # The upper left corner of the bounding box
         self.x = x
         self.y = y
         self.first_point = False
-        cv2.circle(self.img_copy, (x, y), 1, CV_Window.COLOR)
 
     def set_bottom_right(self, x, y):
         # Switch the points if they were placed in wrong order
@@ -512,9 +465,12 @@ class ImageHandler:
                         "Alert",
                         "You will have to relabel the image. Continue?"
                     )
+                    # If user response with no
                     if not response:
                         self.first_point = True
                         return
+                    self.bb_coords = []
+                    self.item_count = 0
                 cv2.rectangle(
                     self.img,
                     (self.x, self.y),
@@ -522,10 +478,8 @@ class ImageHandler:
                     CV_Window.COLOR4,
                     -1
                 )
-                self.bb_coords = []
             else:
                 self.bb_coords.append(((self.x, self.y), (x, y)))
-                # Draw the bounding box
                 cv2.rectangle(
                     self.img_copy,
                     (self.x, self.y),
@@ -535,18 +489,95 @@ class ImageHandler:
                 self.item_count += 1
         else:
             print("Invalid coordinates, please re-enter them")
-            self.refresh_img()
         self.first_point = True
         self.refresh_img()
 
+    def validate_coords(self, x, y):
+        # Edge detection algorithm to check if boxes overlap.
+        count = 0
+        for coords in self.bb_coords:
+            if (
+                    coords[COORDS.POINT2.value][COORDS.X.value] < self.x
+                    or
+                    coords[COORDS.POINT1.value][COORDS.X.value] > x
+                    or
+                    coords[COORDS.POINT2.value][COORDS.Y.value] < self.y
+                    or
+                    coords[COORDS.POINT1.value][COORDS.Y.value] > y
+            ):
+                count += 1
+        validated = True
+        # If they are not equal at least 2 boxes overlap
+        if not count == len(self.bb_coords):
+            validated = messagebox.askyesno(
+                "Alert",
+                "did you mean to make your bounding boxes intersect?"
+            )
+        return validated
+
+    def save_labels(self):
+        if (
+                self.labeled_image and
+                self.cv_label_dict[self.img_name][1] == self.bb_coords
+        ):
+            self.skip()
+        elif self.bb_coords:
+            print(f"Saving: {self.img_name}")
+            if self.labeled_image:
+                self.file_change = True
+                # Remove label items from count to add new number later
+                self.num_labeled_objects -= (
+                    self.cv_label_dict[self.img_name][0]
+                )
+            else:
+                try:
+                    os.rename(
+                        f"{Conf.ORIG_IMG_FOLDER}/{self.img_name}",
+                        f"{Conf.ORIG_AFTER_LABEL}/{self.img_name}"
+                    )
+                    print(
+                        f"Moving '{self.img_name}' to "
+                        f"'{Conf.ORIG_AFTER_LABEL}' folder"
+                    )
+                except FileExistsError:
+                    print(
+                        f"Could not move '{self.img_name}' to "
+                        f"'{Conf.ORIG_AFTER_LABEL}' because file already "
+                        f"exists in the folder\nDeleting PERMANENTLY"
+                    )
+                    os.remove(f"{Conf.ORIG_IMG_FOLDER}/{self.img_name}")
+            cv2.imwrite(
+                f"{Conf.LABELED_IMG_FOLDER}/{self.img_name}",
+                self.img
+            )
+            self.num_labeled_objects += self.item_count
+            self.cv_label_dict[self.img_name] = (
+                self.item_count,
+                self.bb_coords
+            )
+            self.cv_label_dict_temp[self.img_name] = (
+                self.item_count,
+                self.bb_coords
+            )
+            if len(self.cv_label_dict_temp) >= Conf.MAX_UNSAVED:
+                self.save_label_file()
+            self.bb_coords = []
+            self.num_labeled_images = len(self.cv_label_dict)
+            self.get_next()
+        else:
+            print(
+                "Cannot save because you have no bounding boxes defined\n"
+                f"{TK_Window.SKIP}"
+            )
+
     def save_label_file(self):
-        # Save labeling data
         if self.cv_label_dict_temp != {} and not self.file_change:
             print("Appending to file")
             with open(Conf.LABEL_FILE, "a") as file:
                 for key in self.cv_label_dict_temp:
                     line = f"{key} {self.cv_label_dict[key][0]} "
                     for coords in self.cv_label_dict_temp[key][1]:
+                        # Final value - Initial value
                         width = (
                             coords[COORDS.POINT2.value][COORDS.X.value]
                             - coords[COORDS.POINT1.value][COORDS.X.value]
@@ -563,6 +594,7 @@ class ImageHandler:
                     line += "\n"
                     file.write(line)
             self.cv_label_dict_temp = {}
+        # If a change was made to information that is already in the file
         elif self.file_change:
             self.file_change = False
             print(f"Writing to file")
@@ -570,6 +602,7 @@ class ImageHandler:
                 for key in self.cv_label_dict:
                     line = f"{key} {self.cv_label_dict[key][0]} "
                     for coords in self.cv_label_dict[key][1]:
+                        # Final value - Initial value
                         width = (
                                 coords[COORDS.POINT2.value][COORDS.X.value]
                                 - coords[COORDS.POINT1.value][COORDS.X.value]
@@ -593,8 +626,8 @@ class ImageHandler:
 ##############################################################################
 ##############################################################################
 def mouse_events(event, x, y, flags, param):
-    # This function is used to initiate the drawing of the bounding box or
-    # cross hairs
+    # This function is used to initiate the drawing of the bounding box,
+    # cross hairs and right mouse click save
     if event == cv2.EVENT_LBUTTONDOWN:
         if img_handler.first_point:
             img_handler.set_top_left(x, y)
@@ -602,12 +635,22 @@ def mouse_events(event, x, y, flags, param):
             img_handler.set_bottom_right(x, y)
     elif event == cv2.EVENT_MOUSEMOVE:
         if img_handler.first_point:
-            img_handler.draw_cross(x, y)
+            img_handler.update_cross(x, y)
         else:
             img_handler.update_box(x, y)
+    # Bonus not stated in instructions
+    elif event == cv2.EVENT_RBUTTONDOWN:
+        bt_save_current.invoke()
+    elif event == cv2.EVENT_MBUTTONDOWN:
+        bt_restart.invoke()
+    elif event == cv2.EVENT_MOUSEHWHEEL:
+        bt_back.invoke()
+    elif event == cv2.EVENT_MOUSEWHEEL and img_handler.labeled_image:
+        bt_skip.invoke()
 
 
 def cut_out_objects():
+    # This function is used to cut and crop labeled images
     labels = {}
     if not os.path.exists(Conf.IMG_PATH_CROP):
         os.mkdir(Conf.IMG_PATH_CROP)
@@ -667,10 +710,11 @@ def cut_out_objects():
 
 
 def update_label_list():
+    # Place labeled image buttons in frame
     i = 0
     for image in img_handler.cv_label_dict:
         # To prevent a new UI element being created each iteration check if
-        # instance already exist then delete it
+        # instance already exist then delete it if present
         if image in bt_cv_images:
             bt_cv_images[image].destroy()
         if image == img_handler.img_name:
@@ -679,7 +723,7 @@ def update_label_list():
             color = "black"
         bt_cv_images[image] = tk.Button(
             cv_inner,
-            text=f"{image} -- #labeles: {img_handler.cv_label_dict[image][0]}",
+            text=f"{image} - #labeles: {img_handler.cv_label_dict[image][0]}",
             fg=color,
             command=partial(img_handler.get_labeled, image)
         )
@@ -688,9 +732,12 @@ def update_label_list():
     cv_inner.update_idletasks()
     cv_canvas.config(scrollregion=cv_canvas.bbox("all"))
 
-    #############################################
+    # Update Text Area
     cv_text_area.delete("1.0", tk.END)
-    cv_text_area.insert(tk.END, f"Memory used: {process.memory_info().rss}\n")
+    cv_text_area.insert(
+        tk.END,
+        f"Memory used: {process.memory_info().rss/1048876:.2f}mb\n"
+    )
     cv_text_area.insert(
         tk.END,
         f"Number of labeled pictures: {img_handler.num_labeled_images}\n"
@@ -703,8 +750,8 @@ def update_label_list():
         tk.END,
         f"Number of unlabled pics remaining: {img_handler.num_remaining}\n"
     )
-    #############################################
 
+    # Temporary tensorflow stuff
     if "tf label" in misc:
         misc["tf label"].destroy()
     misc["tf label"] = tk.Button(tf_inner, text="Currently not set up")
@@ -739,15 +786,8 @@ def display_mask_status():
     misc["mask"].grid(row=1, column=1)
 
 
-def activate_opencv_labeling():
-    print("activate_opencv_labeling")
-
-
-def activate_tf_labeling():
-    print("activate_tf_labeling")
-
-
 def key_press(key):
+    # Windows keyboard listener
     if GetWindowText(GetForegroundWindow()) == Conf.WINDOW_NAME:
         try:
             if key == keyboard.Key.space or key == keyboard.Key.enter:
@@ -775,19 +815,17 @@ def key_press(key):
 # Main Function ##############################################################
 ##############################################################################
 ##############################################################################
-process = psutil.Process(os.getpid())
+process = psutil.Process(os.getpid())  # Used to get memory information
 img_handler = ImageHandler()
 bt_cv_images = {}
 bt_tf_images = {}
 misc = {}
 
-row = 0
 main_app = tk.Tk()
 main_app.title(Conf.WINDOW_NAME)
 main_app.geometry(f"{TK_Window.HEIGHT1}x{TK_Window.WIDTH1}")
 
 # Create control/instruction buttons #########################################
-heading = tk.Label(main_app, text="Press: ")
 bt_save_current = tk.Button(
     main_app,
     text=TK_Window.SAVE_CURRENT,
@@ -830,8 +868,8 @@ bt_close = tk.Button(
 )  # placed on the grid closer to the bottom
 spacer = tk.Label(main_app, text="")
 
-# heading.grid(row=row, column=0, sticky="new")
-# row += 1
+# Place Items on main window
+row = 0
 bt_save_all.grid(row=row, column=0, sticky="new")
 row += 1
 bt_save_current.grid(row=row, column=0, sticky="new")
@@ -860,7 +898,6 @@ row += 1
 cv_main_button = tk.Button(
     cv_frame,
     text=TK_Window.CV_BUTTON_TEXT,
-    command=activate_opencv_labeling
 )
 cv_main_button.grid(row=0, column=0, sticky="we")
 cv_canvas = tk.Canvas(
@@ -881,14 +918,10 @@ cv_canvas.configure(yscrollcommand=cv_yscroll.set)
 cv_inner = tk.Frame(cv_canvas, bg="white")
 cv_canvas.create_window((0, 0), window=cv_inner, anchor='nw')
 
-cv_inner.update_idletasks()
-cv_canvas.config(scrollregion=cv_canvas.bbox("all"))
-
 # Create TensorFlow display area #############################################
 tf_main_button = tk.Button(
     tf_frame,
     text=TK_Window.TF_BUTTON_TEXT,
-    command=activate_tf_labeling
 )
 tf_main_button.grid(row=0, column=0, sticky="we")
 tf_canvas = tk.Canvas(
@@ -913,17 +946,14 @@ tf_canvas.create_window(
     anchor='nw'
 )
 
-tf_inner.update_idletasks()
-tf_canvas.config(scrollregion=tf_canvas.bbox("all"))
-
 # Create statistics area #####################################################
 spacer1 = tk.Label(main_app, text="")
 
 cv_text_area = tk.Text(main_app, height=7, width=45)
 tf_text_area = tk.Text(main_app, height=7, width=45)
 
-cv_text_area.insert(tk.END, "Test cv")
-tf_text_area.insert(tk.END, "Test tf")
+cv_text_area.insert(tk.END, "CV Place Holder")
+tf_text_area.insert(tk.END, "TF Place Holder")
 
 spacer1.grid(row=row, column=0, sticky="wn")
 row += 1
@@ -932,7 +962,8 @@ tf_text_area.grid(row=row, column=1)
 row += 1
 
 
-bt_close.grid(row=row, column=0)
+bt_close.grid(row=row, column=0)  # Declared with other buttons
+row += 1
 
 # Set Keyboard Listener ######################################################
 if accept_keys:
