@@ -650,6 +650,38 @@ def mouse_events(event, x, y, flags, param):
         bt_skip.invoke()
 
 
+def key_press(key):
+    # Windows keyboard listener
+    if GetWindowText(GetForegroundWindow()) == Conf.WINDOW_NAME:
+        try:
+            if key == keyboard.Key.space or key == keyboard.Key.enter:
+                bt_save_current.invoke()
+            elif key == keyboard.Key.esc:
+                bt_close.invoke()
+            elif key == keyboard.Key.up:
+                pass
+            elif key == keyboard.Key.down:
+                pass
+            elif key == keyboard.Key.left:
+                pass
+            elif key == keyboard.Key.right:
+                pass
+            elif key == keyboard.Key.backspace or key.char == 'b':
+                bt_back.invoke()
+            elif key.char == 's':
+                bt_save_all.invoke()
+            elif key.char == 'r':
+                bt_restart.invoke()
+            elif key.char == 'x':
+                bt_skip.invoke()
+            elif key.char == 'd':
+                bt_delete.invoke()
+            elif key.char == 'm':
+                bt_mask.invoke()
+        except AttributeError:
+            pass
+
+
 def cut_out_objects():
     # This function is used to cut and crop labeled images
     labels = {}
@@ -785,30 +817,6 @@ def display_mask_status():
         misc["mask"].destroy()
     misc["mask"] = tk.Label(main_app, text=label, fg=color)
     misc["mask"].grid(row=1, column=1)
-
-
-def key_press(key):
-    # Windows keyboard listener
-    if GetWindowText(GetForegroundWindow()) == Conf.WINDOW_NAME:
-        try:
-            if key == keyboard.Key.space or key == keyboard.Key.enter:
-                bt_save_current.invoke()
-            elif key == keyboard.Key.esc:
-                bt_close.invoke()
-            elif key == keyboard.Key.backspace or key.char == 'b':
-                bt_back.invoke()
-            elif key.char == 's':
-                bt_save_all.invoke()
-            elif key.char == 'r':
-                bt_restart.invoke()
-            elif key.char == 'x':
-                bt_skip.invoke()
-            elif key.char == 'd':
-                bt_delete.invoke()
-            elif key.char == 'm':
-                bt_mask.invoke()
-        except AttributeError:
-            pass
 
 
 ##############################################################################
