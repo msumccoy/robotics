@@ -363,9 +363,12 @@ class ImageHandler:
     def delete_img(self):
         if self.labeled_image:
             folder = Conf.LABELED_IMG_FOLDER
+            self.num_labeled_objects -= self.cv_label_dict[self.img_name][0]
             del self.cv_label_dict[self.img_name]
             self.num_labeled_images = len(self.cv_label_dict)
-            self.num_labeled_objects -= self.cv_label_dict[self.img_name][0]
+            self.labeled_index -= 1
+            if self.labeled_index >= self.num_labeled_images:
+                self.labeled_index = 0
             self.file_change = True
         else:
             folder = Conf.ORIG_IMG_FOLDER
@@ -745,11 +748,11 @@ def cut_out_objects():
 def update_label_list():
     # Place labeled image buttons in frame
     i = 0
+    for image in bt_cv_images:
+        bt_cv_images[image].destroy()
     for image in img_handler.cv_label_dict:
         # To prevent a new UI element being created each iteration check if
         # instance already exist then delete it if present
-        if image in bt_cv_images:
-            bt_cv_images[image].destroy()
         if image == img_handler.img_name:
             color = "blue"
         else:
