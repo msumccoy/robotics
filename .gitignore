@@ -14,3 +14,5 @@ Tools/opencv_cascade_creator/random_neg_rename/neg/bg.txt
 Tools/.idea/
 *.dll
 *.exe
+*.xml
+*.log
