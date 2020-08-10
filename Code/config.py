@@ -286,6 +286,7 @@ class Conf:
     # OpenCV settings  #######################################################
     ##########################################################################
     VIDEO_ROOT = PATH_ROOT + "videos/"
+    CASCADE_ROOT = PATH_ROOT + "cascade_files/"
     if not os.path.exists(VIDEO_ROOT):
         os.mkdir(VIDEO_ROOT)
 
@@ -293,11 +294,15 @@ class Conf:
     CV_FONT = cv2.FONT_HERSHEY_PLAIN
     CV_FONT_SCALE = 2
     CV_TEXT_COLOR = (255, 255, 255)
+    CV_LINE_COLOR = (255, 75, 5)
     CV_THICKNESS = 2
     CV_LINE = cv2.LINE_AA
     CV_SIZE = (128, 512, 3)
 
     CV_VIDEO_FILE = VIDEO_ROOT + "Output_recording.avi"
+    # CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_default.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
+    CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
     # Log settings  ##########################################################
