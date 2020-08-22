@@ -23,6 +23,8 @@ class Camera:
         return Camera._inst[cam_name]
 
     def __init__(self, cam_num, lens_type, record):
+        if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
+            raise ValueError(f"'{lens_type}' is not a valid lens type")
         self.start = time.time()
         self.cam = cv2.VideoCapture(cam_num)
         self.ret, self.frame = self.cam.read()
@@ -46,6 +48,13 @@ class Camera:
                 10, (width, height)
             )
 
+        self.num_objects = 0
+        self.num_left = 0
+        self.num_right = 0
+        self.detected_objects = None
+        self.detected_left = None
+        self.detected_right = None
+        self.is_detected_equal = True
         self.is_detected = False
         self.scale = 10
         self.neigh = 4
@@ -65,6 +74,7 @@ class Camera:
             if self.lens_type == LensType.DOUBLE:
                 self.get_dual_image()
             self.detect()
+            self.draw_bounding_box()
             cv2.imshow(Conf.CV_IMG_WINDOW, self.frame)
             if self.record:
                 self.video_writer.write(self.frame)
@@ -75,16 +85,47 @@ class Camera:
     def detect(self):
         if self.lens_type == LensType.SINGLE:
             gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-            balls = Conf.CV_DETECTOR.detectMultiScale(
+            self.detected_objects = Conf.CV_DETECTOR.detectMultiScale(
                 gray_frame, self.scale, self.neigh
             )
-            for (x, y, w, h) in balls:
+        elif self.lens_type == LensType.DOUBLE:
+            gray_left = cv2.cvtColor(self.frame_left, cv2.COLOR_BGR2GRAY)
+            gray_right = cv2.cvtColor(self.frame_right, cv2.COLOR_BGR2GRAY)
+            self.detected_left = Conf.CV_DETECTOR.detectMultiScale(
+                gray_left, self.scale, self.neigh
+            )
+            self.detected_right = Conf.CV_DETECTOR.detectMultiScale(
+                gray_right, self.scale, self.neigh
+            )
+
+    def draw_bounding_box(self):
+        if self.lens_type == LensType.SINGLE:
+            self.num_objects = len(self.detected_objects)
+            for (x, y, w, h) in self.detected_objects:
                 x1 = x + w
                 y1 = y + h
                 cv2.rectangle(
                     self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
-            self.main_logger.info(balls)
+        elif self.lens_type == LensType.DOUBLE:
+            self.num_left = len(self.detected_left)
+            self.num_right = len(self.detected_right)
+            if self.num_left == self.num_right:
+                self.is_detected_equal = True
+            else:
+                self.is_detected_equal = False
+            for (x, y, w, h) in self.detected_left:
+                x1 = x + w
+                y1 = y + h
+                cv2.rectangle(
+                    self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                )
+            for (x, y, w, h) in self.detected_right:
+                x1 = x + w + self.midpoint
+                y1 = y + h
+                cv2.rectangle(
+                    self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                )
 
     def get_dual_image(self):
         mid_point = int(self.width / 2)
