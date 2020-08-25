@@ -128,9 +128,11 @@ class Camera:
                 )
 
     def get_dual_image(self):
-        mid_point = int(self.width / 2)
-        self.frame_left = self.frame[0: self.height, 0: mid_point]
-        self.frame_right = self.frame[0: self.height, mid_point: self.width]
+        self.midpoint = int(self.width / 2)
+        self.frame_left = self.frame[0: self.height, 0: self.midpoint]
+        self.frame_right = (
+            self.frame[0: self.height, self.midpoint: self.width]
+        )
 
     def set_scale(self, position):
         self.scale = 0.1 * position + 1.005
@@ -139,6 +141,12 @@ class Camera:
         self.neigh = position
 
 
-if __name__ == "__main__":
-    cam = Camera.get_inst(RobotType.SPIDER, record=False)
+def main():
+    cam = Camera.get_inst(
+        RobotType.SPIDER, record=False, cam_num=0, lens_type=LensType.DOUBLE
+    )
     cam.start_recognition()
+
+
+if __name__ == "__main__":
+    main()
