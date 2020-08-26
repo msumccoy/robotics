@@ -285,11 +285,6 @@ class Conf:
     ##########################################################################
     # OpenCV settings  #######################################################
     ##########################################################################
-    VIDEO_ROOT = PATH_ROOT + "videos/"
-    CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    if not os.path.exists(VIDEO_ROOT):
-        os.mkdir(VIDEO_ROOT)
-
     CV_IMG_WINDOW = "Image window"
     CV_FONT = cv2.FONT_HERSHEY_PLAIN
     CV_FONT_SCALE = 2
@@ -299,10 +294,20 @@ class Conf:
     CV_LINE = cv2.LINE_AA
     CV_SIZE = (128, 512, 3)
 
-    CV_VIDEO_FILE = VIDEO_ROOT + "Output_recording.avi"
-    # CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_default.xml"
+    CASCADE_ROOT = PATH_ROOT + "cascade_files/"
     CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
+
+    ##########################################################################
+    # Camera constants  ######################################################
+    ##########################################################################
+    CAM_FOCAL_LEN = 1
+    OBJ_WIDTH = 6
+
+    VIDEO_ROOT = PATH_ROOT + "videos/"
+    if not os.path.exists(VIDEO_ROOT):
+        os.mkdir(VIDEO_ROOT)
+    CV_VIDEO_FILE = VIDEO_ROOT + "Output_recording.avi"
 
     ##########################################################################
     # Log settings  ##########################################################

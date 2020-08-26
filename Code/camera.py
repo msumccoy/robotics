@@ -17,12 +17,18 @@ class Camera:
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
 
     @staticmethod
-    def get_inst(cam_name, cam_num=0, lens_type=LensType.SINGLE, record=True):
+    def get_inst(
+            cam_name, cam_num=0, lens_type=LensType.SINGLE,
+            record=True, focal_len=None
+    ):
         if cam_name not in Camera._inst:
-            Camera._inst[cam_name] = Camera(cam_num, lens_type, record)
+            Camera._inst[cam_name] = Camera(
+                cam_num, lens_type, record, focal_len
+            )
         return Camera._inst[cam_name]
 
-    def __init__(self, cam_num, lens_type, record):
+    def __init__(self, cam_num, lens_type, record, focal_len=None):
+        self.count = 0
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
             raise ValueError(f"'{lens_type}' is not a valid lens type")
         self.start = time.time()
@@ -30,8 +36,14 @@ class Camera:
         self.ret, self.frame = self.cam.read()
         self.height, self.width, _ = self.frame.shape
 
+        if focal_len is None:
+            self.focal_len = Conf.CAM_FOCAL_LEN
+        else:
+            self.focal_len = focal_len
+
         self.frame_left = None
         self.frame_right = None
+        self.midpoint = None
         self.lens_type = lens_type
         if lens_type == LensType.DOUBLE:
             self.get_dual_image()
