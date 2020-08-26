@@ -8,7 +8,7 @@ import cv2
 
 import log_set_up
 from config import Conf
-from enums import RobotType, LensType
+from enums import RobotType, LensType, DistanceType
 from variables import ExitControl
 
 
@@ -60,7 +60,7 @@ class Camera:
                 10, (width, height)
             )
 
-        self.obj_distance = None
+        self.objects = {}
         self.num_objects = 0
         self.num_left = 0
         self.num_right = 0
@@ -71,8 +71,8 @@ class Camera:
         self.is_detected = False
         self.scale = 10
         self.neigh = 4
-        track_bar = Conf.CV_IMG_WINDOW
-        cv2.namedWindow(Conf.CV_IMG_WINDOW)
+        track_bar = Conf.CV_WINDOW
+        cv2.namedWindow(Conf.CV_WINDOW)
         cv2.namedWindow(track_bar)
         cv2.createTrackbar(
             "scale", track_bar, 4, 89, self.set_scale
@@ -87,9 +87,10 @@ class Camera:
             if self.lens_type == LensType.DOUBLE:
                 self.get_dual_image()
             self.detect_object()
-            self.detect_distance()
-            self.draw_bounding_box()
-            cv2.imshow(Conf.CV_IMG_WINDOW, self.frame)
+            cv2.imshow(Conf.CV_WINDOW, self.frame)
+            if self.lens_type == LensType.DOUBLE:
+                cv2.imshow(Conf.CV_WINDOW_LEFT, self.frame_left)
+                cv2.imshow(Conf.CV_WINDOW_RIGHT, self.frame_right)
             if self.record:
                 self.video_writer.write(self.frame)
             k = cv2.waitKey(1)
@@ -102,6 +103,10 @@ class Camera:
             self.detected_objects = Conf.CV_DETECTOR.detectMultiScale(
                 gray_frame, self.scale, self.neigh
             )
+            if self.detected_objects is not None:
+                self.num_objects = len(self.detected_objects)
+            else:
+                self.num_objects = 0
         elif self.lens_type == LensType.DOUBLE:
             gray_left = cv2.cvtColor(self.frame_left, cv2.COLOR_BGR2GRAY)
             gray_right = cv2.cvtColor(self.frame_right, cv2.COLOR_BGR2GRAY)
@@ -113,51 +118,78 @@ class Camera:
             )
             self.num_left = len(self.detected_left)
             self.num_right = len(self.detected_right)
+            self.num_objects = self.num_left
             if self.num_left == self.num_right:
                 self.is_detected_equal = True
             else:
                 self.is_detected_equal = False
-        if self.detected_objects is not None:
-            self.num_objects = len(self.detected_objects)
+                if self.num_right > self.num_left:
+                    self.num_objects = self.num_right
 
-    def draw_bounding_box(self):
+
+        ######################################################################
+        # Draw bounding boxes and record distances ect.  #####################
+        ######################################################################
+        # Formula: F = (P x  D) / W
+        # Transposed: D = (F x W) / P
+        # F is focal length, P is pixel width, D is distance, W is width irl
+        self.objects = {}
+        index = 0
         if self.lens_type == LensType.SINGLE:
             for (x, y, w, h) in self.detected_objects:
+                self.objects[index] = {}
+                self.objects[index][DistanceType.MAIN] = (
+                    (self.focal_len * Conf.OBJ_WIDTH) / w
+                )
+                index += 1
                 x1 = x + w
                 y1 = y + h
                 cv2.rectangle(
                     self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
         elif self.lens_type == LensType.DOUBLE:
-            for (x, y, w, h) in self.detected_left:
-                x1 = x + w
-                y1 = y + h
-                cv2.rectangle(
-                    self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
-                )
-            for (x, y, w, h) in self.detected_right:
-                x1 = x + w + self.midpoint
-                y1 = y + h
-                cv2.rectangle(
-                    self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
-                )
-
-    def detect_distance(self):
-        print(f"count!!!!!!!!! {self.count}")
-        self.count += 1
-        # Formula: F = (P x  D) / W
-        # Transposed: D = (F x W) / P
-        # F is focal length, P is pixel width, D is distance, W is width irl
-
-        # Need to adjust methodology. I need to account for the distance of
-        # each object detected. May need to do distance calculations in the
-        # draw_bounding_box method
-        if self.num_objects > 0:
-            self.obj_distance = (self.focal_len * Conf.OBJ_WIDTH)
-        else:
-            self.obj_distance = None
-
-        print(f"object distance = {self.obj_distance}")
+            if (
+                    self.is_detected_equal
+                    or self.num_left <= 1 and self.num_right <= 1
+            ):
+                for i in range(self.num_objects):
+                    self.objects[i] = {}
+                for (x, y, w, h) in self.detected_left:
+                    self.objects[index][DistanceType.LEFT] = (
+                        (self.focal_len * Conf.OBJ_WIDTH) / w
+                    )
+                    index += 1
+                    x1 = x + w
+                    y1 = y + h
+                    cv2.rectangle(
+                        self.frame_left, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                    )
+                index = 0
+                for (x, y, w, h) in self.detected_right:
+                    self.objects[index][DistanceType.RIGHT] = (
+                        (self.focal_len * Conf.OBJ_WIDTH) / w
+                    )
+                    index += 1
+                    x1 = x + w
+                    y1 = y + h
+                    cv2.rectangle(
+                        self.frame_right, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                    )
+                for i in range(self.num_objects):
+                    if (
+                            DistanceType.LEFT in self.objects[i]
+                            and DistanceType.RIGHT in self.objects[i]
+                    ):
+                        self.objects[i][DistanceType.MAIN] = (
+                            (
+                                self.objects[i][DistanceType.LEFT]
+                                + self.objects[i][DistanceType.RIGHT]
+                            ) / 2
+                        )
+                print(self.objects)
+            else:
+                # handle how to do each object detected in each side
+                pass
 
     def get_dual_image(self):
         self.midpoint = int(self.width / 2)

@@ -285,7 +285,9 @@ class Conf:
     ##########################################################################
     # OpenCV settings  #######################################################
     ##########################################################################
-    CV_IMG_WINDOW = "Image window"
+    CV_WINDOW = "Image window"
+    CV_WINDOW_LEFT = "Image window left"
+    CV_WINDOW_RIGHT = "Image window right"
     CV_FONT = cv2.FONT_HERSHEY_PLAIN
     CV_FONT_SCALE = 2
     CV_TEXT_COLOR = (255, 255, 255)

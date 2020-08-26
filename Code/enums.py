@@ -17,5 +17,11 @@ class LensType(Enum):
     DOUBLE = 1
 
 
+class DistanceType(Enum):
+    MAIN = 0
+    LEFT = 1
+    RIGHT = 2
+
+
 if __name__ == "__main__":
     pass
