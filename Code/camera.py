@@ -60,6 +60,7 @@ class Camera:
                 10, (width, height)
             )
 
+        self.obj_distance = None
         self.num_objects = 0
         self.num_left = 0
         self.num_right = 0
@@ -85,7 +86,8 @@ class Camera:
             self.ret, self.frame = self.cam.read()
             if self.lens_type == LensType.DOUBLE:
                 self.get_dual_image()
-            self.detect()
+            self.detect_object()
+            self.detect_distance()
             self.draw_bounding_box()
             cv2.imshow(Conf.CV_IMG_WINDOW, self.frame)
             if self.record:
@@ -94,7 +96,7 @@ class Camera:
             if k == 27:
                 ExitControl.gen = True
 
-    def detect(self):
+    def detect_object(self):
         if self.lens_type == LensType.SINGLE:
             gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
             self.detected_objects = Conf.CV_DETECTOR.detectMultiScale(
@@ -109,10 +111,17 @@ class Camera:
             self.detected_right = Conf.CV_DETECTOR.detectMultiScale(
                 gray_right, self.scale, self.neigh
             )
+            self.num_left = len(self.detected_left)
+            self.num_right = len(self.detected_right)
+            if self.num_left == self.num_right:
+                self.is_detected_equal = True
+            else:
+                self.is_detected_equal = False
+        if self.detected_objects is not None:
+            self.num_objects = len(self.detected_objects)
 
     def draw_bounding_box(self):
         if self.lens_type == LensType.SINGLE:
-            self.num_objects = len(self.detected_objects)
             for (x, y, w, h) in self.detected_objects:
                 x1 = x + w
                 y1 = y + h
@@ -120,12 +129,6 @@ class Camera:
                     self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
         elif self.lens_type == LensType.DOUBLE:
-            self.num_left = len(self.detected_left)
-            self.num_right = len(self.detected_right)
-            if self.num_left == self.num_right:
-                self.is_detected_equal = True
-            else:
-                self.is_detected_equal = False
             for (x, y, w, h) in self.detected_left:
                 x1 = x + w
                 y1 = y + h
@@ -138,6 +141,23 @@ class Camera:
                 cv2.rectangle(
                     self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
+
+    def detect_distance(self):
+        print(f"count!!!!!!!!! {self.count}")
+        self.count += 1
+        # Formula: F = (P x  D) / W
+        # Transposed: D = (F x W) / P
+        # F is focal length, P is pixel width, D is distance, W is width irl
+
+        # Need to adjust methodology. I need to account for the distance of
+        # each object detected. May need to do distance calculations in the
+        # draw_bounding_box method
+        if self.num_objects > 0:
+            self.obj_distance = (self.focal_len * Conf.OBJ_WIDTH)
+        else:
+            self.obj_distance = None
+
+        print(f"object distance = {self.obj_distance}")
 
     def get_dual_image(self):
         self.midpoint = int(self.width / 2)
@@ -155,7 +175,7 @@ class Camera:
 
 def main():
     cam = Camera.get_inst(
-        RobotType.SPIDER, record=False, cam_num=0, lens_type=LensType.DOUBLE
+        RobotType.SPIDER, record=False, cam_num=0, lens_type=LensType.SINGLE
     )
     cam.start_recognition()
 
