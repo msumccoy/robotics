@@ -301,15 +301,23 @@ class Conf:
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
-    # Camera constants  ######################################################
+    # Camera settings   ######################################################
     ##########################################################################
-    CAM_FOCAL_LEN = 1
-    OBJ_WIDTH = 6
-
     VIDEO_ROOT = PATH_ROOT + "videos/"
     if not os.path.exists(VIDEO_ROOT):
         os.mkdir(VIDEO_ROOT)
     CV_VIDEO_FILE = VIDEO_ROOT + "Output_recording.avi"
+    CAM_SETTINGS_FILE = PATH_ROOT + "cam_settings.json"
+    if not os.path.isfile(CAM_SETTINGS_FILE):
+        with open(CAM_SETTINGS_FILE, 'w') as file:
+            file.write("{}")
+
+    # CS = camera settings
+    CS_DEFAULT = "default"
+    CS_FOCAL = "focal_len"
+    CS_OBJ_WIDTH = "object_width"
+    CS_SCALE = "scale"
+    CS_NEIGH = "nearest_neighbour"
 
     ##########################################################################
     # Log settings  ##########################################################
