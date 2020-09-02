@@ -20,32 +20,32 @@ class Camera:
 
     @staticmethod
     def get_inst(
-            cam_name, cam_num=0, lens_type=LensType.SINGLE, record=True
+            cam_name, cam_num=0, lens_type=LensType.SINGLE, record=False
     ):
         if cam_name not in Camera._inst:
             Camera._inst[cam_name] = Camera(cam_num, lens_type, record)
         return Camera._inst[cam_name]
 
     def __init__(self, cam_num, lens_type, record):
+        self.start = time.time()
         self.count = 0
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
             raise ValueError(f"'{lens_type}' is not a valid lens type")
+        self.cam = cv2.VideoCapture(cam_num)
+        self.ret, self.frame = self.cam.read()
+        self.lens_type = lens_type
+
         with open(Conf.CAM_SETTINGS_FILE) as file:
             self.settings = json.load(file)
         self.profile = Conf.CS_DEFAULT
         self.focal_len = None
         self.obj_width = None
-        if Conf.CS_DEFAULT not in self.settings:
-            self.setup_profile(self.profile)
-        self.start = time.time()
-        self.cam = cv2.VideoCapture(cam_num)
-        self.ret, self.frame = self.cam.read()
+
         self.height, self.width, _ = self.frame.shape
 
         self.frame_left = None
         self.frame_right = None
         self.midpoint = None
-        self.lens_type = lens_type
         if lens_type == LensType.DOUBLE:
             self.get_dual_image()
             if self.height > self.width:
@@ -71,11 +71,16 @@ class Camera:
         self.is_detected_equal = True
         self.is_detected = False
         track_bar = Conf.CV_WINDOW
-        track_bar_scale = (
-            (self.settings[self.profile][Conf.CS_SCALE] - 1.005) / 0.1
-        )
-        track_bar_scale = int(f"{track_bar_scale: .0f}")
-        track_bar_neigh = self.settings[self.profile][Conf.CS_NEIGH]
+        track_bar_scale = 4
+        track_bar_neigh = 4
+        if Conf.CS_DEFAULT in self.settings:
+            if Conf.CS_FOCAL in self.settings[Conf.CS_DEFAULT]:
+                track_bar_scale = (
+                    (self.settings[self.profile][Conf.CS_SCALE] - 1.005) / 0.1
+                )
+                track_bar_scale = int(f"{track_bar_scale: .0f}")
+            if Conf.CS_NEIGH in self.settings[Conf.CS_DEFAULT]:
+                track_bar_neigh = self.settings[self.profile][Conf.CS_NEIGH]
         cv2.namedWindow(Conf.CV_WINDOW)
         cv2.namedWindow(track_bar)
         cv2.createTrackbar(
@@ -84,6 +89,8 @@ class Camera:
         cv2.createTrackbar(
             "min Neigh", track_bar, track_bar_neigh, 50, self.set_neigh
         )
+        if Conf.CS_DEFAULT not in self.settings:
+            self.setup_profile(self.profile)
 
     def start_recognition(self):
         while not ExitControl.gen:
@@ -135,7 +142,6 @@ class Camera:
                 self.is_detected_equal = False
                 if self.num_right > self.num_left:
                     self.num_objects = self.num_right
-
 
         ######################################################################
         # Draw bounding boxes and record distances ect.  #####################
@@ -220,9 +226,8 @@ class Camera:
                 "Enter:\n"
                 "  - 0 to exit\n"
                 "  - 1 to edit default\n"
-                "  - 2 to chose a different config\n"
+                "  - 2 to chose a different profile\n"
             ).strip()
-            print(f"--{response}--")
             if response == "0":
                 continue_calibrate = False
             elif response == "1":
@@ -273,7 +278,7 @@ class Camera:
                             f"\nEnter 'y' for yes and 'n' for no:  "
                         ).strip()
                         if alert == "n":
-                          print("Canceling operation")
+                            print("Canceling operation")
                         elif alert != "y":
                             print(f"{alert} is not a valid option!!!")
                             alert = ""
@@ -289,12 +294,15 @@ class Camera:
                         self.update_instance_settings()
 
     def setup_profile(self, profile):
-        self.settings[profile] = {}
+        # To do:
+        #   - Record lens type
+        if profile not in self.settings:
+            self.settings[profile] = {}
         if Conf.CS_NEIGH not in self.settings[profile]:
-            self.settings[self.profile][Conf.CS_NEIGH] = 4
+            self.settings[profile][Conf.CS_NEIGH] = 4
         if Conf.CS_SCALE not in self.settings[profile]:
-            self.settings[self.profile][Conf.CS_SCALE] = 1.405
-        self.settings[profile][Conf.CS_OBJ_WIDTH] = misc.get_int(
+            self.settings[profile][Conf.CS_SCALE] = 1.405
+        self.settings[profile][Conf.CS_OBJ_WIDTH] = misc.get_float(
             "Enter object real world width: "
         )
         response = ""
@@ -308,16 +316,9 @@ class Camera:
                 print(f"{response} is not a valid response!!!")
                 response = ""
         if response == '1':
-            # Formula: F = (P x  D) / W
-            print(
-                "To calculate the focal length of the camera the object must "
-                "be placed at a known fixed distance from the camera."
-            )
-            distance = misc.get_int(
-                "Please enter the objects distance from the camera"
-            )
             # Calibrate detection ############################################
-            while True:
+            do_calibration = True
+            while do_calibration:
                 self.ret, self.frame = self.cam.read()
                 if self.lens_type == LensType.SINGLE:
                     gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
@@ -327,14 +328,169 @@ class Camera:
                         self.settings[self.profile][Conf.CS_NEIGH],
                     )
                     if detected_objects is not None:
-                        pass
+                        for (x, y, w, h) in detected_objects:
+                            x1 = x + w
+                            y1 = y + h
+                            cv2.rectangle(
+                                self.frame,
+                                (x, y),
+                                (x1, y1),
+                                Conf.CV_LINE_COLOR
+                            )
                 elif self.lens_type == LensType.DOUBLE:
                     self.get_dual_image()
-
+                    gray_left = cv2.cvtColor(
+                        self.frame_left, cv2.COLOR_BGR2GRAY
+                    )
+                    gray_right = cv2.cvtColor(
+                        self.frame_right, cv2.COLOR_BGR2GRAY
+                    )
+                    detected_left = Conf.CV_DETECTOR.detectMultiScale(
+                        gray_left,
+                        self.settings[self.profile][Conf.CS_SCALE],
+                        self.settings[self.profile][Conf.CS_NEIGH],
+                    )
+                    detected_right = Conf.CV_DETECTOR.detectMultiScale(
+                        gray_right,
+                        self.settings[self.profile][Conf.CS_SCALE],
+                        self.settings[self.profile][Conf.CS_NEIGH],
+                    )
+                    if detected_left is not None:
+                        for (x, y, w, h) in detected_left:
+                            x1 = x + w
+                            y1 = y + h
+                            cv2.rectangle(
+                                self.frame_left,
+                                (x, y),
+                                (x1, y1),
+                                Conf.CV_LINE_COLOR
+                            )
+                    if detected_right is not None:
+                        for (x, y, w, h) in detected_right:
+                            x1 = x + w
+                            y1 = y + h
+                            cv2.rectangle(
+                                self.frame_right,
+                                (x, y),
+                                (x1, y1),
+                                Conf.CV_LINE_COLOR
+                            )
+                cv2.imshow(Conf.CV_WINDOW, self.frame)
+                k = cv2.waitKey(1) & 0xFF
+                if k != -1 and k != 255:
+                    do_calibration = False
+            # Calibrate focal length  #######################################
+            # Formula: F = (P x  D) / W
+            print(
+                "\n"
+                "To calculate the focal length of the camera the object must "
+                "be placed at a known fixed distance from the camera."
+            )
+            distance = misc.get_float(
+                "Please enter the objects distance from the camera: "
+            )
+            do_calibration = True
+            while do_calibration:
+                self.ret, self.frame = self.cam.read()
+                if self.lens_type == LensType.SINGLE:
+                    gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+                    detected_objects = Conf.CV_DETECTOR.detectMultiScale(
+                        gray_frame,
+                        self.settings[self.profile][Conf.CS_SCALE],
+                        self.settings[self.profile][Conf.CS_NEIGH],
+                    )
+                    if detected_objects is not None:
+                        if len(detected_objects) == 1:
+                            pixel_width = 0
+                            for (x, y, w, h) in detected_objects:
+                                x1 = x + w
+                                y1 = y + h
+                                pixel_width = w
+                                cv2.rectangle(
+                                    self.frame,
+                                    (x, y),
+                                    (x1, y1),
+                                    Conf.CV_LINE_COLOR
+                                )
+                            cv2.imshow(Conf.CV_WINDOW, self.frame)
+                            k = cv2.waitKey() & 0xFF
+                            if k == ord('y'):
+                                do_calibration = False
+                                self.settings[profile][Conf.CS_FOCAL] = (
+                                        (pixel_width * distance)
+                                        /
+                                        self.settings
+                                        [profile][Conf.CS_OBJ_WIDTH]
+                                )
+                elif self.lens_type == LensType.DOUBLE:
+                    self.get_dual_image()
+                    gray_left = cv2.cvtColor(
+                        self.frame_left, cv2.COLOR_BGR2GRAY
+                    )
+                    gray_right = cv2.cvtColor(
+                        self.frame_right, cv2.COLOR_BGR2GRAY
+                    )
+                    detected_left = Conf.CV_DETECTOR.detectMultiScale(
+                        gray_left,
+                        self.settings[self.profile][Conf.CS_SCALE],
+                        self.settings[self.profile][Conf.CS_NEIGH],
+                    )
+                    detected_right = Conf.CV_DETECTOR.detectMultiScale(
+                        gray_right,
+                        self.settings[self.profile][Conf.CS_SCALE],
+                        self.settings[self.profile][Conf.CS_NEIGH],
+                    )
+                    if (
+                            detected_left is not None
+                            and detected_right is not None
+                    ):
+                        if (
+                                len(detected_left) == len(detected_right)
+                                and len(detected_left) == 1
+                        ):
+                            width_left = 0
+                            width_right = 0
+                            for (x, y, w, h) in detected_left:
+                                x1 = x + w
+                                y1 = y + h
+                                width_left = w
+                                cv2.rectangle(
+                                    self.frame_left,
+                                    (x, y),
+                                    (x1, y1),
+                                    Conf.CV_LINE_COLOR
+                                )
+                            for (x, y, w, h) in detected_right:
+                                x1 = x + w
+                                y1 = y + h
+                                width_right = w
+                                cv2.rectangle(
+                                    self.frame_right,
+                                    (x, y),
+                                    (x1, y1),
+                                    Conf.CV_LINE_COLOR
+                                )
+                            cv2.imshow(Conf.CV_WINDOW, self.frame)
+                            k = cv2.waitKey() & 0xFF
+                            if k == ord('y'):
+                                do_calibration = False
+                                self.settings[profile][Conf.CS_FOCAL_L] = (
+                                        (width_left * distance)
+                                        /
+                                        self.settings
+                                        [profile][Conf.CS_OBJ_WIDTH]
+                                )
+                                self.settings[profile][Conf.CS_FOCAL_R] = (
+                                        (width_right * distance)
+                                        /
+                                        self.settings
+                                        [profile][Conf.CS_OBJ_WIDTH]
+                                )
         elif response == '2':
-            self.settings[profile][Conf.CS_FOCAL] = misc.get_int(
+            self.settings[profile][Conf.CS_FOCAL] = misc.get_float(
                 "Enter focal length: "
             )
+        self.update_instance_settings()
 
     def update_instance_settings(self):
         self.focal_len = self.settings[self.profile][Conf.CS_FOCAL]
@@ -350,15 +506,12 @@ class Camera:
         with open(Conf.CAM_SETTINGS_FILE, 'w') as file:
             json.dump(self.settings, file, indent=4)
         self.cam.release()
+        cv2.destroyAllWindows()
 
 
 def main():
-    cam = Camera.get_inst(
-        RobotType.SPIDER, record=False, cam_num=0, lens_type=LensType.DOUBLE
-    )
-    cam.calbrate()
-    cam.close()
-    return
+    cam = Camera.get_inst(RobotType.SPIDER)
+    cam.calibrate()
     cam.start_recognition()
     cam.close()
 

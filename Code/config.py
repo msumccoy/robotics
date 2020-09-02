@@ -315,6 +315,9 @@ class Conf:
     # CS = camera settings
     CS_DEFAULT = "default"
     CS_FOCAL = "focal_len"
+    CS_FOCAL_L = "focal_len_left"
+    CS_FOCAL_R = "focal_len_right"
+    CS_LENS_TYPE = "lens_type"
     CS_OBJ_WIDTH = "object_width"
     CS_SCALE = "scale"
     CS_NEIGH = "nearest_neighbour"
