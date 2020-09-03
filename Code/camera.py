@@ -91,8 +91,15 @@ class Camera:
         )
         if Conf.CS_DEFAULT not in self.settings:
             self.setup_profile(self.profile)
+        self.update_instance_settings()
 
     def start_recognition(self):
+        while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
+            print(
+                "Lens type of camera and settings profile do not match. "
+                "Please fix"
+            )
+            self.calibrate()
         while not ExitControl.gen:
             self.ret, self.frame = self.cam.read()
             if self.lens_type == LensType.DOUBLE:
@@ -219,6 +226,7 @@ class Camera:
         )
 
     def calibrate(self):
+        options = {'y': "yes", 'n': "no"}
         continue_calibrate = True
         while continue_calibrate:
             response = input(
@@ -241,10 +249,8 @@ class Camera:
                 )
                 self.setup_profile(Conf.CS_DEFAULT)
                 if self.profile != Conf.CS_DEFAULT:
-                    response = input(
-                        "Would you like to change your profile to default? "
-                        "'y' for yes"
-                    ).strip()
+                    print("Would you like to change your profile to default?")
+                    response = misc.get_specific_response(options)
                     if response == 'y':
                         self.profile = Conf.CS_DEFAULT
                         self.update_instance_settings()
@@ -263,41 +269,51 @@ class Camera:
                         f"     Object width --> "
                         f"{self.settings[profile][Conf.CS_OBJ_WIDTH]}"
                     )
-                    response = input(
-                        "Would you like to alter the parameters?"
-                        "\nEnter 'y' for yes:  "
-                    ).strip()
+                    print("Would you like to alter the parameters?")
+                    response = misc.get_specific_response(options)
                     if response == "y":
                         self.setup_profile(profile)
                 else:
                     alert = ""
                     while alert == "":
-                        alert = input(
+                        print(
                             f"You entered '{profile}' which does not exist. "
                             f"Are you sure you want to create a new profile?"
-                            f"\nEnter 'y' for yes and 'n' for no:  "
-                        ).strip()
+                        )
+                        alert = misc.get_specific_response(options)
                         if alert == "n":
                             print("Canceling operation")
-                        elif alert != "y":
-                            print(f"{alert} is not a valid option!!!")
-                            alert = ""
                     if alert == "y":
                         self.setup_profile(profile)
                 if profile != self.profile and profile in self.settings:
-                    response = input(
+                    print(
                         "Would you like to switch to this profile? "
-                        f"<{profile}> 'y' for yes"
-                    ).strip()
+                    )
+                    response = misc.get_specific_response(options)
                     if response == 'y':
                         self.profile = profile
                         self.update_instance_settings()
 
     def setup_profile(self, profile):
-        # To do:
-        #   - Record lens type
+        options = {'y': "yes", 'n': "no"}
         if profile not in self.settings:
             self.settings[profile] = {}
+        if Conf.CS_LENS_TYPE in self.settings[profile]:
+            if self.settings[profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
+                print(
+                    f"The lens type of this profile is "
+                    f"{self.settings[profile][Conf.CS_LENS_TYPE]}. "
+                    f"Do you want to change it to {self.lens_type.value} "
+                    f"which is the lens type of this camera"
+                )
+                response = misc.get_specific_response(options)
+                if response == 'y':
+                    self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
+                else:
+                    print("Canceling set up")
+                    return
+        else:
+            self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
         if Conf.CS_NEIGH not in self.settings[profile]:
             self.settings[profile][Conf.CS_NEIGH] = 4
         if Conf.CS_SCALE not in self.settings[profile]:
@@ -490,7 +506,6 @@ class Camera:
             self.settings[profile][Conf.CS_FOCAL] = misc.get_float(
                 "Enter focal length: "
             )
-        self.update_instance_settings()
 
     def update_instance_settings(self):
         self.focal_len = self.settings[self.profile][Conf.CS_FOCAL]
