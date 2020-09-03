@@ -2,7 +2,7 @@ This folders primary goal is to help in the creation of Haar Cascades.
 It does not contain the training data as these files are too large.
 
 The "label_maker_and_cropper" is used to hand label photos either from 
-a web cam or photos from a file. This will create an lst file containing
+a web cam or photos from a file. This will create a "*.lst" file containing
 the labels and it will also crop the images to be used with OpenCV_createsamples
 
 The "photo_downloader" is used to download negative images from urls. The URLs

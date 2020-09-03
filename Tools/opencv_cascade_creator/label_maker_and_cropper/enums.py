@@ -12,11 +12,8 @@ class IMG_LOC_TYPE(Enum):
     FILE = 1
 
 
-class COORDS_P(Enum):
+class COORDS(Enum):
     POINT1 = 0
     POINT2 = 1
-
-
-class COORDS_XY(Enum):
     X = 0
     Y = 1
