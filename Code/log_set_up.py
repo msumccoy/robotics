@@ -40,8 +40,8 @@ cam_stream_handler = logging.StreamHandler()
 cam_stream_handler.setFormatter(formatter)
 cam_stream_handler.setLevel(Conf.LOG_CAM_STREAM_LEVEL)
 
-main_logger.addHandler(cam_file_handler)
-main_logger.addHandler(cam_stream_handler)
+cam_logger.addHandler(cam_file_handler)
+cam_logger.addHandler(cam_stream_handler)
 
 # Set up robot logger  #######################################################
 robot_logger = logging.getLogger(Conf.LOG_ROBOT_NAME)

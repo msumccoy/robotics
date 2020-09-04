@@ -129,7 +129,6 @@ class Camera:
                 ExitControl.gen = True
 
     def detect_object(self):
-        self.logger.debug("detect_object called")
         if self.lens_type == LensType.SINGLE:
             gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
             self.detected_objects = Conf.CV_DETECTOR.detectMultiScale(
@@ -184,10 +183,6 @@ class Camera:
                 cv2.rectangle(
                     self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
-            if self.objects != {}:
-                print(f"object dicts {self.objects}")
-            else:
-                print('empty')
         elif self.lens_type == LensType.DOUBLE:
             if (
                     self.is_detected_equal
@@ -227,10 +222,13 @@ class Camera:
                                 + self.objects[i][DistanceType.RIGHT]
                             ) / 2
                         )
-                print(self.objects)
             else:
                 # handle how to do each object detected in each side
                 pass
+        if self.objects != {}:
+            self.logger.info(f"detect_object: objects {self.objects}")
+        else:
+            self.logger.info('detect_object: empty')
 
     def get_dual_image(self):
         self.midpoint = int(self.width / 2)
@@ -240,6 +238,7 @@ class Camera:
         )
 
     def calibrate(self):
+        self.logger.debug("calibrate called")
         options = {'y': "yes", 'n': "no"}
         continue_calibrate = True
         while continue_calibrate:
@@ -309,6 +308,7 @@ class Camera:
                         self.update_instance_settings()
 
     def setup_profile(self, profile):
+        self.logger.debug("setup_profile called")
         options = {'y': "yes", 'n': "no"}
         if profile not in self.settings:
             self.settings[profile] = {}
@@ -522,6 +522,7 @@ class Camera:
             )
 
     def update_instance_settings(self):
+        self.logger.debug("update_instance_settings")
         self.focal_len = self.settings[self.profile][Conf.CS_FOCAL]
         self.obj_width = self.settings[self.profile][Conf.CS_OBJ_WIDTH]
 
@@ -532,6 +533,10 @@ class Camera:
         self.settings[self.profile][Conf.CS_NEIGH] = position
 
     def close(self):
+        self.logger.info(
+            f"Camera is closing after running for "
+            f"{time.time() - self.start} seconds"
+        )
         with open(Conf.CAM_SETTINGS_FILE, 'w') as file:
             json.dump(self.settings, file, indent=4)
         self.cam.release()
