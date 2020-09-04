@@ -173,58 +173,60 @@ class Camera:
         index = 0
         if self.lens_type == LensType.SINGLE:
             for (x, y, w, h) in self.detected_objects:
-                self.objects[index] = {}
-                self.objects[index][DistanceType.MAIN] = (
-                    (self.focal_len * self.obj_width) / w
-                )
                 index += 1
                 x1 = x + w
                 y1 = y + h
                 cv2.rectangle(
                     self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
-        elif self.lens_type == LensType.DOUBLE:
-            if (
-                    self.is_detected_equal
-                    or self.num_left <= 1 and self.num_right <= 1
-            ):
-                for i in range(self.num_objects):
-                    self.objects[i] = {}
-                for (x, y, w, h) in self.detected_left:
-                    self.objects[index][DistanceType.LEFT] = (
+            if self.num_objects <= 1:
+                for (x, y, w, h) in self.detected_objects:
+                    self.objects[DistanceType.MAIN] = (
                         (self.focal_len * self.obj_width) / w
                     )
-                    index += 1
-                    x1 = x + w
-                    y1 = y + h
-                    cv2.rectangle(
-                        self.frame_left, (x, y), (x1, y1), Conf.CV_LINE_COLOR
-                    )
-                index = 0
-                for (x, y, w, h) in self.detected_right:
-                    self.objects[index][DistanceType.RIGHT] = (
-                        (self.focal_len * self.obj_width) / w
-                    )
-                    index += 1
-                    x1 = x + w
-                    y1 = y + h
-                    cv2.rectangle(
-                        self.frame_right, (x, y), (x1, y1), Conf.CV_LINE_COLOR
-                    )
-                for i in range(self.num_objects):
-                    if (
-                            DistanceType.LEFT in self.objects[i]
-                            and DistanceType.RIGHT in self.objects[i]
-                    ):
-                        self.objects[i][DistanceType.MAIN] = (
-                            (
-                                self.objects[i][DistanceType.LEFT]
-                                + self.objects[i][DistanceType.RIGHT]
-                            ) / 2
-                        )
             else:
-                # handle how to do each object detected in each side
-                pass
+                self.logger.debug(
+                    f"Several objects detected. Num: {self.num_objects}"
+                )
+        elif self.lens_type == LensType.DOUBLE:
+            for (x, y, w, h) in self.detected_left:
+                index += 1
+                x1 = x + w
+                y1 = y + h
+                cv2.rectangle(
+                    self.frame_left, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                )
+            for (x, y, w, h) in self.detected_right:
+                index += 1
+                x1 = x + w
+                y1 = y + h
+                cv2.rectangle(
+                    self.frame_right, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                )
+            if self.num_left <= 1 and self.num_right <= 1:
+                for (x, y, w, h) in self.detected_left:
+                    self.objects[DistanceType.LEFT] = (
+                        (self.focal_len * self.obj_width) / w
+                    )
+                for (x, y, w, h) in self.detected_right:
+                    self.objects[DistanceType.RIGHT] = (
+                        (self.focal_len * self.obj_width) / w
+                    )
+                if (
+                        DistanceType.LEFT in self.objects
+                        and DistanceType.RIGHT in self.objects
+                ):
+                    self.objects[DistanceType.MAIN] = (
+                        (
+                                self.objects[DistanceType.LEFT]
+                                + self.objects[DistanceType.RIGHT]
+                        ) / 2
+                    )
+            else:
+                self.logger.debug(
+                    "Several objects detected. "
+                    f"Left: {self.num_left}. Right: {self.num_right}"
+                )
         if self.objects != {}:
             self.logger.debug(f"detect_object: objects {self.objects}")
         else:
