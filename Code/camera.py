@@ -226,9 +226,9 @@ class Camera:
                 # handle how to do each object detected in each side
                 pass
         if self.objects != {}:
-            self.logger.info(f"detect_object: objects {self.objects}")
+            self.logger.debug(f"detect_object: objects {self.objects}")
         else:
-            self.logger.info('detect_object: empty')
+            self.logger.debug('detect_object: empty')
 
     def get_dual_image(self):
         self.midpoint = int(self.width / 2)
@@ -522,7 +522,7 @@ class Camera:
             )
 
     def update_instance_settings(self):
-        self.logger.debug("update_instance_settings")
+        self.logger.debug("update_instance_settings called")
         self.focal_len = self.settings[self.profile][Conf.CS_FOCAL]
         self.obj_width = self.settings[self.profile][Conf.CS_OBJ_WIDTH]
 

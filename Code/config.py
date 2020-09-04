@@ -337,7 +337,7 @@ class Conf:
     LOG_CAM_NAME = "cam"
     LOG_CAM_FILE = LOG_ROOT + LOG_CAM_NAME + ".log"
     LOG_CAM_FILE_LEVEL = logging.INFO
-    LOG_CAM_STREAM_LEVEL = logging.INFO
+    LOG_CAM_STREAM_LEVEL = logging.DEBUG
     # Robot log settings  ####################################################
     LOG_ROBOT_NAME = "robot"
     LOG_ROBOT_FILE = LOG_ROOT + LOG_ROBOT_NAME + ".log"
