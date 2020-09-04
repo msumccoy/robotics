@@ -17,6 +17,7 @@ from variables import ExitControl
 class Camera:
     _inst = {}
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
+    logger = logging.getLogger(Conf.LOG_CAM_NAME)
 
     @staticmethod
     def get_inst(
@@ -27,9 +28,17 @@ class Camera:
         return Camera._inst[cam_name]
 
     def __init__(self, cam_num, lens_type, record):
+        self.logger.debug(
+            f"Cam started:\n- cam_num: {cam_num}\n- lens_type: {lens_type}\n"
+            f"- record: {record}"
+        )
         self.start = time.time()
         self.count = 0
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
+            self.logger.exception(f"'{lens_type}' is not a valid lens type")
+            self.main_logger.exception(
+                f"Camera crashed -- '{lens_type}' is not a valid lens type"
+            )
             raise ValueError(f"'{lens_type}' is not a valid lens type")
         self.cam = cv2.VideoCapture(cam_num)
         self.ret, self.frame = self.cam.read()
@@ -40,7 +49,6 @@ class Camera:
         self.profile = Conf.CS_DEFAULT
         self.focal_len = None
         self.obj_width = None
-
         self.height, self.width, _ = self.frame.shape
 
         self.frame_left = None
@@ -48,11 +56,12 @@ class Camera:
         self.midpoint = None
         if lens_type == LensType.DOUBLE:
             self.get_dual_image()
-            if self.height > self.width:
-                self.main_logger.warning(Conf.WARN_CAM_TYPE.substitute())
+            if self.height > self.width / 2:
+                self.logger.warning(Conf.WARN_CAM_TYPE.substitute())
 
         self.record = record
         if record:
+            self.logger.info("Recording active")
             width = self.width
             height = self.height
             self.video_writer = cv2.VideoWriter(
@@ -92,10 +101,14 @@ class Camera:
         if Conf.CS_DEFAULT not in self.settings:
             self.setup_profile(self.profile)
         self.update_instance_settings()
+        self.logger.debug(
+            f"Cam init ran in {time.time() - self.start} seconds"
+        )
 
     def start_recognition(self):
+        self.logger.debug("start_recognition started")
         while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
-            print(
+            self.logger.info(
                 "Lens type of camera and settings profile do not match. "
                 "Please fix"
             )
@@ -160,63 +173,64 @@ class Camera:
         index = 0
         if self.lens_type == LensType.SINGLE:
             for (x, y, w, h) in self.detected_objects:
-                self.objects[index] = {}
-                self.objects[index][DistanceType.MAIN] = (
-                    (self.focal_len * self.obj_width) / w
-                )
                 index += 1
                 x1 = x + w
                 y1 = y + h
                 cv2.rectangle(
                     self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
-            if self.objects != {}:
-                print(f"object dicts {self.objects}")
+            if self.num_objects <= 1:
+                for (x, y, w, h) in self.detected_objects:
+                    self.objects[DistanceType.MAIN] = (
+                        (self.focal_len * self.obj_width) / w
+                    )
             else:
-                print('empty')
+                self.logger.debug(
+                    f"Several objects detected. Num: {self.num_objects}"
+                )
         elif self.lens_type == LensType.DOUBLE:
-            if (
-                    self.is_detected_equal
-                    or self.num_left <= 1 and self.num_right <= 1
-            ):
-                for i in range(self.num_objects):
-                    self.objects[i] = {}
+            for (x, y, w, h) in self.detected_left:
+                index += 1
+                x1 = x + w
+                y1 = y + h
+                cv2.rectangle(
+                    self.frame_left, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                )
+            for (x, y, w, h) in self.detected_right:
+                index += 1
+                x1 = x + w
+                y1 = y + h
+                cv2.rectangle(
+                    self.frame_right, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                )
+            if self.num_left <= 1 and self.num_right <= 1:
                 for (x, y, w, h) in self.detected_left:
-                    self.objects[index][DistanceType.LEFT] = (
+                    self.objects[DistanceType.LEFT] = (
                         (self.focal_len * self.obj_width) / w
                     )
-                    index += 1
-                    x1 = x + w
-                    y1 = y + h
-                    cv2.rectangle(
-                        self.frame_left, (x, y), (x1, y1), Conf.CV_LINE_COLOR
-                    )
-                index = 0
                 for (x, y, w, h) in self.detected_right:
-                    self.objects[index][DistanceType.RIGHT] = (
+                    self.objects[DistanceType.RIGHT] = (
                         (self.focal_len * self.obj_width) / w
                     )
-                    index += 1
-                    x1 = x + w
-                    y1 = y + h
-                    cv2.rectangle(
-                        self.frame_right, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                if (
+                        DistanceType.LEFT in self.objects
+                        and DistanceType.RIGHT in self.objects
+                ):
+                    self.objects[DistanceType.MAIN] = (
+                        (
+                                self.objects[DistanceType.LEFT]
+                                + self.objects[DistanceType.RIGHT]
+                        ) / 2
                     )
-                for i in range(self.num_objects):
-                    if (
-                            DistanceType.LEFT in self.objects[i]
-                            and DistanceType.RIGHT in self.objects[i]
-                    ):
-                        self.objects[i][DistanceType.MAIN] = (
-                            (
-                                self.objects[i][DistanceType.LEFT]
-                                + self.objects[i][DistanceType.RIGHT]
-                            ) / 2
-                        )
-                print(self.objects)
             else:
-                # handle how to do each object detected in each side
-                pass
+                self.logger.debug(
+                    "Several objects detected. "
+                    f"Left: {self.num_left}. Right: {self.num_right}"
+                )
+        if self.objects != {}:
+            self.logger.debug(f"detect_object: objects {self.objects}")
+        else:
+            self.logger.debug('detect_object: empty')
 
     def get_dual_image(self):
         self.midpoint = int(self.width / 2)
@@ -226,6 +240,7 @@ class Camera:
         )
 
     def calibrate(self):
+        self.logger.debug("calibrate called")
         options = {'y': "yes", 'n': "no"}
         continue_calibrate = True
         while continue_calibrate:
@@ -295,6 +310,7 @@ class Camera:
                         self.update_instance_settings()
 
     def setup_profile(self, profile):
+        self.logger.debug("setup_profile called")
         options = {'y': "yes", 'n': "no"}
         if profile not in self.settings:
             self.settings[profile] = {}
@@ -508,6 +524,7 @@ class Camera:
             )
 
     def update_instance_settings(self):
+        self.logger.debug("update_instance_settings called")
         self.focal_len = self.settings[self.profile][Conf.CS_FOCAL]
         self.obj_width = self.settings[self.profile][Conf.CS_OBJ_WIDTH]
 
@@ -518,6 +535,10 @@ class Camera:
         self.settings[self.profile][Conf.CS_NEIGH] = position
 
     def close(self):
+        self.logger.info(
+            f"Camera is closing after running for "
+            f"{time.time() - self.start} seconds"
+        )
         with open(Conf.CAM_SETTINGS_FILE, 'w') as file:
             json.dump(self.settings, file, indent=4)
         self.cam.release()

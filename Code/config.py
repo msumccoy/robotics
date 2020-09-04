@@ -328,10 +328,21 @@ class Conf:
     LOG_ROOT = PATH_ROOT + "logs/"
     if not os.path.exists(LOG_ROOT):
         os.mkdir(LOG_ROOT)
+    # Main log settings  #####################################################
     LOG_MAIN_NAME = "main"
-    LOG_FILE = LOG_ROOT + LOG_MAIN_NAME + ".log"
-    LOG_FILE_LEVEL = logging.INFO
-    LOG_STREAM_LEVEL = logging.INFO
+    LOG_MAIN_FILE = LOG_ROOT + LOG_MAIN_NAME + ".log"
+    LOG_MAIN_FILE_LEVEL = logging.INFO
+    LOG_MAIN_STREAM_LEVEL = logging.INFO
+    # Camera log settings  ###################################################
+    LOG_CAM_NAME = "cam"
+    LOG_CAM_FILE = LOG_ROOT + LOG_CAM_NAME + ".log"
+    LOG_CAM_FILE_LEVEL = logging.INFO
+    LOG_CAM_STREAM_LEVEL = logging.DEBUG
+    # Robot log settings  ####################################################
+    LOG_ROBOT_NAME = "robot"
+    LOG_ROBOT_FILE = LOG_ROOT + LOG_ROBOT_NAME + ".log"
+    LOG_ROBOT_FILE_LEVEL = logging.INFO
+    LOG_ROBOT_STREAM_LEVEL = logging.INFO
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
     WRITE_FREQUENCY = 30
 
