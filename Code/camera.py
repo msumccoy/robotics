@@ -17,6 +17,7 @@ from variables import ExitControl
 class Camera:
     _inst = {}
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
+    logger = logging.getLogger(Conf.LOG_CAM_NAME)
 
     @staticmethod
     def get_inst(
@@ -27,9 +28,17 @@ class Camera:
         return Camera._inst[cam_name]
 
     def __init__(self, cam_num, lens_type, record):
+        self.logger.debug(
+            f"Cam started:\n- cam_num: {cam_num}\n- lens_type: {lens_type}\n"
+            f"- record: {record}"
+        )
         self.start = time.time()
         self.count = 0
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
+            self.logger.exception(f"'{lens_type}' is not a valid lens type")
+            self.main_logger.exception(
+                f"Camera crashed -- '{lens_type}' is not a valid lens type"
+            )
             raise ValueError(f"'{lens_type}' is not a valid lens type")
         self.cam = cv2.VideoCapture(cam_num)
         self.ret, self.frame = self.cam.read()
@@ -40,7 +49,6 @@ class Camera:
         self.profile = Conf.CS_DEFAULT
         self.focal_len = None
         self.obj_width = None
-
         self.height, self.width, _ = self.frame.shape
 
         self.frame_left = None
@@ -48,11 +56,12 @@ class Camera:
         self.midpoint = None
         if lens_type == LensType.DOUBLE:
             self.get_dual_image()
-            if self.height > self.width:
-                self.main_logger.warning(Conf.WARN_CAM_TYPE.substitute())
+            if self.height > self.width / 2:
+                self.logger.warning(Conf.WARN_CAM_TYPE.substitute())
 
         self.record = record
         if record:
+            self.logger.info("Recording active")
             width = self.width
             height = self.height
             self.video_writer = cv2.VideoWriter(
@@ -92,10 +101,14 @@ class Camera:
         if Conf.CS_DEFAULT not in self.settings:
             self.setup_profile(self.profile)
         self.update_instance_settings()
+        self.logger.debug(
+            f"Cam init ran in {time.time() - self.start} seconds"
+        )
 
     def start_recognition(self):
+        self.logger.debug("start_recognition started")
         while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
-            print(
+            self.logger.info(
                 "Lens type of camera and settings profile do not match. "
                 "Please fix"
             )
@@ -116,6 +129,7 @@ class Camera:
                 ExitControl.gen = True
 
     def detect_object(self):
+        self.logger.debug("detect_object called")
         if self.lens_type == LensType.SINGLE:
             gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
             self.detected_objects = Conf.CV_DETECTOR.detectMultiScale(
