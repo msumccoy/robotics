@@ -11,7 +11,7 @@ import logging
 from config import Conf
 
 
-formatter = logging.Formatter(Conf.FORMAT)
+formatter = logging.Formatter(Conf.FORMAT, Conf.FORMAT_DATE)
 
 # Set up main logger  ########################################################
 main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)

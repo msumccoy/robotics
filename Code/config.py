@@ -297,7 +297,7 @@ class Conf:
     CV_SIZE = (128, 512, 3)
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
@@ -322,6 +322,12 @@ class Conf:
     CS_SCALE = "scale"
     CS_NEIGH = "nearest_neighbour"
 
+    # Cam memory settings  ###################################################
+    MEM_DIST_LIST_LEN = 10
+    # Maximum change in distance that won't be considered an outlier
+    DIST_DISCREPANCY = 20
+    MAX_LAST_SEEN = 2
+
     ##########################################################################
     # Log settings  ##########################################################
     ##########################################################################
@@ -344,6 +350,7 @@ class Conf:
     LOG_ROBOT_FILE_LEVEL = logging.INFO
     LOG_ROBOT_STREAM_LEVEL = logging.INFO
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
+    FORMAT_DATE = "%Y-%m-%d %H:%M:%S"
     WRITE_FREQUENCY = 30
 
     ##########################################################################
