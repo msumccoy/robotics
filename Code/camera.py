@@ -8,7 +8,7 @@ import time
 import cv2
 
 import log_set_up
-import misc
+from misc import get_int, get_float, get_specific_response, pretty_time
 from config import Conf
 from enums import RobotType, LensType, DistanceType
 from variables import ExitControl
@@ -102,7 +102,7 @@ class Camera:
             self.setup_profile(self.profile)
         self.update_instance_settings()
         self.logger.debug(
-            f"Cam init ran in {time.time() - self.start} seconds"
+            f"Cam init ran in {pretty_time(self.start)}"
         )
 
     def start_recognition(self):
@@ -265,7 +265,7 @@ class Camera:
                 self.setup_profile(Conf.CS_DEFAULT)
                 if self.profile != Conf.CS_DEFAULT:
                     print("Would you like to change your profile to default?")
-                    response = misc.get_specific_response(options)
+                    response = get_specific_response(options)
                     if response == 'y':
                         self.profile = Conf.CS_DEFAULT
                         self.update_instance_settings()
@@ -285,7 +285,7 @@ class Camera:
                         f"{self.settings[profile][Conf.CS_OBJ_WIDTH]}"
                     )
                     print("Would you like to alter the parameters?")
-                    response = misc.get_specific_response(options)
+                    response = get_specific_response(options)
                     if response == "y":
                         self.setup_profile(profile)
                 else:
@@ -295,7 +295,7 @@ class Camera:
                             f"You entered '{profile}' which does not exist. "
                             f"Are you sure you want to create a new profile?"
                         )
-                        alert = misc.get_specific_response(options)
+                        alert = get_specific_response(options)
                         if alert == "n":
                             print("Canceling operation")
                     if alert == "y":
@@ -304,7 +304,7 @@ class Camera:
                     print(
                         "Would you like to switch to this profile? "
                     )
-                    response = misc.get_specific_response(options)
+                    response = get_specific_response(options)
                     if response == 'y':
                         self.profile = profile
                         self.update_instance_settings()
@@ -322,7 +322,7 @@ class Camera:
                     f"Do you want to change it to {self.lens_type.value} "
                     f"which is the lens type of this camera"
                 )
-                response = misc.get_specific_response(options)
+                response = get_specific_response(options)
                 if response == 'y':
                     self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
                 else:
@@ -334,7 +334,7 @@ class Camera:
             self.settings[profile][Conf.CS_NEIGH] = 4
         if Conf.CS_SCALE not in self.settings[profile]:
             self.settings[profile][Conf.CS_SCALE] = 1.405
-        self.settings[profile][Conf.CS_OBJ_WIDTH] = misc.get_float(
+        self.settings[profile][Conf.CS_OBJ_WIDTH] = get_float(
             "Enter object real world width: "
         )
         response = ""
@@ -418,7 +418,7 @@ class Camera:
                 "To calculate the focal length of the camera the object must "
                 "be placed at a known fixed distance from the camera."
             )
-            distance = misc.get_float(
+            distance = get_float(
                 "Please enter the objects distance from the camera: "
             )
             do_calibration = True
@@ -519,7 +519,7 @@ class Camera:
                                         [profile][Conf.CS_OBJ_WIDTH]
                                 )
         elif response == '2':
-            self.settings[profile][Conf.CS_FOCAL] = misc.get_float(
+            self.settings[profile][Conf.CS_FOCAL] = get_float(
                 "Enter focal length: "
             )
 
@@ -536,8 +536,7 @@ class Camera:
 
     def close(self):
         self.logger.info(
-            f"Camera is closing after running for "
-            f"{time.time() - self.start} seconds"
+            f"Camera is closing after running for {pretty_time(self.start)} "
         )
         with open(Conf.CAM_SETTINGS_FILE, 'w') as file:
             json.dump(self.settings, file, indent=4)
