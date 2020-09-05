@@ -29,7 +29,9 @@ class Camera:
 
     def __init__(self, cam_num, lens_type, record):
         self.logger.debug(
-            f"Cam started:\n- cam_num: {cam_num}\n- lens_type: {lens_type}\n"
+            f"Cam started:\n"
+            f"- cam_num: {cam_num}\n"
+            f"- lens_type: {lens_type}\n"
             f"- record: {record}"
         )
         self.start = time.time()
@@ -308,6 +310,8 @@ class Camera:
                     if response == 'y':
                         self.profile = profile
                         self.update_instance_settings()
+        self.update_instance_settings()
+        self.logger.debug(f"Calibrate exiting")
 
     def setup_profile(self, profile):
         self.logger.debug("setup_profile called")
@@ -349,6 +353,11 @@ class Camera:
                 response = ""
         if response == '1':
             # Calibrate detection ############################################
+            print(
+                "You now have the opportunity to calibrate the detection. "
+                "Please calibrate the detection using the track bars then "
+                "press any letter on the keyboard to continue."
+            )
             do_calibration = True
             while do_calibration:
                 self.ret, self.frame = self.cam.read()
@@ -420,6 +429,14 @@ class Camera:
             )
             distance = get_float(
                 "Please enter the objects distance from the camera: "
+            )
+            print(
+                "\n"
+                "The program will now automatically detect the pixel size of "
+                "the object. \nPress any key other than 'y' to cycle through "
+                "all obtained sizes from the camera denoted by the bounding "
+                "box (space recommended). \nOnce the detection is to your "
+                "satisfaction please press 'y' to continue."
             )
             do_calibration = True
             while do_calibration:
