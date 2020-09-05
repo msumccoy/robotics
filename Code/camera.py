@@ -206,10 +206,8 @@ class Camera:
             if self.num_objects <= 1:
                 for (x, y, w, h) in self.detected_objects:
                     dist = (self.focal_len * self.obj_width) / w
-                    if (
-                            self.obj_dist[DistType.MAIN][ObjDist.AVG] - dist
-                            < Conf.DIST_DISCREPANCY
-                    ):
+                    check = self.obj_dist[DistType.MAIN][ObjDist.AVG] - dist
+                    if check < Conf.DIST_DISCREPANCY:
                         self.obj_dist[DistType.MAIN][ObjDist.LIST].insert(
                             0, dist
                         )
@@ -249,7 +247,6 @@ class Camera:
                     f"Num: {self.num_objects}"
                 )
         elif self.lens_type == LensType.DOUBLE:
-            # STILL NEEDS TO BE FIXED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             for (x, y, w, h) in self.detected_left:
                 x1 = x + w
                 y1 = y + h
@@ -264,28 +261,119 @@ class Camera:
                 )
             if self.num_left <= 1 and self.num_right <= 1:
                 for (x, y, w, h) in self.detected_left:
-                    self.obj_dist[DistType.LEFT] = (
-                        (self.focal_len * self.obj_width) / w
-                    )
+                    dist = (self.focal_len * self.obj_width) / w
+                    check = self.obj_dist[DistType.LEFT][ObjDist.AVG] - dist
+                    if check < Conf.DIST_DISCREPANCY:
+                        self.obj_dist[DistType.LEFT][ObjDist.LIST].insert(
+                            0, dist
+                        )
+                        self.obj_dist[DistType.LEFT][ObjDist.SUM] += dist
+                        self.obj_dist[DistType.LEFT][ObjDist.COUNT] += 1
+                        if (
+                                self.obj_dist[DistType.LEFT][ObjDist.COUNT]
+                                > Conf.MEM_DIST_LIST_LEN
+                        ):
+                            num = self.obj_dist[DistType.LEFT][ObjDist.LIST].pop()
+                            self.obj_dist[DistType.LEFT][ObjDist.SUM] -= num
+                            self.obj_dist[DistType.LEFT][ObjDist.COUNT] -= 1
+                        self.obj_dist[DistType.LEFT][ObjDist.AVG] = (
+                            self.obj_dist[DistType.LEFT][ObjDist.SUM]
+                            / self.obj_dist[DistType.LEFT][ObjDist.COUNT]
+                        )
+                        self.obj_dist[DistType.LEFT][ObjDist.LAST_SEEN] = (
+                            time.time()
+                        )
+                        self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN] = (
+                            time.time()
+                        )
+                        self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND] = True
+                        self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
+                    else:
+                        self.logger.debug(
+                            f"detect_object: "
+                            f"Major deviation in calculated distance for the "
+                            f"left lens.\n"
+                            f"avg: {self.obj_dist[DistType.LEFT][ObjDist.AVG]}"
+                            f" vs dist: {dist}"
+                        )
                 for (x, y, w, h) in self.detected_right:
-                    self.obj_dist[DistType.RIGHT] = (
-                        (self.focal_len * self.obj_width) / w
-                    )
+                    dist = (self.focal_len * self.obj_width) / w
+                    check = self.obj_dist[DistType.RIGHT][ObjDist.AVG] - dist
+                    if check < Conf.DIST_DISCREPANCY:
+                        self.obj_dist[DistType.RIGHT][ObjDist.LIST].insert(
+                            0, dist
+                        )
+                        self.obj_dist[DistType.RIGHT][ObjDist.SUM] += dist
+                        self.obj_dist[DistType.RIGHT][ObjDist.COUNT] += 1
+                        if (
+                                self.obj_dist[DistType.RIGHT][ObjDist.COUNT]
+                                > Conf.MEM_DIST_LIST_LEN
+                        ):
+                            num = self.obj_dist[DistType.RIGHT][ObjDist.LIST].pop()
+                            self.obj_dist[DistType.RIGHT][ObjDist.SUM] -= num
+                            self.obj_dist[DistType.RIGHT][ObjDist.COUNT] -= 1
+                        self.obj_dist[DistType.RIGHT][ObjDist.AVG] = (
+                                self.obj_dist[DistType.RIGHT][ObjDist.SUM]
+                                / self.obj_dist[DistType.RIGHT][ObjDist.COUNT]
+                        )
+                        self.obj_dist[DistType.RIGHT][ObjDist.LAST_SEEN] = (
+                            time.time()
+                        )
+                        self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN] = (
+                            time.time()
+                        )
+                        self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND] = True
+                        self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
+                    else:
+                        self.logger.debug(
+                            f"detect_object: "
+                            f"Major deviation in calculated distance for the "
+                            f"right lens.\n"
+                            f"avg: {self.obj_dist[DistType.RIGHT][ObjDist.AVG]}"
+                            f" vs dist: {dist}"
+                        )
                 if (
-                        DistType.LEFT in self.obj_dist
-                        and DistType.RIGHT in self.obj_dist
+                        self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND]
+                        and self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND]
                 ):
-                    self.obj_dist[DistType.MAIN] = (
+                    self.obj_dist[DistType.MAIN][ObjDist.AVG] = (
                         (
-                                self.obj_dist[DistType.LEFT]
-                                + self.obj_dist[DistType.RIGHT]
+                            self.obj_dist[DistType.LEFT][ObjDist.AVG]
+                            + self.obj_dist[DistType.RIGHT][ObjDist.AVG]
                         ) / 2
+                    )
+                elif self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND]:
+                    self.obj_dist[DistType.MAIN][ObjDist.AVG] = (
+                        self.obj_dist[DistType.LEFT][ObjDist.AVG]
+                    )
+                elif self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND]:
+                    self.obj_dist[DistType.MAIN][ObjDist.AVG] = (
+                        self.obj_dist[DistType.RIGHT][ObjDist.AVG]
                     )
             else:
                 self.logger.debug(
                     "Several objects detected. "
                     f"Left: {self.num_left}. Right: {self.num_right}"
                 )
+            dur0 = (
+                    time.time() -
+                    self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN]
+            )
+            dur1 = (
+                    time.time() -
+                    self.obj_dist[DistType.LEFT][ObjDist.LAST_SEEN]
+            )
+            dur2 = (
+                    time.time() -
+                    self.obj_dist[DistType.RIGHT][ObjDist.LAST_SEEN]
+            )
+            if dur0 > Conf.MAX_LAST_SEEN:
+                self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = False
+            if dur1 > Conf.MAX_LAST_SEEN:
+                self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND] = False
+            if dur2 > Conf.MAX_LAST_SEEN:
+                self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND] = False
+
         if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
             self.logger.debug(f"detect_object: dist {self.obj_dist}")
         else:
@@ -593,9 +681,17 @@ class Camera:
                                         [profile][Conf.CS_OBJ_WIDTH]
                                 )
         elif response == '2':
-            self.settings[profile][Conf.CS_FOCAL] = get_float(
-                "Enter focal length: "
-            )
+            if self.lens_type == LensType.SINGLE:
+                self.settings[profile][Conf.CS_FOCAL] = get_float(
+                    "Enter focal length: "
+                )
+            elif self.lens_type == LensType.DOUBLE:
+                self.settings[profile][Conf.CS_FOCAL_L] = get_float(
+                    "Enter left focal length: "
+                )
+                self.settings[profile][Conf.CS_FOCAL_R] = get_float(
+                    "Enter right focal length: "
+                )
 
     def update_instance_settings(self):
         self.logger.debug("update_instance_settings called")
