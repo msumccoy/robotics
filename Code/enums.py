@@ -17,10 +17,19 @@ class LensType(Enum):
     DOUBLE = 1
 
 
-class DistanceType(Enum):
+class DistType(Enum):
     MAIN = 0
     LEFT = 1
     RIGHT = 2
+
+
+class ObjDist(Enum):
+    AVG = 0
+    SUM = 1
+    COUNT = 2
+    LAST_SEEN = 3
+    IS_FOUND = 4
+    LIST = 5
 
 
 if __name__ == "__main__":

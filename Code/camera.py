@@ -10,7 +10,7 @@ import cv2
 import log_set_up
 from misc import get_int, get_float, get_specific_response, pretty_time
 from config import Conf
-from enums import RobotType, LensType, DistanceType
+from enums import RobotType, LensType, DistType, ObjDist
 from variables import ExitControl
 
 
@@ -28,7 +28,7 @@ class Camera:
         return Camera._inst[cam_name]
 
     def __init__(self, cam_num, lens_type, record):
-        self.logger.debug(
+        self.logger.info(
             f"Cam started:\n"
             f"- cam_num: {cam_num}\n"
             f"- lens_type: {lens_type}\n"
@@ -72,7 +72,32 @@ class Camera:
                 10, (width, height)
             )
 
-        self.objects = {}
+        self.obj_dist = {
+            DistType.MAIN: {
+                ObjDist.AVG: 0.0,
+                ObjDist.SUM: 0.0,
+                ObjDist.COUNT: 0,
+                ObjDist.LAST_SEEN: 0.0,
+                ObjDist.IS_FOUND: False,
+                ObjDist.LIST: [],
+            },
+            DistType.LEFT: {
+                ObjDist.AVG: 0.0,
+                ObjDist.SUM: 0.0,
+                ObjDist.COUNT: 0.0,
+                ObjDist.LAST_SEEN: 0.0,
+                ObjDist.IS_FOUND: False,
+                ObjDist.LIST: [],
+            },
+            DistType.RIGHT: {
+                ObjDist.AVG: 0.0,
+                ObjDist.SUM: 0.0,
+                ObjDist.COUNT: 0.0,
+                ObjDist.LAST_SEEN: 0.0,
+                ObjDist.IS_FOUND: False,
+                ObjDist.LIST: [],
+            },
+        }
         self.num_objects = 0
         self.num_left = 0
         self.num_right = 0
@@ -171,11 +196,8 @@ class Camera:
         # Formula: F = (P x  D) / W
         # Transposed: D = (F x W) / P
         # F is focal length, P is pixel width, D is distance, W is width irl
-        self.objects = {}
-        index = 0
         if self.lens_type == LensType.SINGLE:
             for (x, y, w, h) in self.detected_objects:
-                index += 1
                 x1 = x + w
                 y1 = y + h
                 cv2.rectangle(
@@ -183,23 +205,58 @@ class Camera:
                 )
             if self.num_objects <= 1:
                 for (x, y, w, h) in self.detected_objects:
-                    self.objects[DistanceType.MAIN] = (
-                        (self.focal_len * self.obj_width) / w
-                    )
+                    dist = (self.focal_len * self.obj_width) / w
+                    if (
+                            self.obj_dist[DistType.MAIN][ObjDist.AVG] - dist
+                            < Conf.DIST_DISCREPANCY
+                    ):
+                        self.obj_dist[DistType.MAIN][ObjDist.LIST].insert(
+                            0, dist
+                        )
+                        self.obj_dist[DistType.MAIN][ObjDist.SUM] += dist
+                        self.obj_dist[DistType.MAIN][ObjDist.COUNT] += 1
+                        if (
+                                self.obj_dist[DistType.MAIN][ObjDist.COUNT]
+                                > Conf.MEM_DIST_LIST_LEN
+                        ):
+                            num = self.obj_dist[DistType.MAIN][ObjDist.LIST].pop()
+                            self.obj_dist[DistType.MAIN][ObjDist.SUM] -= num
+                            self.obj_dist[DistType.MAIN][ObjDist.COUNT] -= 1
+                        self.obj_dist[DistType.MAIN][ObjDist.AVG] = (
+                            self.obj_dist[DistType.MAIN][ObjDist.SUM]
+                            / self.obj_dist[DistType.MAIN][ObjDist.COUNT]
+                        )
+                        self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN] = (
+                            time.time()
+                        )
+                        self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
+                    else:
+                        self.logger.debug(
+                            f"detect_object: "
+                            f"Major deviation in calculated distance.\n"
+                            f"avg: {self.obj_dist[DistType.MAIN][ObjDist.AVG]}"
+                            f" vs dist: {dist}"
+                        )
+                dur = (
+                        time.time() -
+                        self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN]
+                )
+                if dur > Conf.MAX_LAST_SEEN:
+                    self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = False
             else:
                 self.logger.debug(
-                    f"Several objects detected. Num: {self.num_objects}"
+                    f"detect_object:Several objects detected. "
+                    f"Num: {self.num_objects}"
                 )
         elif self.lens_type == LensType.DOUBLE:
+            # STILL NEEDS TO BE FIXED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             for (x, y, w, h) in self.detected_left:
-                index += 1
                 x1 = x + w
                 y1 = y + h
                 cv2.rectangle(
                     self.frame_left, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
             for (x, y, w, h) in self.detected_right:
-                index += 1
                 x1 = x + w
                 y1 = y + h
                 cv2.rectangle(
@@ -207,21 +264,21 @@ class Camera:
                 )
             if self.num_left <= 1 and self.num_right <= 1:
                 for (x, y, w, h) in self.detected_left:
-                    self.objects[DistanceType.LEFT] = (
+                    self.obj_dist[DistType.LEFT] = (
                         (self.focal_len * self.obj_width) / w
                     )
                 for (x, y, w, h) in self.detected_right:
-                    self.objects[DistanceType.RIGHT] = (
+                    self.obj_dist[DistType.RIGHT] = (
                         (self.focal_len * self.obj_width) / w
                     )
                 if (
-                        DistanceType.LEFT in self.objects
-                        and DistanceType.RIGHT in self.objects
+                        DistType.LEFT in self.obj_dist
+                        and DistType.RIGHT in self.obj_dist
                 ):
-                    self.objects[DistanceType.MAIN] = (
+                    self.obj_dist[DistType.MAIN] = (
                         (
-                                self.objects[DistanceType.LEFT]
-                                + self.objects[DistanceType.RIGHT]
+                                self.obj_dist[DistType.LEFT]
+                                + self.obj_dist[DistType.RIGHT]
                         ) / 2
                     )
             else:
@@ -229,10 +286,10 @@ class Camera:
                     "Several objects detected. "
                     f"Left: {self.num_left}. Right: {self.num_right}"
                 )
-        if self.objects != {}:
-            self.logger.debug(f"detect_object: objects {self.objects}")
+        if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
+            self.logger.debug(f"detect_object: dist {self.obj_dist}")
         else:
-            self.logger.debug('detect_object: empty')
+            self.logger.debug("detect_object: Object not found")
 
     def get_dual_image(self):
         self.midpoint = int(self.width / 2)
@@ -561,7 +618,7 @@ class Camera:
         cv2.destroyAllWindows()
 
 
-def main():
+def independent_test():
     cam = Camera.get_inst(RobotType.SPIDER)
     cam.calibrate()
     cam.start_recognition()
@@ -569,4 +626,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    independent_test()

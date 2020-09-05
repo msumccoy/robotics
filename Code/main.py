@@ -6,14 +6,22 @@ import cv2
 import logging
 import time
 
-# Custom Modules
 import log_set_up  # This must Always be the first custom module imported
+# Custom Modules  ############################################################
 from camera import Camera
+from config import Conf
 from enums import RobotType
+from misc import pretty_time
 
 
 def main():
-    pass
+    start = time.time()
+    main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
+    main_logger.info(f"Main function starting on version {Conf.VERSION}")
+
+    main_logger.info(
+        f"Program completed after running for {pretty_time(start)}"
+    )
 
 
 if __name__ == "__main__":
