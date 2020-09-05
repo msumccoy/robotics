@@ -1,3 +1,6 @@
+import time
+
+
 def get_int(prompt="Enter an integer: "):
     while True:
         try:
@@ -35,3 +38,36 @@ def get_specific_response(options, prompt=None):
             return response
         else:
             print(f"{response} is not a valid response")
+
+
+def pretty_time(duration, is_raw=True):
+    if is_raw:
+        duration = time.time() - duration
+    if duration < 1:
+        pretty_duration = f"{duration * 1000: .0f}ms"
+    elif duration < 60:
+        pretty_duration = f"{duration: .0f}s"
+    elif duration < 3600:
+        duration_ary = [0] * 2
+        duration_ary[0] = int(duration / 60)
+        duration_ary[1] = int(duration % 60)
+        pretty_duration = f"{duration_ary[0]}min {duration_ary[1]}s"
+    elif duration < 86400:
+        duration_ary = [0] * 3
+        duration_ary[0] = int(duration / 3600)
+        duration_ary[1] = int((duration % 3600) / 60)
+        duration_ary[2] = int((duration % 3600) % 60)
+        pretty_duration = (
+            f"{duration_ary[0]}h {duration_ary[1]}min {duration_ary[2]}s"
+        )
+    else:
+        duration_ary = [0] * 4
+        duration_ary[0] = int(duration / 86400)
+        duration_ary[1] = int((duration % 86400) / 3600)
+        duration_ary[2] = int(((duration % 86400) % 3600) / 60)
+        duration_ary[3] = int(((duration % 86400) % 3600) % 60)
+        pretty_duration = (
+            f"{duration_ary[0]}day(s) {duration_ary[1]}h "
+            f"{duration_ary[2]}min {duration_ary[3]}s"
+        )
+    return pretty_duration
