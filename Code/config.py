@@ -14,6 +14,7 @@ import cv2
 import serial
 
 config_file = "/home/pi/file.json"
+config_file = "/home/kuwin/file2.json"
 with open(config_file) as file:
     config = json.load(file)
 
@@ -289,15 +290,16 @@ class Conf:
     CV_WINDOW_LEFT = "Image window left"
     CV_WINDOW_RIGHT = "Image window right"
     CV_FONT = cv2.FONT_HERSHEY_PLAIN
-    CV_FONT_SCALE = 2
-    CV_TEXT_COLOR = (255, 255, 255)
+    CV_FONT_SCALE = 1
+    CV_TEXT_COLOR = (255, 0, 255)
     CV_LINE_COLOR = (255, 75, 5)
-    CV_THICKNESS = 2
+    CV_THICKNESS = 1
     CV_LINE = cv2.LINE_AA
     CV_SIZE = (128, 512, 3)
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
+    # CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
@@ -314,6 +316,7 @@ class Conf:
 
     # CS = camera settings
     CS_DEFAULT = "default"
+    CS_DEFAULT2 = "default_dual"
     CS_FOCAL = "focal_len"
     CS_FOCAL_L = "focal_len_left"
     CS_FOCAL_R = "focal_len_right"

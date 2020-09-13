@@ -28,8 +28,9 @@ class Camera:
         return Camera._inst[cam_name]
 
     def __init__(self, cam_num, lens_type, record):
+        self.main_logger.info(f"Camera started on version {Conf.VERSION}")
         self.logger.info(
-            f"Cam started:\n"
+            f"Cam started on version {Conf.VERSION}:\n"
             f"- cam_num: {cam_num}\n"
             f"- lens_type: {lens_type}\n"
             f"- record: {record}"
@@ -45,20 +46,27 @@ class Camera:
         self.cam = cv2.VideoCapture(cam_num)
         self.ret, self.frame = self.cam.read()
         self.lens_type = lens_type
+        self.focal_len = None
+        self.focal_len_l = None
+        self.focal_len_r = None
+        self.obj_width = None
+        self.height, self.width, _ = self.frame.shape
 
         with open(Conf.CAM_SETTINGS_FILE) as file:
             self.settings = json.load(file)
         self.profile = Conf.CS_DEFAULT
-        self.focal_len = None
-        self.obj_width = None
-        self.height, self.width, _ = self.frame.shape
+        if lens_type == LensType.DOUBLE:
+            self.profile = Conf.CS_DEFAULT2
+        if self.profile not in self.settings:
+            self.setup_profile(self.profile)
 
         self.frame_left = None
         self.frame_right = None
-        self.midpoint = None
+        self.full_midpoint = self.midpoint = int(self.width / 2)
         if lens_type == LensType.DOUBLE:
+            self.midpoint /= 2
             self.get_dual_image()
-            if self.height > self.width / 2:
+            if self.height > self.full_midpoint:
                 self.logger.warning(Conf.WARN_CAM_TYPE.substitute())
 
         self.record = record
@@ -84,7 +92,7 @@ class Camera:
             DistType.LEFT: {
                 ObjDist.AVG: 0.0,
                 ObjDist.SUM: 0.0,
-                ObjDist.COUNT: 0.0,
+                ObjDist.COUNT: 0,
                 ObjDist.LAST_SEEN: 0.0,
                 ObjDist.IS_FOUND: False,
                 ObjDist.LIST: [],
@@ -92,7 +100,7 @@ class Camera:
             DistType.RIGHT: {
                 ObjDist.AVG: 0.0,
                 ObjDist.SUM: 0.0,
-                ObjDist.COUNT: 0.0,
+                ObjDist.COUNT: 0,
                 ObjDist.LAST_SEEN: 0.0,
                 ObjDist.IS_FOUND: False,
                 ObjDist.LIST: [],
@@ -141,6 +149,7 @@ class Camera:
             )
             self.calibrate()
         while not ExitControl.gen:
+            loop_start = time.time()
             self.ret, self.frame = self.cam.read()
             if self.lens_type == LensType.DOUBLE:
                 self.get_dual_image()
@@ -154,6 +163,9 @@ class Camera:
             k = cv2.waitKey(50)
             if k == 27:
                 ExitControl.gen = True
+            self.logger.debug(
+                f"Recognition loop ran in {pretty_time(loop_start)}"
+            )
 
     def detect_object(self):
         if self.lens_type == LensType.SINGLE:
@@ -203,7 +215,7 @@ class Camera:
                 cv2.rectangle(
                     self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
-            if self.num_objects <= 1:
+            if self.num_objects == 1:
                 for (x, y, w, h) in self.detected_objects:
                     dist = (self.focal_len * self.obj_width) / w
                     check = self.obj_dist[DistType.MAIN][ObjDist.AVG] - dist
@@ -228,6 +240,19 @@ class Camera:
                             time.time()
                         )
                         self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
+                        x_txt = x
+                        y_txt = y - 10
+                        cv2.putText(
+                            self.frame,
+                            "Distance: "
+                            f"{self.obj_dist[DistType.MAIN][ObjDist.AVG]:.2f}",
+                            (x_txt, y_txt),
+                            Conf.CV_FONT,
+                            Conf.CV_FONT_SCALE,
+                            Conf.CV_TEXT_COLOR,
+                            Conf.CV_THICKNESS,
+                            Conf.CV_LINE
+                        )
                     else:
                         self.logger.debug(
                             f"detect_object: "
@@ -235,17 +260,16 @@ class Camera:
                             f"avg: {self.obj_dist[DistType.MAIN][ObjDist.AVG]}"
                             f" vs dist: {dist}"
                         )
-                dur = (
-                        time.time() -
-                        self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN]
-                )
-                if dur > Conf.MAX_LAST_SEEN:
-                    self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = False
             else:
                 self.logger.debug(
                     f"detect_object:Several objects detected. "
                     f"Num: {self.num_objects}"
                 )
+            dur = (
+                time.time() - self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN]
+            )
+            if dur > Conf.MAX_LAST_SEEN:
+                self.reset_distances(DistType.MAIN)
         elif self.lens_type == LensType.DOUBLE:
             for (x, y, w, h) in self.detected_left:
                 x1 = x + w
@@ -261,7 +285,7 @@ class Camera:
                 )
             if self.num_left <= 1 and self.num_right <= 1:
                 for (x, y, w, h) in self.detected_left:
-                    dist = (self.focal_len * self.obj_width) / w
+                    dist = (self.focal_len_l * self.obj_width) / w
                     check = self.obj_dist[DistType.LEFT][ObjDist.AVG] - dist
                     if check < Conf.DIST_DISCREPANCY:
                         self.obj_dist[DistType.LEFT][ObjDist.LIST].insert(
@@ -288,6 +312,20 @@ class Camera:
                         )
                         self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND] = True
                         self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
+
+                        x_txt = x
+                        y_txt = y - 10
+                        cv2.putText(
+                            self.frame_left,
+                            "Distance: "
+                            f"{self.obj_dist[DistType.LEFT][ObjDist.AVG]:.2f}",
+                            (x_txt, y_txt),
+                            Conf.CV_FONT,
+                            Conf.CV_FONT_SCALE,
+                            Conf.CV_TEXT_COLOR,
+                            Conf.CV_THICKNESS,
+                            Conf.CV_LINE
+                        )
                     else:
                         self.logger.debug(
                             f"detect_object: "
@@ -297,7 +335,7 @@ class Camera:
                             f" vs dist: {dist}"
                         )
                 for (x, y, w, h) in self.detected_right:
-                    dist = (self.focal_len * self.obj_width) / w
+                    dist = (self.focal_len_r * self.obj_width) / w
                     check = self.obj_dist[DistType.RIGHT][ObjDist.AVG] - dist
                     if check < Conf.DIST_DISCREPANCY:
                         self.obj_dist[DistType.RIGHT][ObjDist.LIST].insert(
@@ -324,6 +362,20 @@ class Camera:
                         )
                         self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND] = True
                         self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
+
+                        x_txt = x
+                        y_txt = y - 10
+                        cv2.putText(
+                            self.frame_right,
+                            "Distance: "
+                            f"{self.obj_dist[DistType.RIGHT][ObjDist.AVG]:.2f}",
+                            (x_txt, y_txt),
+                            Conf.CV_FONT,
+                            Conf.CV_FONT_SCALE,
+                            Conf.CV_TEXT_COLOR,
+                            Conf.CV_THICKNESS,
+                            Conf.CV_LINE
+                        )
                     else:
                         self.logger.debug(
                             f"detect_object: "
@@ -368,23 +420,52 @@ class Camera:
                     self.obj_dist[DistType.RIGHT][ObjDist.LAST_SEEN]
             )
             if dur0 > Conf.MAX_LAST_SEEN:
-                self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = False
+                self.reset_distances(DistType.MAIN)
             if dur1 > Conf.MAX_LAST_SEEN:
-                self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND] = False
+                self.reset_distances(DistType.LEFT)
             if dur2 > Conf.MAX_LAST_SEEN:
-                self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND] = False
+                self.reset_distances(DistType.RIGHT)
 
         if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
             self.logger.debug(f"detect_object: dist {self.obj_dist}")
+            cv2.putText(
+                self.frame,
+                "Found: "
+                f"{self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]}",
+                (10, 20),
+                Conf.CV_FONT,
+                Conf.CV_FONT_SCALE,
+                Conf.CV_TEXT_COLOR,
+                Conf.CV_THICKNESS,
+                Conf.CV_LINE
+            )
+            if self.lens_type == LensType.DOUBLE:
+                cv2.putText(
+                    self.frame,
+                    "Found: "
+                    f"{self.obj_dist[DistType.MAIN][ObjDist.AVG]:.2f}",
+                    (10, 50),
+                    Conf.CV_FONT,
+                    Conf.CV_FONT_SCALE,
+                    Conf.CV_TEXT_COLOR,
+                    Conf.CV_THICKNESS,
+                    Conf.CV_LINE
+                )
         else:
             self.logger.debug("detect_object: Object not found")
 
     def get_dual_image(self):
-        self.midpoint = int(self.width / 2)
-        self.frame_left = self.frame[0: self.height, 0: self.midpoint]
+        self.frame_left = self.frame[0: self.height, 0: self.full_midpoint]
         self.frame_right = (
-            self.frame[0: self.height, self.midpoint: self.width]
+            self.frame[0: self.height, self.full_midpoint: self.width]
         )
+
+    def reset_distances(self, dist_type):
+        self.obj_dist[dist_type][ObjDist.AVG] = 0.0
+        self.obj_dist[dist_type][ObjDist.SUM] = 0.0
+        self.obj_dist[dist_type][ObjDist.COUNT] = 0
+        self.obj_dist[dist_type][ObjDist.IS_FOUND] = False
+        self.obj_dist[dist_type][ObjDist.LIST] = []
 
     def calibrate(self):
         self.logger.debug("calibrate called")
@@ -459,7 +540,7 @@ class Camera:
         self.logger.debug(f"Calibrate exiting")
 
     def setup_profile(self, profile):
-        self.logger.debug("setup_profile called")
+        self.logger.debug(f"setup_profile called for profile: {profile}")
         options = {'y': "yes", 'n': "no"}
         if profile not in self.settings:
             self.settings[profile] = {}
@@ -695,7 +776,11 @@ class Camera:
 
     def update_instance_settings(self):
         self.logger.debug("update_instance_settings called")
-        self.focal_len = self.settings[self.profile][Conf.CS_FOCAL]
+        if self.lens_type == LensType.SINGLE:
+            self.focal_len = self.settings[self.profile][Conf.CS_FOCAL]
+        elif self.lens_type == LensType.DOUBLE:
+            self.focal_len_l = self.settings[self.profile][Conf.CS_FOCAL_L]
+            self.focal_len_r = self.settings[self.profile][Conf.CS_FOCAL_R]
         self.obj_width = self.settings[self.profile][Conf.CS_OBJ_WIDTH]
 
     def set_scale(self, position):
@@ -715,8 +800,11 @@ class Camera:
 
 
 def independent_test():
-    cam = Camera.get_inst(RobotType.SPIDER)
-    cam.calibrate()
+    cam = Camera.get_inst(
+        RobotType.SPIDER, lens_type=LensType.DOUBLE, cam_num=0
+    )
+    # cam = Camera.get_inst(RobotType.SPIDER)
+    # cam.calibrate()
     cam.start_recognition()
     cam.close()
 
