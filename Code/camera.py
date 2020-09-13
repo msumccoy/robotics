@@ -170,28 +170,31 @@ class Camera:
     # Main robot control function ############################################
     ##########################################################################
     def control_robot(self):
-        if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
-            self.last_non_search = time.time()
-            # Walk to ball, kick ball, etc.
-        else:
-            # Search for object
-            dur = time.time() - self.last_non_search
-            if dur < Conf.MAX_SEARCH_DUR:
-                if self.obj_dist[DistType.MAIN][ObjDist.LOCATION] == "left":
-                    if self.robot_type == RobotType.HUMAN:
-                        turn_command = 19  # Conf.HUMANOID_MOTION
-                    elif self.robot_type == RobotType.SPIDER:
-                        turn_command = 7  # Conf.SPIDER_FULL
-                else:
-                    if self.robot_type == RobotType.HUMAN:
-                        turn_command = 20  # Conf.HUMANOID_MOTION
-                    elif self.robot_type == RobotType.SPIDER:
-                        turn_command = 8  # Conf.SPIDER_FULL
+        from robot_control import Robot
+        self.robot = Robot.get_inst(self.robot_type)
+        while not ExitControl.gen:
+            if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
+                self.last_non_search = time.time()
+                # Walk to ball, kick ball, etc.
             else:
-                self.logger.debug(
-                    f"Object not found in {pretty_time(dur, is_raw=False)} "
-                    f"and robot has stopped searching"
-                )
+                # Search for object
+                dur = time.time() - self.last_non_search
+                if dur < Conf.MAX_SEARCH_DUR:
+                    if self.obj_dist[DistType.MAIN][ObjDist.LOCATION] == "left":
+                        if self.robot_type == RobotType.HUMAN:
+                            self.command = 19  # Conf.HUMANOID_MOTION
+                        elif self.robot_type == RobotType.SPIDER:
+                            self.command = 7  # Conf.SPIDER_FULL
+                    else:
+                        if self.robot_type == RobotType.HUMAN:
+                            self.command = 20  # Conf.HUMANOID_MOTION
+                        elif self.robot_type == RobotType.SPIDER:
+                            self.command = 8  # Conf.SPIDER_FULL
+                else:
+                    self.logger.debug(
+                        f"Object not found in {pretty_time(dur, is_raw=False)} "
+                        f"and robot has stopped searching"
+                    )
     ##########################################################################
 
     def detect_object(self):
