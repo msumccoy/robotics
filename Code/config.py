@@ -43,6 +43,7 @@ class Conf:
     SER_TIMEOUT = 1
 
     PORT_TIME_OUT = 20  # How long before we give up on trying to connect
+    MAX_SEARCH_DUR = 60
 
     # Movement control dictionaries  #########################################
     HUMANOID_FULL = {  # Full dictionary with all motions in Heart2Heart
@@ -323,6 +324,8 @@ class Conf:
     CS_OBJ_WIDTH = "object_width"
     CS_SCALE = "scale"
     CS_NEIGH = "nearest_neighbour"
+
+    CS_MID_TOLERANCE = 10
 
     # Cam memory settings  ###################################################
     MEM_DIST_LIST_LEN = 10

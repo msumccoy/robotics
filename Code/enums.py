@@ -25,11 +25,12 @@ class DistType(Enum):
 
 class ObjDist(Enum):
     AVG = 0
-    SUM = 1
-    COUNT = 2
-    LAST_SEEN = 3
-    IS_FOUND = 4
-    LIST = 5
+    LOCATION = 1
+    SUM = 2
+    COUNT = 3
+    LAST_SEEN = 4
+    IS_FOUND = 5
+    LIST = 6
 
 
 if __name__ == "__main__":
