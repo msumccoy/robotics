@@ -14,7 +14,6 @@ import cv2
 import serial
 
 config_file = "/home/pi/file.json"
-config_file = "/home/kuwin/file2.json"
 with open(config_file) as file:
     config = json.load(file)
 

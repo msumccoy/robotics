@@ -140,6 +140,9 @@ class Camera:
             f"Cam init ran in {pretty_time(self.start)}"
         )
 
+    ##########################################################################
+    # Main function. Auto command generator ##################################
+    ##########################################################################
     def start_recognition(self):
         self.logger.debug("start_recognition started")
         while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
@@ -166,6 +169,7 @@ class Camera:
             self.logger.debug(
                 f"Recognition loop ran in {pretty_time(loop_start)}"
             )
+    ##########################################################################
 
     def detect_object(self):
         if self.lens_type == LensType.SINGLE:
@@ -205,9 +209,6 @@ class Camera:
         ######################################################################
         # Draw bounding boxes and record distances ect.  #####################
         ######################################################################
-        # Formula: F = (P x  D) / W
-        # Transposed: D = (F x W) / P
-        # F is focal length, P is pixel width, D is distance, W is width irl
         if self.lens_type == LensType.SINGLE:
             for (x, y, w, h) in self.detected_objects:
                 x1 = x + w
@@ -216,6 +217,10 @@ class Camera:
                     self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
             if self.num_objects == 1:
+                # Formula: F = (P x  D) / W
+                # Transposed: D = (F x W) / P
+                # F is focal length, P is pixel width, D is distance,
+                # W is width irl
                 for (x, y, w, h) in self.detected_objects:
                     dist = (self.focal_len * self.obj_width) / w
                     check = self.obj_dist[DistType.MAIN][ObjDist.AVG] - dist
