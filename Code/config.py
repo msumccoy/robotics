@@ -13,7 +13,7 @@ from string import Template
 import cv2
 import serial
 
-config_file = "/home/kuwin/file2.json"
+config_file = "/home/pi/file.json"
 with open(config_file) as file:
     config = json.load(file)
 
@@ -21,7 +21,7 @@ with open(config_file) as file:
 class Conf:
     # VERSION = major_change.minor_change
     VERSION = 2.0
-    PATH_ROOT = config["path"] + "/"
+    PATH_ROOT = config["path"]  # Typically: /home/user/pi/
     ##########################################################################
     # Templates  #############################################################
     ##########################################################################
@@ -33,9 +33,9 @@ class Conf:
     ##########################################################################
     # Robot Settings  ########################################################
     ##########################################################################
-    # Serial port connection settings
-    HUMANOID_PORT = config["humanoid_port"]
-    SPIDER_PORT = config["spider_port"]
+    # These values are based off of the blue tooth attached location
+    HUMANOID_PORT = config["humanoid_port"]  # Typically: /dev/rfcomm1
+    SPIDER_PORT = config["spider_port"]  # Typically: /dev/rfcomm2
     BAUDRATE = 9600
     BYTESIZE = serial.EIGHTBITS
     PARITY = serial.PARITY_EVEN
@@ -43,6 +43,7 @@ class Conf:
     SER_TIMEOUT = 1
 
     PORT_TIME_OUT = 20  # How long before we give up on trying to connect
+    MAX_SEARCH_DUR = 60
 
     # Movement control dictionaries  #########################################
     HUMANOID_FULL = {  # Full dictionary with all motions in Heart2Heart
@@ -289,15 +290,16 @@ class Conf:
     CV_WINDOW_LEFT = "Image window left"
     CV_WINDOW_RIGHT = "Image window right"
     CV_FONT = cv2.FONT_HERSHEY_PLAIN
-    CV_FONT_SCALE = 2
-    CV_TEXT_COLOR = (255, 255, 255)
+    CV_FONT_SCALE = 1
+    CV_TEXT_COLOR = (255, 0, 255)
     CV_LINE_COLOR = (255, 75, 5)
-    CV_THICKNESS = 2
+    CV_THICKNESS = 1
     CV_LINE = cv2.LINE_AA
     CV_SIZE = (128, 512, 3)
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
+    # CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
@@ -314,6 +316,7 @@ class Conf:
 
     # CS = camera settings
     CS_DEFAULT = "default"
+    CS_DEFAULT2 = "default_dual"
     CS_FOCAL = "focal_len"
     CS_FOCAL_L = "focal_len_left"
     CS_FOCAL_R = "focal_len_right"
@@ -321,6 +324,8 @@ class Conf:
     CS_OBJ_WIDTH = "object_width"
     CS_SCALE = "scale"
     CS_NEIGH = "nearest_neighbour"
+
+    CS_MID_TOLERANCE = 10
 
     # Cam memory settings  ###################################################
     MEM_DIST_LIST_LEN = 10
