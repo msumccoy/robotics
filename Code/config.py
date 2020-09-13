@@ -13,7 +13,7 @@ from string import Template
 import cv2
 import serial
 
-config_file = "/home/kuwin/file2.json"
+config_file = "/home/pi/file.json"
 with open(config_file) as file:
     config = json.load(file)
 
@@ -21,7 +21,7 @@ with open(config_file) as file:
 class Conf:
     # VERSION = major_change.minor_change
     VERSION = 2.0
-    PATH_ROOT = config["path"] + "/"
+    PATH_ROOT = config["path"]  # Typically: /home/user/pi/
     ##########################################################################
     # Templates  #############################################################
     ##########################################################################
@@ -33,9 +33,9 @@ class Conf:
     ##########################################################################
     # Robot Settings  ########################################################
     ##########################################################################
-    # Serial port connection settings
-    HUMANOID_PORT = config["humanoid_port"]
-    SPIDER_PORT = config["spider_port"]
+    # These values are based off of the blue tooth attached location
+    HUMANOID_PORT = config["humanoid_port"]  # Typically: /dev/rfcomm1
+    SPIDER_PORT = config["spider_port"]  # Typically: /dev/rfcomm2
     BAUDRATE = 9600
     BYTESIZE = serial.EIGHTBITS
     PARITY = serial.PARITY_EVEN
