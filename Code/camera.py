@@ -4,6 +4,7 @@ Midwestern State University
 """
 import json
 import logging
+import os
 import time
 import cv2
 
@@ -21,15 +22,16 @@ class Camera:
 
     @staticmethod
     def get_inst(
-            cam_name, cam_num=0, lens_type=LensType.SINGLE, record=False
+            cam_name, cam_num=0, lens_type=LensType.SINGLE,
+            record=False, take_pic=False
     ):
         if cam_name not in Camera._inst:
             Camera._inst[cam_name] = Camera(
-                cam_name, cam_num, lens_type, record
+                cam_name, cam_num, lens_type, record, take_pic
             )
         return Camera._inst[cam_name]
 
-    def __init__(self, robot, cam_num, lens_type, record):
+    def __init__(self, robot, cam_num, lens_type, record, take_pic):
         self.main_logger.info(f"Camera started on version {Conf.VERSION}")
         self.logger.info(
             f"Cam started on version {Conf.VERSION}:\n"
@@ -39,6 +41,7 @@ class Camera:
             f"- record: {record}"
         )
         self.start = time.time()
+        self.lock = Conf.LOCK_CAM
         self.count = 0
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
             self.logger.exception(f"'{lens_type}' is not a valid lens type")
@@ -72,6 +75,16 @@ class Camera:
         if self.profile not in self.settings:
             self.setup_profile(self.profile)
 
+        files = os.listdir(Conf.PIC_ROOT)
+        if len(files) > 0:
+            files = [int(f[:-4]) for f in files]
+            files.sort()
+            self.pic_num = files[-1] + 1
+        else:
+            self.pic_num = 0
+        self.last_pic = 0
+        self.take_pic = take_pic
+
         self.frame_left = None
         self.frame_right = None
         self.full_midpoint = self.midpoint = int(self.width / 2)
@@ -81,6 +94,8 @@ class Camera:
             if self.height > self.full_midpoint:
                 self.logger.warning(Conf.WARN_CAM_TYPE.substitute())
 
+        self.last_vid_write = 0
+        self.vid_write_frequency = 1/10
         self.record = record
         if record:
             self.logger.info("Recording active")
@@ -148,22 +163,32 @@ class Camera:
             self.calibrate()
         while not ExitControl.gen:
             loop_start = time.time()
-            self.ret, self.frame = self.cam.read()
-            if self.lens_type == LensType.DOUBLE:
-                self.get_dual_image()
+            self.get_frame()
             self.detect_object()
             cv2.imshow(Conf.CV_WINDOW, self.frame)
             if self.lens_type == LensType.DOUBLE:
                 cv2.imshow(Conf.CV_WINDOW_LEFT, self.frame_left)
                 cv2.imshow(Conf.CV_WINDOW_RIGHT, self.frame_right)
             if self.record:
-                self.video_writer.write(self.frame)
+                dur = time.time() - self.last_vid_write
+                if dur > self.vid_write_frequency:
+                    self.video_writer.write(self.frame)
+            if self.take_pic:
+                self.capture_picture(limit=True)
             k = cv2.waitKey(50)
             if k == 27:
                 ExitControl.gen = True
-            self.logger.debug(
-                f"Recognition loop ran in {pretty_time(loop_start)}"
-            )
+
+            loop_dur = time.time() - loop_start
+            if loop_dur < .12:
+                self.logger.debug(
+                    f"Recognition loop ran in {pretty_time(loop_dur, False)}"
+                )
+            else:
+                self.logger.warning(
+                    f"Recognition loop ran in {pretty_time(loop_dur, False)}"
+                    f"\nThis is greater than the threshold"
+                )
     ##########################################################################
 
     ##########################################################################
@@ -196,6 +221,11 @@ class Camera:
                         f"and robot has stopped searching"
                     )
     ##########################################################################
+
+    def get_frame(self):
+        self.ret, self.frame = self.cam.read()
+        if self.lens_type == LensType.DOUBLE:
+            self.get_dual_image()
 
     def detect_object(self):
         if self.lens_type == LensType.SINGLE:
@@ -839,6 +869,19 @@ class Camera:
                     "Enter right focal length: "
                 )
 
+    def capture_picture(self, limit=False):
+        if limit:
+            dur = time.time() - self.last_pic
+            if dur < Conf.FREQUENCY_PIC:
+                return
+
+        cv2.imwrite(f"{Conf.PIC_ROOT}{self.pic_num}.jpg", self.frame)
+        self.logger.debug(
+            f"capture_picture: Photo taken with name {self.pic_num}.jpg"
+        )
+        self.pic_num += 1
+        self.last_pic = time.time()
+
     def update_instance_settings(self):
         self.logger.debug("update_instance_settings called")
         if self.lens_type == LensType.SINGLE:
@@ -865,10 +908,11 @@ class Camera:
 
 
 def independent_test():
-    # cam = Camera.get_inst(
-    #     RobotType.SPIDER, lens_type=LensType.DOUBLE, cam_num=0
-    # )
-    cam = Camera.get_inst(RobotType.SPIDER)
+    cam = Camera.get_inst(
+        RobotType.SPIDER, lens_type=LensType.DOUBLE, cam_num=0,
+        take_pic=True, record=True
+    )
+    cam = Camera.get_inst(RobotType.SPIDER, take_pic=True)
     # cam.calibrate()
     cam.start_recognition()
     cam.close()

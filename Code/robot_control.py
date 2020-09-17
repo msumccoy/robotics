@@ -85,13 +85,15 @@ class Robot:
         self.logger.info(f"Robot init ran in {pretty_time(self.start)}")
 
     def send_command(self, motion_cmd):
+        # Need to make sure robot is aware that command is being sent before
+        # sending command
         self.logger.debug("send_command called")
         if type(motion_cmd) == int:
             motion_cmd = self.get_hex_cmd(motion_cmd)
         if self.robot_type == RobotType.HUMAN:
-            lock = Conf.HUMANOID_LOCK
+            lock = Conf.LOCK_HUMANOID
         elif self.robot_type == RobotType.SPIDER:
-            lock = Conf.SPIDER_LOCK
+            lock = Conf.LOCK_SPIDER
 
         with lock:
             try:
