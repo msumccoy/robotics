@@ -7,6 +7,7 @@ import logging
 import os
 import time
 import cv2
+import numpy as np
 
 import log_set_up
 from misc import get_int, get_float, get_specific_response, pretty_time
@@ -38,7 +39,8 @@ class Camera:
             f"- robot: {robot}\n"
             f"- cam_num: {cam_num}\n"
             f"- lens_type: {lens_type}\n"
-            f"- record: {record}"
+            f"- record: {record}\n"
+            f"- take_pic: {take_pic}"
         )
         self.start = time.time()
         self.lock = Conf.LOCK_CAM
@@ -89,22 +91,23 @@ class Camera:
         self.frame_right = None
         self.full_midpoint = self.midpoint = int(self.width / 2)
         if lens_type == LensType.DOUBLE:
-            self.midpoint /= 2
+            self.midpoint = int(self.midpoint / 2)
             self.get_dual_image()
             if self.height > self.full_midpoint:
                 self.logger.warning(Conf.WARN_CAM_TYPE.substitute())
 
         self.last_vid_write = 0
-        self.vid_write_frequency = 1/10
+        frame_rate = 10
+        self.vid_write_frequency = 1 / frame_rate
         self.record = record
         if record:
             self.logger.info("Recording active")
             width = self.width
-            height = self.height
+            height = self.height + Conf.CV_NOTE_HEIGHT
             self.video_writer = cv2.VideoWriter(
                 Conf.CV_VIDEO_FILE,
                 cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),
-                10, (width, height)
+                frame_rate, (width, height)
             )
 
         self.obj_dist = {
@@ -155,6 +158,7 @@ class Camera:
     ##########################################################################
     def start_recognition(self):
         self.logger.debug("start_recognition started")
+        loop_dur = 0
         while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
             self.logger.info(
                 "Lens type of camera and settings profile do not match. "
@@ -165,6 +169,18 @@ class Camera:
             loop_start = time.time()
             self.get_frame()
             self.detect_object()
+            note_x = 10
+            note_y = self.height + Conf.CV_NOTE_HEIGHT - 20
+            cv2.putText(
+                self.frame,
+                f"loop duration: {pretty_time(loop_dur, False)}",
+                (note_x, note_y),
+                Conf.CV_FONT,
+                Conf.CV_FONT_SCALE,
+                Conf.CV_TEXT_COLOR,
+                Conf.CV_THICKNESS,
+                Conf.CV_LINE
+            )
             cv2.imshow(Conf.CV_WINDOW, self.frame)
             if self.lens_type == LensType.DOUBLE:
                 cv2.imshow(Conf.CV_WINDOW_LEFT, self.frame_left)
@@ -173,6 +189,9 @@ class Camera:
                 dur = time.time() - self.last_vid_write
                 if dur > self.vid_write_frequency:
                     self.video_writer.write(self.frame)
+                    self.logger.info(
+                        "start_recognition: Writing to video file"
+                    )
             if self.take_pic:
                 self.capture_picture(limit=True)
             k = cv2.waitKey(50)
@@ -187,7 +206,8 @@ class Camera:
             else:
                 self.logger.warning(
                     f"Recognition loop ran in {pretty_time(loop_dur, False)}"
-                    f"\nThis is greater than the threshold"
+                    f"\n----------------------------- "
+                    f"This is greater than the threshold"
                 )
     ##########################################################################
 
@@ -224,6 +244,10 @@ class Camera:
 
     def get_frame(self):
         self.ret, self.frame = self.cam.read()
+        display = np.zeros(
+            [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
+        )
+        self.frame = np.vstack((self.frame, display))
         if self.lens_type == LensType.DOUBLE:
             self.get_dual_image()
 
@@ -278,78 +302,7 @@ class Camera:
                 # Transposed: D = (F x W) / P
                 # F is focal length, P is pixel width, D is distance,
                 # W is width irl
-                for (x, y, w, h) in self.detected_objects:
-                    dist = (self.focal_len * self.obj_width) / w
-                    check = self.obj_dist[DistType.MAIN][ObjDist.AVG] - dist
-                    if check < Conf.DIST_DISCREPANCY:
-                        self.obj_dist[DistType.MAIN][ObjDist.LIST].insert(
-                            0, dist
-                        )
-                        self.obj_dist[DistType.MAIN][ObjDist.SUM] += dist
-                        self.obj_dist[DistType.MAIN][ObjDist.COUNT] += 1
-                        if (
-                                self.obj_dist[DistType.MAIN][ObjDist.COUNT]
-                                > Conf.MEM_DIST_LIST_LEN
-                        ):
-                            num = self.obj_dist[DistType.MAIN][ObjDist.LIST].pop()
-                            self.obj_dist[DistType.MAIN][ObjDist.SUM] -= num
-                            self.obj_dist[DistType.MAIN][ObjDist.COUNT] -= 1
-                        self.obj_dist[DistType.MAIN][ObjDist.AVG] = (
-                            self.obj_dist[DistType.MAIN][ObjDist.SUM]
-                            / self.obj_dist[DistType.MAIN][ObjDist.COUNT]
-                        )
-                        self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN] = (
-                            time.time()
-                        )
-                        self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
-                        x_txt = x
-                        y_txt = y - 10
-                        cv2.putText(
-                            self.frame,
-                            "Distance: "
-                            f"{self.obj_dist[DistType.MAIN][ObjDist.AVG]:.2f}",
-                            (x_txt, y_txt),
-                            Conf.CV_FONT,
-                            Conf.CV_FONT_SCALE,
-                            Conf.CV_TEXT_COLOR,
-                            Conf.CV_THICKNESS,
-                            Conf.CV_LINE
-                        )
-                        center_point = x + (w / 2)
-                        left_limit = self.midpoint - Conf.CS_MID_TOLERANCE
-                        right_limit = self.midpoint + Conf.CS_MID_TOLERANCE
-                        if center_point < left_limit:
-                            self.obj_dist[DistType.MAIN][ObjDist.LOCATION] = (
-                                "Left"
-                            )
-                        elif center_point > right_limit:
-                            self.obj_dist[DistType.MAIN][ObjDist.LOCATION] = (
-                                "right"
-                            )
-                        else:
-                            self.obj_dist[DistType.MAIN][ObjDist.LOCATION] = (
-                                "middle"
-                            )
-                        x_txt = x
-                        y_txt = y + h + 20
-                        cv2.putText(
-                            self.frame,
-                            f"Location: "
-                            f"{self.obj_dist[DistType.MAIN][ObjDist.LOCATION]}",
-                            (x_txt, y_txt),
-                            Conf.CV_FONT,
-                            Conf.CV_FONT_SCALE,
-                            Conf.CV_TEXT_COLOR,
-                            Conf.CV_THICKNESS,
-                            Conf.CV_LINE
-                        )
-                    else:
-                        self.logger.debug(
-                            f"detect_object: "
-                            f"Major deviation in calculated distance.\n"
-                            f"avg: {self.obj_dist[DistType.MAIN][ObjDist.AVG]}"
-                            f" vs dist: {dist}"
-                        )
+                self.label_detected(DistType.MAIN)
             else:
                 self.logger.debug(
                     f"detect_object:Several objects detected. "
@@ -375,106 +328,14 @@ class Camera:
                     self.frame_right, (x, y), (x1, y1), Conf.CV_LINE_COLOR
                 )
             if self.num_left <= 1 and self.num_right <= 1:
-                for (x, y, w, h) in self.detected_left:
-                    dist = (self.focal_len_l * self.obj_width) / w
-                    check = self.obj_dist[DistType.LEFT][ObjDist.AVG] - dist
-                    if check < Conf.DIST_DISCREPANCY:
-                        self.obj_dist[DistType.LEFT][ObjDist.LIST].insert(
-                            0, dist
-                        )
-                        self.obj_dist[DistType.LEFT][ObjDist.SUM] += dist
-                        self.obj_dist[DistType.LEFT][ObjDist.COUNT] += 1
-                        if (
-                                self.obj_dist[DistType.LEFT][ObjDist.COUNT]
-                                > Conf.MEM_DIST_LIST_LEN
-                        ):
-                            num = self.obj_dist[DistType.LEFT][ObjDist.LIST].pop()
-                            self.obj_dist[DistType.LEFT][ObjDist.SUM] -= num
-                            self.obj_dist[DistType.LEFT][ObjDist.COUNT] -= 1
-                        self.obj_dist[DistType.LEFT][ObjDist.AVG] = (
-                            self.obj_dist[DistType.LEFT][ObjDist.SUM]
-                            / self.obj_dist[DistType.LEFT][ObjDist.COUNT]
-                        )
-                        self.obj_dist[DistType.LEFT][ObjDist.LAST_SEEN] = (
-                            time.time()
-                        )
-                        self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN] = (
-                            time.time()
-                        )
-                        self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND] = True
-                        self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
-
-                        x_txt = x
-                        y_txt = y - 10
-                        cv2.putText(
-                            self.frame_left,
-                            "Distance: "
-                            f"{self.obj_dist[DistType.LEFT][ObjDist.AVG]:.2f}",
-                            (x_txt, y_txt),
-                            Conf.CV_FONT,
-                            Conf.CV_FONT_SCALE,
-                            Conf.CV_TEXT_COLOR,
-                            Conf.CV_THICKNESS,
-                            Conf.CV_LINE
-                        )
-                    else:
-                        self.logger.debug(
-                            f"detect_object: "
-                            f"Major deviation in calculated distance for the "
-                            f"left lens.\n"
-                            f"avg: {self.obj_dist[DistType.LEFT][ObjDist.AVG]}"
-                            f" vs dist: {dist}"
-                        )
-                for (x, y, w, h) in self.detected_right:
-                    dist = (self.focal_len_r * self.obj_width) / w
-                    check = self.obj_dist[DistType.RIGHT][ObjDist.AVG] - dist
-                    if check < Conf.DIST_DISCREPANCY:
-                        self.obj_dist[DistType.RIGHT][ObjDist.LIST].insert(
-                            0, dist
-                        )
-                        self.obj_dist[DistType.RIGHT][ObjDist.SUM] += dist
-                        self.obj_dist[DistType.RIGHT][ObjDist.COUNT] += 1
-                        if (
-                                self.obj_dist[DistType.RIGHT][ObjDist.COUNT]
-                                > Conf.MEM_DIST_LIST_LEN
-                        ):
-                            num = self.obj_dist[DistType.RIGHT][ObjDist.LIST].pop()
-                            self.obj_dist[DistType.RIGHT][ObjDist.SUM] -= num
-                            self.obj_dist[DistType.RIGHT][ObjDist.COUNT] -= 1
-                        self.obj_dist[DistType.RIGHT][ObjDist.AVG] = (
-                                self.obj_dist[DistType.RIGHT][ObjDist.SUM]
-                                / self.obj_dist[DistType.RIGHT][ObjDist.COUNT]
-                        )
-                        self.obj_dist[DistType.RIGHT][ObjDist.LAST_SEEN] = (
-                            time.time()
-                        )
-                        self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN] = (
-                            time.time()
-                        )
-                        self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND] = True
-                        self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
-
-                        x_txt = x
-                        y_txt = y - 10
-                        cv2.putText(
-                            self.frame_right,
-                            "Distance: "
-                            f"{self.obj_dist[DistType.RIGHT][ObjDist.AVG]:.2f}",
-                            (x_txt, y_txt),
-                            Conf.CV_FONT,
-                            Conf.CV_FONT_SCALE,
-                            Conf.CV_TEXT_COLOR,
-                            Conf.CV_THICKNESS,
-                            Conf.CV_LINE
-                        )
-                    else:
-                        self.logger.debug(
-                            f"detect_object: "
-                            f"Major deviation in calculated distance for the "
-                            f"right lens.\n"
-                            f"avg: {self.obj_dist[DistType.RIGHT][ObjDist.AVG]}"
-                            f" vs dist: {dist}"
-                        )
+                self.label_detected(DistType.LEFT)
+                if self.detected_left != ():
+                    self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND] = True
+                    self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
+                self.label_detected(DistType.RIGHT)
+                if self.detected_right != ():
+                    self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND] = True
+                    self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
                 if (
                         self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND]
                         and self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND]
@@ -517,38 +378,166 @@ class Camera:
             if dur2 > Conf.MAX_LAST_SEEN:
                 self.reset_distances(DistType.RIGHT)
 
+        note_x = 10
+        note_y = self.height + 20
+        cv2.putText(
+            self.frame,
+            f"{time.strftime(Conf.FORMAT_DATE)}",
+            (note_x, note_y),
+            Conf.CV_FONT,
+            Conf.CV_FONT_SCALE,
+            Conf.CV_TEXT_COLOR,
+            Conf.CV_THICKNESS,
+            Conf.CV_LINE
+        )
         if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
-            self.logger.debug(f"detect_object: dist {self.obj_dist}")
+            note_y += 20
             cv2.putText(
                 self.frame,
-                "Found: "
-                f"{self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]}",
-                (10, 20),
+                "Distance: "
+                f"{self.obj_dist[DistType.MAIN][ObjDist.AVG]: .2f}",
+                (note_x, note_y),
                 Conf.CV_FONT,
                 Conf.CV_FONT_SCALE,
                 Conf.CV_TEXT_COLOR,
                 Conf.CV_THICKNESS,
                 Conf.CV_LINE
             )
-            if self.lens_type == LensType.DOUBLE:
+            if self.lens_type == LensType.SINGLE:
+                note_y += 20
                 cv2.putText(
                     self.frame,
-                    "Found: "
-                    f"{self.obj_dist[DistType.MAIN][ObjDist.AVG]:.2f}",
-                    (10, 50),
+                    "Relative location in vision: "
+                    f"{self.obj_dist[DistType.MAIN][ObjDist.LOCATION]}",
+                    (note_x, note_y),
                     Conf.CV_FONT,
                     Conf.CV_FONT_SCALE,
                     Conf.CV_TEXT_COLOR,
                     Conf.CV_THICKNESS,
                     Conf.CV_LINE
                 )
+            elif self.lens_type == LensType.DOUBLE:
+                if self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND]:
+                    note_y += 20
+                    cv2.putText(
+                        self.frame,
+                        "Relative location in left vision: "
+                        f"{self.obj_dist[DistType.LEFT][ObjDist.LOCATION]}",
+                        (note_x, note_y),
+                        Conf.CV_FONT,
+                        Conf.CV_FONT_SCALE,
+                        Conf.CV_TEXT_COLOR,
+                        Conf.CV_THICKNESS,
+                        Conf.CV_LINE
+                    )
+                if self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND]:
+                    note_y += 20
+                    cv2.putText(
+                        self.frame,
+                        "Relative location in right vision: "
+                        f"{self.obj_dist[DistType.RIGHT][ObjDist.LOCATION]}",
+                        (note_x, note_y),
+                        Conf.CV_FONT,
+                        Conf.CV_FONT_SCALE,
+                        Conf.CV_TEXT_COLOR,
+                        Conf.CV_THICKNESS,
+                        Conf.CV_LINE
+                    )
+
         else:
             self.logger.debug("detect_object: Object not found")
 
+    def label_detected(self, loc):
+        if loc == DistType.MAIN:
+            detected = self.detected_objects
+            focal_len = self.focal_len
+            frame = self.frame
+        elif loc == DistType.LEFT:
+            detected = self.detected_left
+            focal_len = self.focal_len_l
+            frame = self.frame_left
+        elif loc == DistType.RIGHT:
+            detected = self.detected_right
+            focal_len = self.focal_len_r
+            frame = self.frame_right
+        for (x, y, w, h) in detected:
+            dist = (focal_len * self.obj_width) / w
+            check = self.obj_dist[loc][ObjDist.AVG] - dist
+            if check < Conf.DIST_DISCREPANCY:
+                self.obj_dist[loc][ObjDist.LIST].insert(0, dist)
+                self.obj_dist[loc][ObjDist.SUM] += dist
+                self.obj_dist[loc][ObjDist.COUNT] += 1
+                if (
+                        self.obj_dist[loc][ObjDist.COUNT]
+                        > Conf.MEM_DIST_LIST_LEN
+                ):
+                    num = self.obj_dist[loc][ObjDist.LIST].pop()
+                    self.obj_dist[loc][ObjDist.SUM] -= num
+                    self.obj_dist[loc][ObjDist.COUNT] -= 1
+                self.obj_dist[loc][ObjDist.AVG] = (
+                        self.obj_dist[loc][ObjDist.SUM]
+                        / self.obj_dist[loc][ObjDist.COUNT]
+                )
+                self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN] = (
+                    time.time()
+                )
+                self.obj_dist[loc][ObjDist.LAST_SEEN] = (
+                    time.time()
+                )
+                self.obj_dist[loc][ObjDist.IS_FOUND] = True
+                x_txt = x
+                y_txt = y - 10
+                cv2.putText(
+                    frame,
+                    "Distance: "
+                    f"{self.obj_dist[loc][ObjDist.AVG]:.2f}",
+                    (x_txt, y_txt),
+                    Conf.CV_FONT,
+                    Conf.CV_FONT_SCALE,
+                    Conf.CV_TEXT_COLOR,
+                    Conf.CV_THICKNESS,
+                    Conf.CV_LINE
+                )
+                center_point = x + (w / 2)
+                left_limit = self.midpoint - Conf.CS_MID_TOLERANCE
+                right_limit = self.midpoint + Conf.CS_MID_TOLERANCE
+                if center_point < left_limit:
+                    self.obj_dist[loc][ObjDist.LOCATION] = (
+                        "Left"
+                    )
+                elif center_point > right_limit:
+                    self.obj_dist[loc][ObjDist.LOCATION] = (
+                        "right"
+                    )
+                else:
+                    self.obj_dist[loc][ObjDist.LOCATION] = (
+                        "middle"
+                    )
+                y_txt = y + h + 20
+                cv2.putText(
+                    frame,
+                    f"Location: "
+                    f"{self.obj_dist[loc][ObjDist.LOCATION]}",
+                    (x_txt, y_txt),
+                    Conf.CV_FONT,
+                    Conf.CV_FONT_SCALE,
+                    Conf.CV_TEXT_COLOR,
+                    Conf.CV_THICKNESS,
+                    Conf.CV_LINE
+                )
+            else:
+                self.logger.debug(
+                    f"detect_object: "
+                    f"Major deviation in calculated distance for {loc}.\n"
+                    f"avg: {self.obj_dist[loc][ObjDist.AVG]}"
+                    f" vs dist: {dist}"
+                )
+
     def get_dual_image(self):
-        self.frame_left = self.frame[0: self.height, 0: self.full_midpoint]
+        height = self.height
+        self.frame_left = self.frame[0: height, 0: self.full_midpoint]
         self.frame_right = (
-            self.frame[0: self.height, self.full_midpoint: self.width]
+            self.frame[0: height, self.full_midpoint: self.width]
         )
 
     def reset_distances(self, dist_type, full_reset=False):
@@ -876,7 +865,7 @@ class Camera:
                 return
 
         cv2.imwrite(f"{Conf.PIC_ROOT}{self.pic_num}.jpg", self.frame)
-        self.logger.debug(
+        self.logger.info(
             f"capture_picture: Photo taken with name {self.pic_num}.jpg"
         )
         self.pic_num += 1
@@ -909,10 +898,9 @@ class Camera:
 
 def independent_test():
     cam = Camera.get_inst(
-        RobotType.SPIDER, lens_type=LensType.DOUBLE, cam_num=0,
+        RobotType.SPIDER, cam_num=2, lens_type=LensType.DOUBLE,
         take_pic=True, record=True
     )
-    cam = Camera.get_inst(RobotType.SPIDER, take_pic=True)
     # cam.calibrate()
     cam.start_recognition()
     cam.close()

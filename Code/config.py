@@ -296,11 +296,11 @@ class Conf:
     CV_THICKNESS = 1
     CV_LINE = cv2.LINE_AA
     CV_SIZE = (128, 512, 3)
-    CV_NOTE_HEIGHT = 400
+    CV_NOTE_HEIGHT = 200
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
@@ -339,7 +339,7 @@ class Conf:
     CS_SCALE = "scale"
     CS_NEIGH = "nearest_neighbour"
 
-    CS_MID_TOLERANCE = 10
+    CS_MID_TOLERANCE = 20
     FREQUENCY_PIC = 5
 
     # Cam memory settings  ###################################################
