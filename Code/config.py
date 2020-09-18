@@ -296,19 +296,33 @@ class Conf:
     CV_THICKNESS = 1
     CV_LINE = cv2.LINE_AA
     CV_SIZE = (128, 512, 3)
+    CV_NOTE_HEIGHT = 200
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    # CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
     # Camera settings   ######################################################
     ##########################################################################
+    LOCK_CAM = threading.Lock()
     VIDEO_ROOT = PATH_ROOT + "videos/"
+    PIC_ROOT = PATH_ROOT + "pictures/"
     if not os.path.exists(VIDEO_ROOT):
         os.mkdir(VIDEO_ROOT)
-    CV_VIDEO_FILE = VIDEO_ROOT + "Output_recording.avi"
+    if not os.path.exists(PIC_ROOT):
+        os.mkdir(PIC_ROOT)
+    files = os.listdir(VIDEO_ROOT)
+
+    if len(files) > 0:
+        files = [int(f[:-4]) for f in files]
+        files.sort()
+        vid_num = files[-1] + 1
+    else:
+        vid_num = 0
+    CV_VIDEO_FILE = VIDEO_ROOT + f"{vid_num}.avi"
+
     CAM_SETTINGS_FILE = PATH_ROOT + "cam_settings.json"
     if not os.path.isfile(CAM_SETTINGS_FILE):
         with open(CAM_SETTINGS_FILE, 'w') as file:
@@ -325,7 +339,9 @@ class Conf:
     CS_SCALE = "scale"
     CS_NEIGH = "nearest_neighbour"
 
-    CS_MID_TOLERANCE = 10
+    CS_MID_TOLERANCE = 20
+    FREQUENCY_PIC = 30
+    LOOP_DUR_THRESHOLD = 200  # milliseconds before triggering a warning
 
     # Cam memory settings  ###################################################
     MEM_DIST_LIST_LEN = 10
@@ -361,8 +377,8 @@ class Conf:
     ##########################################################################
     # Locks  #################################################################
     ##########################################################################
-    HUMANOID_LOCK = threading.Lock()
-    SPIDER_LOCK = threading.Lock()
+    LOCK_HUMANOID = threading.Lock()
+    LOCK_SPIDER = threading.Lock()
 
     ##########################################################################
     # Control commands  ######################################################
