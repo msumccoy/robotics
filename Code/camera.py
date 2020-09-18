@@ -159,6 +159,7 @@ class Camera:
     def start_recognition(self):
         self.logger.debug("start_recognition started")
         loop_dur = 0
+        threshold = Conf.LOOP_DUR_THRESHOLD / 1000
         while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
             self.logger.info(
                 "Lens type of camera and settings profile do not match. "
@@ -199,7 +200,7 @@ class Camera:
                 ExitControl.gen = True
 
             loop_dur = time.time() - loop_start
-            if loop_dur < .12:
+            if loop_dur < threshold:
                 self.logger.debug(
                     f"Recognition loop ran in {pretty_time(loop_dur, False)}"
                 )
@@ -207,7 +208,8 @@ class Camera:
                 self.logger.warning(
                     f"Recognition loop ran in {pretty_time(loop_dur, False)}"
                     f"\n----------------------------- "
-                    f"This is greater than the threshold"
+                    f"This is greater than the threshold of "
+                    f"{Conf.LOOP_DUR_THRESHOLD}ms"
                 )
     ##########################################################################
 

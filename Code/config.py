@@ -340,7 +340,8 @@ class Conf:
     CS_NEIGH = "nearest_neighbour"
 
     CS_MID_TOLERANCE = 20
-    FREQUENCY_PIC = 5
+    FREQUENCY_PIC = 30
+    LOOP_DUR_THRESHOLD = 200  # milliseconds before triggering a warning
 
     # Cam memory settings  ###################################################
     MEM_DIST_LIST_LEN = 10
