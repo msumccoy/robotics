@@ -11,7 +11,7 @@ import log_set_up  # This must Always be the first custom module imported
 from camera import Camera
 from config import Conf
 from enums import RobotType
-from misc import pretty_time
+from misc import pretty_time, manual_ender
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
     main_logger.info(f"Main function starting on version {Conf.VERSION}")
 
     main_logger.info(
-        f"Program completed after running for {pretty_time(start)}"
+        f"Program completed after running for {pretty_time(start)}\n"
     )
 
 

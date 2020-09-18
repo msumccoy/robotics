@@ -1,5 +1,7 @@
 import time
 
+from variables import ExitControl
+
 
 def get_int(prompt="Enter an integer: "):
     while True:
@@ -71,3 +73,10 @@ def pretty_time(duration, is_raw=True):
             f"{duration_ary[2]}min {duration_ary[3]}s"
         )
     return pretty_duration
+
+
+def manual_ender():
+    while not ExitControl.gen:
+        check = input("Press e to exit")
+        if check == "e":
+            ExitControl.gen = True
