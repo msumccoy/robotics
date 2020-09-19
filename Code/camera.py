@@ -212,6 +212,16 @@ class Camera:
         total_dur = time.time() - self.start
         threshold = Conf.LOOP_DUR_THRESHOLD / 1000
         while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
+            if not self.is_test:
+                self.main_logger.exception(
+                    "Lens type of camera and settings progile do not match "
+                    "but test env not active. Raising exception now."
+                )
+                self.logger.exception(
+                    "Lens type of camera and settings progile do not match "
+                    "but test env not active. Raising exception now."
+                )
+                raise Exception("ERROR: lens type error - start_recognition ")
             self.logger.info(
                 "Lens type of camera and settings profile do not match. "
                 "Please fix"
@@ -317,7 +327,7 @@ class Camera:
 
     def get_frame(self):
         if self.cam_num < 0:
-            self.cam.capture(self.rawCapture, format="bgr")
+            self.cam.capture(self.rawCapture, format="bgr", use_video_port=True)
             self.frame = self.rawCapture.array
             self.ret = True
         else:
@@ -986,7 +996,7 @@ def independent_test():
     cam = Camera.get_inst(
         RobotType.SPIDER,
         cam_num=2,
-        #lens_type=LensType.DOUBLE,
+        # lens_type=LensType.DOUBLE,
         record=True,
         take_pic=True,
         is_test=True
