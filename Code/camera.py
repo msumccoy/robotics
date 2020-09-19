@@ -62,8 +62,21 @@ class Camera:
 
         self.robot_type = robot
         self.robot = None
+        num = cam_num
         self.cam = cv2.VideoCapture(cam_num)
         self.ret, self.frame = self.cam.read()
+        while not self.ret:
+            num = 0
+            self.cam = cv2.VideoCapture(num)
+            self.ret, self.frame = self.cam.read()
+            num += 1
+            if num > 5:
+                raise Exception("No viable camera found ")
+        if num != cam_num:
+            self.logger.info(
+                f"Cam num changed from {cam_num} to {num} because original "
+                "number did not have a camera associated with it"
+            )
         self.lens_type = lens_type
         self.focal_len = None
         self.focal_len_l = None
@@ -935,11 +948,11 @@ def independent_test():
     ender.start()
     cam = Camera.get_inst(
         RobotType.SPIDER,
-        # cam_num=2,
+        cam_num=2,
         #lens_type=LensType.DOUBLE,
         record=True,
         take_pic=True,
-        # is_test=True
+        is_test=True
     )
     # cam.calibrate()
     cam.start_recognition()
