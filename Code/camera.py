@@ -66,6 +66,7 @@ class Camera:
             )
             raise ValueError(f"'{robot}' is not a valid robot type")
 
+        self.is_test = is_test
         self.robot_type = robot
         self.robot = None
         if cam_num < 0:
@@ -122,8 +123,22 @@ class Camera:
         if lens_type == LensType.DOUBLE:
             self.profile = Conf.CS_DEFAULT2
         if self.profile not in self.settings:
-            self.setup_profile(self.profile)
-
+            if not is_test:
+                self.logger.exception(
+                    "No profile exist yet test environment not active"
+                )
+                self.main_logger.exception(
+                    "No profile exist yet test environment not active"
+                )
+                raise ValueError(
+                    "No profile exist yet test environment not active"
+                )
+            setup_profile = True
+            test = self.is_test
+            self.is_test = True
+            self.reset_profile(self.profile)
+        else:
+            setup_profile = False
         files = os.listdir(Conf.PIC_ROOT)
         if len(files) > 0:
             files = [int(f[:-4]) for f in files]
@@ -174,7 +189,6 @@ class Camera:
         self.detected_right = None
         self.is_detected_equal = True
         self.is_detected = False
-        self.is_test = is_test
         if is_test:
             track_bar = Conf.CV_WINDOW
             track_bar_scale = 4
@@ -196,8 +210,12 @@ class Camera:
             cv2.createTrackbar(
                 "min Neigh", track_bar, track_bar_neigh, 50, self.set_neigh
             )
-        if Conf.CS_DEFAULT not in self.settings:
+        if setup_profile:
+            print(self.settings)
             self.setup_profile(self.profile)
+            self.is_test = test
+            if not self.is_test:
+                cv2.destroyWindow(Conf.CV_WINDOW)
         self.update_instance_settings()
         self.logger.debug(
             f"Cam init ran in {pretty_time(self.start)}"
@@ -639,11 +657,21 @@ class Camera:
             self.obj_dist[dist_type][ObjDist.LAST_SEEN] = 0.0
             self.obj_dist[DistType.MAIN][ObjDist.LOCATION] = "N/A"
 
+    def reset_profile(self, profile):
+        self.settings[profile] = {}
+        self.settings[profile][Conf.CS_NEIGH] = 3
+        self.settings[profile][Conf.CS_SCALE] = 1.305
+        self.settings[profile][Conf.CS_OBJ_WIDTH] = 3.0
+        self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
+        self.settings[profile][Conf.CS_FOCAL_R] = 1
+        self.settings[profile][Conf.CS_FOCAL_L] = 1
+        self.settings[profile][Conf.CS_FOCAL] = 1
+
     def calibrate(self):
+        self.logger.debug("calibrate called")
         if not self.is_test:
             self.logger.exception("Can only calibrate in testing mode")
             return
-        self.logger.debug("calibrate called")
         options = {'y': "yes", 'n': "no"}
         continue_calibrate = True
         while continue_calibrate:
@@ -716,6 +744,9 @@ class Camera:
 
     def setup_profile(self, profile):
         self.logger.debug(f"setup_profile called for profile: {profile}")
+        if not self.is_test:
+            self.logger.exception("Can only setup profile in testing mode")
+            return
         options = {'y': "yes", 'n': "no"}
         if profile not in self.settings:
             self.settings[profile] = {}
@@ -992,6 +1023,7 @@ class Camera:
 
 def independent_test():
     ender = threading.Thread(target=manual_ender, daemon=True)
+    # Don't use ender if you need to use terminal
     ender.start()
     cam = Camera.get_inst(
         RobotType.SPIDER,
