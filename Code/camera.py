@@ -5,10 +5,16 @@ Midwestern State University
 import json
 import logging
 import os
+import re
 import threading
 import time
 import cv2
 import numpy as np
+is_rpi = False
+if "raspberrypi" in os.uname():
+    is_rpi = True
+    from picamera.array import PiRGBArray
+    from picamera import PiCamera
 
 import log_set_up
 from misc import manual_ender, get_float, get_specific_response, pretty_time
@@ -62,19 +68,45 @@ class Camera:
 
         self.robot_type = robot
         self.robot = None
-        num = cam_num
-        self.cam = cv2.VideoCapture(cam_num)
-        self.ret, self.frame = self.cam.read()
-        while not self.ret:
-            num = 0
-            self.cam = cv2.VideoCapture(num)
+        if cam_num < 0:
+            self.height = 480
+            self.width = 640
+            self.cam = PiCamera()
+            self.cam.resolution = (self.width, self.height)
+            self.cam.framerate = 32
+            self.rawCapture = PiRGBArray(
+                self.cam, size=(self.width, self.height)
+            )
+            self.ret = True
+            time.sleep(0.1)
+        else:
+            self.cam = cv2.VideoCapture(cam_num)
             self.ret, self.frame = self.cam.read()
-            num += 1
-            if num > 5:
+        if not self.ret:
+            self.cam_num = -1
+        else:
+            self.cam_num = cam_num
+        while not self.ret:
+            if is_rpi:
+                self.height = 480
+                self.width = 640
+                self.cam = PiCamera()
+                self.cam.resolution = (self.width, self.height)
+                self.cam.framerate = 32
+                self.rawCapture = PiRGBArray(
+                    self.cam, size=(self.width, self.height)
+                )
+                self.ret = True
+                time.sleep(0.1)
+            else:
+                self.cam = cv2.VideoCapture(self.cam_num)
+                self.ret, self.frame = self.cam.read()
+            self.cam_num += 1
+            if self.cam_num > 5:
                 raise Exception("No viable camera found ")
-        if num != cam_num:
+        if self.cam_num != cam_num:
             self.logger.info(
-                f"Cam num changed from {cam_num} to {num} because original "
+                f"Cam num changed from {cam_num} to {self.cam_num} because original "
                 "number did not have a camera associated with it"
             )
         self.lens_type = lens_type
@@ -284,7 +316,12 @@ class Camera:
             cv2.imshow(Conf.CV_WINDOW_RIGHT, self.frame_right)
 
     def get_frame(self):
-        self.ret, self.frame = self.cam.read()
+        if self.cam_num < 0:
+            self.cam.capture(self.rawCapture, format="bgr")
+            self.frame = self.rawCapture.array
+            self.ret = True
+        else:
+            self.ret, self.frame = self.cam.read()
         display = np.zeros(
             [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
         )
