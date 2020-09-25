@@ -245,7 +245,7 @@ class Camera:
                 "Please fix"
             )
             self.calibrate()
-        while not ExitControl.gen:
+        while ExitControl.gen:
             loop_start = time.time()
             self.get_frame()
             self.detect_object()
@@ -286,7 +286,7 @@ class Camera:
                 self.show_frames()
             k = cv2.waitKey(50)
             if k == 27:
-                ExitControl.gen = True
+                ExitControl.gen = False
 
             loop_dur = time.time() - loop_start
             total_dur = time.time() - self.start
@@ -312,7 +312,7 @@ class Camera:
     def control_robot(self):
         from robot_control import Robot
         self.robot = Robot.get_inst(self.robot_type)
-        while not ExitControl.gen:
+        while ExitControl.gen:
             if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
                 self.last_non_search = time.time()
                 # Walk to ball, kick ball, etc.
