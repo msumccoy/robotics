@@ -7,6 +7,7 @@ import time
 
 import serial
 
+import log_set_up
 from config import Conf
 from enums import RobotType
 from misc import get_int, pretty_time
@@ -25,10 +26,10 @@ class Robot:
         return Robot._inst[robot_type]
 
     def __init__(self, robot_type):
-        self.main_logger.info(f"Robot started on version {Conf.VERSION}")
+        self.main_logger.info(f"Robot: started on version {Conf.VERSION}")
         self.logger.info(
             f"Robot started on version {Conf.VERSION}:\n"
-            f"- robot_type: {robot_type}\n"
+            f"- robot_type: {robot_type}"
         )
         self.start = time.time()
         if robot_type != RobotType.HUMAN and robot_type != RobotType.SPIDER:
@@ -49,7 +50,7 @@ class Robot:
                 f"{robot_type} is not a valid option for robot type"
             )
             self.main_logger.exception(
-                f"Robot crashed -- '{robot_type}' is not a valid robot type"
+                f"Robot: crashed -- '{robot_type}' is not a valid robot type"
             )
             raise ValueError(
                 f"{robot_type} is not a valid option for robot type"
@@ -66,29 +67,18 @@ class Robot:
             Conf.PARITY,
             timeout=Conf.SER_TIMEOUT
         )
-
-        # Loop until serial connection made or connection times out
-        duration = time.time() - self.start
-        while not self.ser.isOpen():
-            if duration > Conf.PORT_TIME_OUT:
-                self.logger.exception("Serial port timed out")
-                self.main_logger.exception(
-                    "Robot crashed -- Serial port timed out"
-                )
-                raise Exception("Connection timed out")
-            self.ser.Open()
-            duration = time.time() - self.start
-        self.logger.debug(
-            f"Serial port connected after "
-            f"{pretty_time(duration, is_raw=False)}"
-        )
         self.logger.info(f"Robot init ran in {pretty_time(self.start)}")
 
     def send_command(self, motion_cmd):
         # Need to make sure robot is aware that command is being sent before
         # sending command
-        self.logger.debug("send_command called")
-        if type(motion_cmd) == int:
+        self.logger.debug(f"send_command called; command -- {motion_cmd}")
+        if motion_cmd == "stop" or motion_cmd < 0:
+            if self.robot_type == RobotType.HUMAN:
+                motion_cmd = self.get_hex_cmd(1)
+            elif self.robot_type == RobotType.SPIDER:
+                motion_cmd = self.get_hex_cmd(17)
+        elif type(motion_cmd) == int:
             motion_cmd = self.get_hex_cmd(motion_cmd)
         if self.robot_type == RobotType.HUMAN:
             lock = Conf.LOCK_HUMANOID
@@ -99,7 +89,7 @@ class Robot:
             try:
                 self.sub_send_command(Conf.HEX_STOP)
                 self.sub_send_command(Conf.HEX_RESET)
-                self.logger.debug("motion command ", motion_cmd)
+                self.logger.debug(f"motion command {motion_cmd}")
                 self.sub_send_command(motion_cmd)
                 self.sub_send_command(Conf.HEX_RESUME)
                 self.ser.flush()
@@ -109,7 +99,7 @@ class Robot:
 
     def sub_send_command(self, hex_cmd, cache_wait=0.05):
         self.logger.debug(
-            f"sub_send_command: sending motion command: {hex_cmd}"
+            f"sub_send_command: sending motion command -- {hex_cmd}"
         )
         self.ser.write(hex_cmd)
         self.clear_cache(cache_wait)
@@ -118,7 +108,11 @@ class Robot:
         self.logger.debug(f"clearing cache: wait time {wait}sec")
         check = ""
         while check == "":
-            check = self.ser.read()
+            check = self.ser.read(4)
+        if check == Conf.HEX_ACK_COMMAND:
+            self.logger.debug(f"GOOD: Check is the same as ack -- {check}")
+        else:
+            self.logger.debug(f"BAD: Check wrong -- {check}")
         time.sleep(wait)
 
     def get_hex_cmd(self, motion_num):
@@ -130,44 +124,59 @@ class Robot:
             self.logger.info(f"Motion number {motion_num} not allowed")
             return Conf.HEX_STOP
 
-    def control(self, command):
+    ##########################################################################
+    # Manual control for robot ###############################################
+    ##########################################################################
+    def manual_control(self):
         self.logger.debug("control started")
-        if command == Conf.CMD_FULL_CONTROL:
-            self.full_control = not self.full_control
-            self.logger.info(
-                f"Full control Toggled: full_control = {self.full_control}"
-            )
-        elif command == Conf.CMD_REMOTE:
-            self.logger.error("remote not implemented")
-        elif command == Conf.CMD_CALIBRATE:
-            self.logger.error("calibrate not implemented")
-        elif command == Conf.CMD_CALIBRATE_STOP:
-            self.logger.error("calibrate stop not implemented")
-        elif command == Conf.CMD_DETECT_ON:
-            self.active_auto_control = True
-        elif command == Conf.CMD_DETECT_OFF:
-            self.active_auto_control = False
-        elif command == Conf.CMD_EXIT or command == Conf.CMD_EXIT:
-            ExitControl.gen = True
-            self.main_logger.info("Robot control exiting program")
-            self.logger.info("Robot control exiting program")
-        else:
-            try:
-                command = int(command)
-            except ValueError:
-                self.logger.info(f"{command} is an unknown command")
-
+        while ExitControl.gen:
             if self.full_control:
-                if command in self.full_dict:
+                print("FULL CONTROL ACTIVE!!!!!!!!! BE CAREFUL!!!!!!!!")
+            command = input("Enter a Command or motion number: ")
+            if command == Conf.CMD_FULL_CONTROL:
+                self.full_control = not self.full_control
+                self.logger.debug(
+                    f"Full control Toggled: full_control={self.full_control}"
+                )
+            elif command == Conf.CMD_REMOTE:
+                self.logger.error("remote not implemented")
+            elif command == Conf.CMD_AUTO_ON:
+                self.active_auto_control = True
+                self.logger.debug("Enabling auto control")
+            elif command == Conf.CMD_AUTO_OFF:
+                self.active_auto_control = False
+                self.logger.debug("Disabling auto control")
+            elif command == Conf.CMD_EXIT or command == Conf.CMD_EXIT1:
+                ExitControl.gen = False
+                self.main_logger.info("Robot: control exiting program")
+                self.logger.info("Robot control exiting program")
+            elif command == Conf.CMD_STOP or command == Conf.CMD_STOP1:
+                self.active_auto_control = False
+                self.send_command("stop")
+                self.logger.debug(
+                    "Turning off auto control and stopping robot"
+                )
+            else:
+                try:
+                    command = int(command)
+                except ValueError:
+                    pass
+                if self.full_control:
+                    if command in self.full_dict:
+                        self.send_command(command)
+                    elif type(command) == int and command < 0:
+                        self.send_command(command)
+                    else:
+                        self.logger.info(
+                            f"{command} is an unknown motion number"
+                        )
+                elif command in self.short_dict:
+                    self.send_command(command)
+                elif type(command) == int and command < 0:
                     self.send_command(command)
                 else:
-                    self.logger.info(
-                        f"{command} is an unknown motion number"
-                    )
-            elif command in self.short_dict:
-                self.send_command(command)
-            else:
-                self.logger.info(f"{command} is an unknown motion number")
+                    self.logger.info(f"{command} is an unknown motion number")
+    ##########################################################################
 
     def close(self):
         self.logger.info(
@@ -175,14 +184,12 @@ class Robot:
         )
 
 
-def manual_robot_control(robot_type):
-    robot = Robot.get_inst(robot_type)
-    while not ExitControl.gen:
-        command = input("Enter a Command or motion number: ")
-        robot.control(command)
+def main():
+    robot = Robot.get_inst(RobotType.SPIDER)
+    robot.manual_control()
     robot.close()
 
 
 if __name__ == "__main__":
     # This section is to be used to test functions/methods of this file
-    manual_robot_control(RobotType.SPIDER)
+    main()
