@@ -13,7 +13,7 @@ from string import Template
 import cv2
 import serial
 
-config_file = "/home/pi/file.json"
+config_file = "/home/pi/file.json"  # This is system specific
 with open(config_file) as file:
     config = json.load(file)
 
@@ -33,7 +33,7 @@ class Conf:
     ##########################################################################
     # Robot Settings  ########################################################
     ##########################################################################
-    # These values are based off of the blue tooth attached location
+    # These values are based off of the bluetooth attached location
     HUMANOID_PORT = config["humanoid_port"]  # Typically: /dev/rfcomm1
     SPIDER_PORT = config["spider_port"]  # Typically: /dev/rfcomm2
     BAUDRATE = 9600
@@ -51,7 +51,7 @@ class Conf:
         1: "Home position",
         2: "Waving",
         3: "stretch",
-        4: "Craw like motion",
+        4: "Drop to floor and 'cry'",
         5: "Dance (hard on servos)",
         6: "Don't know",
         7: "Clap 1",
@@ -104,7 +104,7 @@ class Conf:
         1: "Home position",
         2: "Waving",
         3: "stretch",
-        4: "Craw like motion",
+        4: "Drop to floor and 'cry'",
         7: "Clap 1",
         8: "Clap 2",
         9: "Push ups",
@@ -177,7 +177,7 @@ class Conf:
     )
     HEX_RESUME = b"\x09\x00\x02\x00\x00\x00\x13\x83\xa1"
 
-    HEX_ACK_COMMAND = b"\x04\xfe\x06\x08"
+    HEX_ACK_COMMAND = b"\x04\x00\x06\n"
     HEX_GET_OPTIONS = b"\x0a\x00\x20\x00\x00\x00\x00\x00\x02\x2c"
 
     HEX_HUNDRED_NUM = [
@@ -368,8 +368,8 @@ class Conf:
     # Robot log settings  ####################################################
     LOG_ROBOT_NAME = "robot"
     LOG_ROBOT_FILE = LOG_ROOT + LOG_ROBOT_NAME + ".log"
-    LOG_ROBOT_FILE_LEVEL = logging.INFO
-    LOG_ROBOT_STREAM_LEVEL = logging.INFO
+    LOG_ROBOT_FILE_LEVEL = logging.DEBUG
+    LOG_ROBOT_STREAM_LEVEL = logging.DEBUG
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
     FORMAT_DATE = "%Y-%m-%d %H:%M:%S"
     WRITE_FREQUENCY = 30
@@ -393,8 +393,8 @@ class Conf:
     CMD_DICTIONARY = "dict"
     CMD_CALIBRATE = "calibrate"
     CMD_CALIBRATE_STOP = "calibrate stop"
-    CMD_DETECT_ON = "detect"
-    CMD_DETECT_OFF = "detect stop"
+    CMD_AUTO_ON = "auto"
+    CMD_AUTO_OFF = "auto off"
 
     # Commands for OpenCV window control
     R_CMD_EXIT = ord("e")

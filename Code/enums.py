@@ -12,6 +12,20 @@ class RobotType(Enum):
     SPIDER = 1
 
 
+class RobotCMD(Enum):
+    TURN_LEFT = 0
+    TURN_RIGHT = 1
+    FORWARD = 2
+    BACK = 3
+    FORWARD_CONT = 4
+    BACK_CONT = 5
+    SIDE_STEP_LEFT = 6
+    SIDE_STEP_RIGHT = 7
+    KICK_LEFT = 8
+    KICK_RIGHT = 9
+    BACK_KICK = 10
+
+
 class LensType(Enum):
     SINGLE = 0
     DOUBLE = 1

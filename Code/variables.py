@@ -1,2 +1,4 @@
 class ExitControl:
-    gen = False
+    gen = True
+    robot = True
+    cam = True

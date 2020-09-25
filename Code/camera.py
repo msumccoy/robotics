@@ -5,10 +5,17 @@ Midwestern State University
 import json
 import logging
 import os
+import re
 import threading
 import time
 import cv2
 import numpy as np
+is_rpi = False
+if "raspberrypi" in os.uname():
+    is_rpi = True
+    from picamera import PiCamera
+    from picamera.exc import PiCameraError
+    from picamera.array import PiRGBArray
 
 import log_set_up
 from misc import manual_ender, get_float, get_specific_response, pretty_time
@@ -34,7 +41,7 @@ class Camera:
         return Camera._inst[cam_name]
 
     def __init__(self, robot, cam_num, lens_type, record, take_pic, is_test):
-        self.main_logger.info(f"Camera started on version {Conf.VERSION}")
+        self.main_logger.info(f"Camera: started on version {Conf.VERSION}")
         self.logger.info(
             f"Cam started on version {Conf.VERSION}:\n"
             f"- robot: {robot}\n"
@@ -50,31 +57,64 @@ class Camera:
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
             self.logger.exception(f"'{lens_type}' is not a valid lens type")
             self.main_logger.exception(
-                f"Camera crashed -- '{lens_type}' is not a valid lens type"
+                f"Camera: crashed -- '{lens_type}' is not a valid lens type"
             )
             raise ValueError(f"'{lens_type}' is not a valid lens type")
         if robot != RobotType.HUMAN and robot != RobotType.SPIDER:
             self.logger.exception(f"'{robot}' is not a valid robot type")
             self.main_logger.exception(
-                f"Camera crashed -- '{robot}' is not a valid robot type"
+                f"Camera: crashed -- '{robot}' is not a valid robot type"
             )
             raise ValueError(f"'{robot}' is not a valid robot type")
 
+        self.is_test = is_test
         self.robot_type = robot
         self.robot = None
-        num = cam_num
-        self.cam = cv2.VideoCapture(cam_num)
-        self.ret, self.frame = self.cam.read()
-        while not self.ret:
-            num = 0
-            self.cam = cv2.VideoCapture(num)
+        if cam_num < 0:
+            try:
+                self.height = 480
+                self.width = 640
+                self.cam = PiCamera()
+                self.cam.resolution = (self.width, self.height)
+                self.cam.framerate = 32
+                self.rawCapture = PiRGBArray(
+                    self.cam, size=(self.width, self.height)
+                )
+                self.ret = True
+                time.sleep(0.1)
+            except PiCameraError:
+                pass
+        else:
+            self.cam = cv2.VideoCapture(cam_num)
             self.ret, self.frame = self.cam.read()
-            num += 1
-            if num > 5:
+        if not self.ret:
+            self.cam_num = -1
+        else:
+            self.cam_num = cam_num
+        while not self.ret:
+            if is_rpi and self.cam_num < 0:
+                try:
+                    self.cam = PiCamera()
+                    self.height = 480
+                    self.width = 640
+                    self.cam.resolution = (self.width, self.height)
+                    self.cam.framerate = 32
+                    self.rawCapture = PiRGBArray(
+                        self.cam, size=(self.width, self.height)
+                    )
+                    self.ret = True
+                    time.sleep(0.1)
+                except PiCameraError:
+                    self.logger.debug(f"__inti__: Pi Cam not connected")
+            else:
+                self.cam = cv2.VideoCapture(self.cam_num)
+                self.ret, self.frame = self.cam.read()
+            self.cam_num += 1
+            if self.cam_num > 5:
                 raise Exception("No viable camera found ")
-        if num != cam_num:
+        if self.cam_num != cam_num:
             self.logger.info(
-                f"Cam num changed from {cam_num} to {num} because original "
+                f"Cam num changed from {cam_num} to {self.cam_num} because original "
                 "number did not have a camera associated with it"
             )
         self.lens_type = lens_type
@@ -90,8 +130,22 @@ class Camera:
         if lens_type == LensType.DOUBLE:
             self.profile = Conf.CS_DEFAULT2
         if self.profile not in self.settings:
-            self.setup_profile(self.profile)
-
+            if not is_test:
+                self.logger.exception(
+                    "No profile exist yet test environment not active"
+                )
+                self.main_logger.exception(
+                    "Camera: No profile exist yet test environment not active"
+                )
+                raise ValueError(
+                    "No profile exist yet test environment not active"
+                )
+            setup_profile = True
+            test = self.is_test
+            self.is_test = True
+            self.reset_profile(self.profile)
+        else:
+            setup_profile = False
         files = os.listdir(Conf.PIC_ROOT)
         if len(files) > 0:
             files = [int(f[:-4]) for f in files]
@@ -142,7 +196,6 @@ class Camera:
         self.detected_right = None
         self.is_detected_equal = True
         self.is_detected = False
-        self.is_test = is_test
         if is_test:
             track_bar = Conf.CV_WINDOW
             track_bar_scale = 4
@@ -164,9 +217,17 @@ class Camera:
             cv2.createTrackbar(
                 "min Neigh", track_bar, track_bar_neigh, 50, self.set_neigh
             )
-        if Conf.CS_DEFAULT not in self.settings:
+        if setup_profile:
+            print(self.settings)
             self.setup_profile(self.profile)
+            self.is_test = test
+            if not self.is_test:
+                cv2.destroyWindow(Conf.CV_WINDOW)
         self.update_instance_settings()
+
+        self.robot_cmd_sent = None
+        self.robot_cmd_time = 0
+
         self.logger.debug(
             f"Cam init ran in {pretty_time(self.start)}"
         )
@@ -180,12 +241,22 @@ class Camera:
         total_dur = time.time() - self.start
         threshold = Conf.LOOP_DUR_THRESHOLD / 1000
         while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
+            if not self.is_test:
+                self.main_logger.exception(
+                    "Camera: Lens type of camera and settings progile do not "
+                    "match but test env not active. Raising exception now."
+                )
+                self.logger.exception(
+                    "Lens type of camera and settings progile do not match "
+                    "but test env not active. Raising exception now."
+                )
+                raise Exception("ERROR: lens type error - start_recognition ")
             self.logger.info(
                 "Lens type of camera and settings profile do not match. "
                 "Please fix"
             )
             self.calibrate()
-        while not ExitControl.gen:
+        while ExitControl.gen:
             loop_start = time.time()
             self.get_frame()
             self.detect_object()
@@ -226,7 +297,7 @@ class Camera:
                 self.show_frames()
             k = cv2.waitKey(50)
             if k == 27:
-                ExitControl.gen = True
+                ExitControl.gen = False
 
             loop_dur = time.time() - loop_start
             total_dur = time.time() - self.start
@@ -250,9 +321,12 @@ class Camera:
     # Main robot control function ############################################
     ##########################################################################
     def control_robot(self):
+        # All relevant command numbers can be found in config.Conf
+        # HUMANOID_FULL and SPIDER_FULL
         from robot_control import Robot
+        cmd_dur = 0
         self.robot = Robot.get_inst(self.robot_type)
-        while not ExitControl.gen:
+        while ExitControl.gen:
             if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
                 self.last_non_search = time.time()
                 # Walk to ball, kick ball, etc.
@@ -262,9 +336,11 @@ class Camera:
                 if dur < Conf.MAX_SEARCH_DUR:
                     if self.obj_dist[DistType.MAIN][ObjDist.LOCATION] == "left":
                         if self.robot_type == RobotType.HUMAN:
-                            self.command = 19  # Conf.HUMANOID_MOTION
+                            self.command = 19
+                            cmd_dur = 5
                         elif self.robot_type == RobotType.SPIDER:
-                            self.command = 7  # Conf.SPIDER_FULL
+                            self.command = 7
+                            cmd_dur = 5
                     else:
                         if self.robot_type == RobotType.HUMAN:
                             self.command = 20  # Conf.HUMANOID_MOTION
@@ -272,8 +348,9 @@ class Camera:
                             self.command = 8  # Conf.SPIDER_FULL
                 else:
                     self.logger.debug(
-                        f"Object not found in {pretty_time(dur, is_raw=False)} "
-                        f"and robot has stopped searching"
+                        "Object not found in "
+                        f"{pretty_time(dur, is_raw=False)} and robot has "
+                        "stopped searching"
                     )
     ##########################################################################
 
@@ -284,7 +361,12 @@ class Camera:
             cv2.imshow(Conf.CV_WINDOW_RIGHT, self.frame_right)
 
     def get_frame(self):
-        self.ret, self.frame = self.cam.read()
+        if self.cam_num < 0:
+            self.cam.capture(self.rawCapture, format="bgr", use_video_port=True)
+            self.frame = self.rawCapture.array
+            self.ret = True
+        else:
+            self.ret, self.frame = self.cam.read()
         display = np.zeros(
             [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
         )
@@ -592,11 +674,21 @@ class Camera:
             self.obj_dist[dist_type][ObjDist.LAST_SEEN] = 0.0
             self.obj_dist[DistType.MAIN][ObjDist.LOCATION] = "N/A"
 
+    def reset_profile(self, profile):
+        self.settings[profile] = {}
+        self.settings[profile][Conf.CS_NEIGH] = 3
+        self.settings[profile][Conf.CS_SCALE] = 1.305
+        self.settings[profile][Conf.CS_OBJ_WIDTH] = 3.0
+        self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
+        self.settings[profile][Conf.CS_FOCAL_R] = 1
+        self.settings[profile][Conf.CS_FOCAL_L] = 1
+        self.settings[profile][Conf.CS_FOCAL] = 1
+
     def calibrate(self):
+        self.logger.debug("calibrate called")
         if not self.is_test:
             self.logger.exception("Can only calibrate in testing mode")
             return
-        self.logger.debug("calibrate called")
         options = {'y': "yes", 'n': "no"}
         continue_calibrate = True
         while continue_calibrate:
@@ -669,6 +761,9 @@ class Camera:
 
     def setup_profile(self, profile):
         self.logger.debug(f"setup_profile called for profile: {profile}")
+        if not self.is_test:
+            self.logger.exception("Can only setup profile in testing mode")
+            return
         options = {'y': "yes", 'n': "no"}
         if profile not in self.settings:
             self.settings[profile] = {}
@@ -932,7 +1027,7 @@ class Camera:
 
     def close(self):
         self.main_logger.info(
-            f"Camera is closing after running for {pretty_time(self.start)}"
+            f"Camera: is closing after running for {pretty_time(self.start)}"
         )
         self.logger.info(
             f"Camera is closing after running for {pretty_time(self.start)}\n"
@@ -945,13 +1040,14 @@ class Camera:
 
 def independent_test():
     ender = threading.Thread(target=manual_ender, daemon=True)
+    # Don't use ender if you need to use terminal
     ender.start()
     cam = Camera.get_inst(
         RobotType.SPIDER,
         cam_num=2,
-        #lens_type=LensType.DOUBLE,
-        record=True,
-        take_pic=True,
+        # lens_type=LensType.DOUBLE,
+        # record=True,
+        # take_pic=True,
         is_test=True
     )
     # cam.calibrate()
