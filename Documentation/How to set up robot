@@ -1,0 +1,36 @@
+To install hotspot go to -- https://github.com/raspberrypi/documentation/blob/master/configuration/wireless/access-point-routed.md
+
+To install pyserial -- sudo pip3 install pyserial
+
+To install opencv --  sudo apt install python-opencv
+
+To connect bluetooth of rpi to robot 
+------------------------------------
+Get device list
+	$ hcitool scan
+
+Force pairing
+	$ bluetoothctl
+	$ scan on
+	$ pair [address]
+
+First disable the plugin PNAT
+
+	$ sudo nano /etc/bluetooth/main.conf
+
+	Add this line towards the top:
+	  
+	  DisablePlugins = pnat
+
+Bind the bluetooth device to a serial port automatically at start up
+	$ sudo nano /etc/rc.local
+
+	Add this line before exit 0:
+		sudo rfcomm bind /dev/rfcomm<port number> <bluetooth address> 1
+
+
+	$ sudo reboot
+
+Check bluetooth service status
+	$ service bluetooth status
+
