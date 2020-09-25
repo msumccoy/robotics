@@ -256,7 +256,7 @@ class Camera:
                 "Please fix"
             )
             self.calibrate()
-        while ExitControl.gen:
+        while ExitControl.gen and ExitControl.cam:
             loop_start = time.time()
             self.get_frame()
             self.detect_object()
@@ -288,7 +288,7 @@ class Camera:
                 dur = time.time() - self.last_vid_write
                 if dur > self.vid_write_frequency:
                     self.video_writer.write(self.frame)
-                    self.logger.info(
+                    self.logger.debug(
                         "start_recognition: Writing to video file"
                     )
             if self.take_pic:
@@ -326,7 +326,7 @@ class Camera:
         from robot_control import Robot
         cmd_dur = 0
         self.robot = Robot.get_inst(self.robot_type)
-        while ExitControl.gen:
+        while ExitControl.gen and ExitControl.cam:
             if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
                 self.last_non_search = time.time()
                 # Walk to ball, kick ball, etc.
@@ -1004,7 +1004,7 @@ class Camera:
                 return
 
         cv2.imwrite(f"{Conf.PIC_ROOT}{self.pic_num}.jpg", self.frame)
-        self.logger.info(
+        self.logger.debug(
             f"capture_picture: Photo taken with name {self.pic_num}.jpg"
         )
         self.pic_num += 1

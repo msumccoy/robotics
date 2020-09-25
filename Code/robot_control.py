@@ -3,7 +3,11 @@ Kuwin Wyke
 Midwestern State University
 """
 import logging
+import threading
 import time
+
+import cv2
+import numpy as np
 
 import serial
 
@@ -73,13 +77,42 @@ class Robot:
         # Need to make sure robot is aware that command is being sent before
         # sending command
         self.logger.debug(f"send_command called; command -- {motion_cmd}")
-        if motion_cmd == "stop" or motion_cmd < 0:
+        if (
+                motion_cmd == Conf.CMD_STOP or motion_cmd == Conf.CMD_STOP1
+                or  type(motion_cmd) == int and motion_cmd < 0
+        ):
             if self.robot_type == RobotType.HUMAN:
                 motion_cmd = self.get_hex_cmd(1)
             elif self.robot_type == RobotType.SPIDER:
                 motion_cmd = self.get_hex_cmd(17)
+        elif motion_cmd == Conf.CMD_FORWARD or motion_cmd == Conf.CMD_FORWARD1:
+            if self.robot_type == RobotType.HUMAN:
+                motion_cmd = self.get_hex_cmd(15)
+            elif self.robot_type == RobotType.SPIDER:
+                motion_cmd = self.get_hex_cmd(5)
+        elif motion_cmd == Conf.CMD_BACKWARD or motion_cmd == Conf.CMD_BACKWARD1:
+            if self.robot_type == RobotType.HUMAN:
+                motion_cmd = self.get_hex_cmd(16)
+            elif self.robot_type == RobotType.SPIDER:
+                motion_cmd = self.get_hex_cmd(6)
+        elif motion_cmd == Conf.CMD_LEFT or motion_cmd == Conf.CMD_LEFT1:
+            if self.robot_type == RobotType.HUMAN:
+                motion_cmd = self.get_hex_cmd(19)
+            elif self.robot_type == RobotType.SPIDER:
+                motion_cmd = self.get_hex_cmd(13)
+        elif motion_cmd == Conf.CMD_RIGHT or motion_cmd == Conf.CMD_RIGHT1:
+            if self.robot_type == RobotType.HUMAN:
+                motion_cmd = self.get_hex_cmd(20)
+            elif self.robot_type == RobotType.SPIDER:
+                motion_cmd = self.get_hex_cmd(12)
+        elif motion_cmd == Conf.CMD_KICK:
+            if self.robot_type == RobotType.HUMAN:
+                motion_cmd = self.get_hex_cmd(25)
+            elif self.robot_type == RobotType.SPIDER:
+                motion_cmd = self.get_hex_cmd(9)
         elif type(motion_cmd) == int:
             motion_cmd = self.get_hex_cmd(motion_cmd)
+
         if self.robot_type == RobotType.HUMAN:
             lock = Conf.LOCK_HUMANOID
         elif self.robot_type == RobotType.SPIDER:
@@ -129,7 +162,8 @@ class Robot:
     ##########################################################################
     def manual_control(self):
         self.logger.debug("control started")
-        while ExitControl.gen:
+        remote = threading.Thread(target=self.cv2_remote)
+        while ExitControl.gen and ExitControl.robot:
             if self.full_control:
                 print("FULL CONTROL ACTIVE!!!!!!!!! BE CAREFUL!!!!!!!!")
             command = input("Enter a Command or motion number: ")
@@ -139,7 +173,12 @@ class Robot:
                     f"Full control Toggled: full_control={self.full_control}"
                 )
             elif command == Conf.CMD_REMOTE:
-                self.logger.error("remote not implemented")
+                if remote.is_alive():
+                    self.logger.debug("manual_control: Remote already on")
+                    print("manual_control: Remote already on")
+                else:
+                    remote = threading.Thread(target=self.cv2_remote)
+                    remote.start()
             elif command == Conf.CMD_AUTO_ON:
                 self.active_auto_control = True
                 self.logger.debug("Enabling auto control")
@@ -152,10 +191,20 @@ class Robot:
                 self.logger.info("Robot control exiting program")
             elif command == Conf.CMD_STOP or command == Conf.CMD_STOP1:
                 self.active_auto_control = False
-                self.send_command("stop")
+                self.send_command(Conf.CMD_STOP)
                 self.logger.debug(
                     "Turning off auto control and stopping robot"
                 )
+            elif command == Conf.CMD_FORWARD or command == Conf.CMD_FORWARD1:
+                self.send_command(Conf.CMD_FORWARD)
+            elif command == Conf.CMD_BACKWARD or command == Conf.CMD_BACKWARD1:
+                self.send_command(Conf.CMD_BACKWARD)
+            elif command == Conf.CMD_LEFT or command == Conf.CMD_LEFT1:
+                self.send_command(Conf.CMD_LEFT)
+            elif command == Conf.CMD_RIGHT or command == Conf.CMD_RIGHT1:
+                self.send_command(Conf.CMD_RIGHT)
+            elif command == Conf.CMD_KICK:
+                self.send_command(Conf.CMD_KICK)
             else:
                 try:
                     command = int(command)
@@ -176,6 +225,50 @@ class Robot:
                     self.send_command(command)
                 else:
                     self.logger.info(f"{command} is an unknown motion number")
+
+    def cv2_remote(self):
+        # Can't use opencv across threads. May decide to use tkinter.
+        self.logger.exception("Remote not enabled")
+        # continue_remote = True
+        # while ExitControl.gen and ExitControl.robot and continue_remote:
+        #     img = np.zeros(
+        #         [30, 300, 3], dtype=np.uint8
+        #     )
+            # cv2.imshow(Conf.CV_WINDOW_ROBOT, img)
+            # k = cv2.waitKey(1000)
+            # if k == Conf.R_CMD_EXIT:
+            #     ExitControl.gen = False
+            #     self.main_logger.info("cv2_remote: Remote exiting program")
+            #     self.logger.info("cv2_remote: Remote exiting program")
+            # elif k == Conf.R_CMD_CLOSE:
+            #     continue_remote = False
+            #     self.logger.debug("cv2_remote exiting")
+            # elif k == Conf.R_CMD_STOP:
+            #     self.send_command(Conf.CMD_STOP)
+            #     self.logger.debug("cv2_remote: stopping robot")
+            # elif k == Conf.R_CMD_AUTO_ON:
+            #     self.active_auto_control = True
+            #     self.logger.debug("cv2_remote: auto on")
+            # elif k == Conf.R_CMD_AUTO_OFF:
+            #     self.active_auto_control = False
+            #     self.logger.debug("cv2_remote: auto off")
+            # elif k == Conf.R_CMD_CONTINUOUS_FORWARD:
+            #     if self.robot_type == RobotType.HUMAN:
+            #         self.send_command(15)
+            #     if self.robot_type == RobotType.SPIDER:
+            #         self.send_command(20)
+            #     self.logger.debug("cv2_remote: continuous forward")
+            # elif k == Conf.R_CMD_FORWARD:
+            #     self.send_command(Conf.CMD_FORWARD)
+            # elif k == Conf.R_CMD_BACKWARD or k == Conf.R_CMD_BACKWARD2:
+            #     self.send_command(Conf.CMD_BACKWARD)
+            # elif k == Conf.R_CMD_LEFT or k == Conf.R_CMD_LEFT1:
+            #     self.send_command(Conf.CMD_LEFT)
+            # elif k == Conf.R_CMD_RIGHT or k == Conf.R_CMD_RIGHT1:
+            #     self.send_command(Conf.CMD_RIGHT)
+            # elif k == Conf.R_CMD_KICK:
+            #     self.send_command(Conf.CMD_KICK)
+        # cv2.destroyWindow(Conf.CV_WINDOW_ROBOT)
     ##########################################################################
 
     def close(self):
@@ -185,7 +278,7 @@ class Robot:
 
 
 def main():
-    robot = Robot.get_inst(RobotType.SPIDER)
+    robot = Robot.get_inst(RobotType.HUMAN)
     robot.manual_control()
     robot.close()
 

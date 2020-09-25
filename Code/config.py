@@ -108,7 +108,6 @@ class Conf:
         7: "Clap 1",
         8: "Clap 2",
         9: "Push ups",
-        12: "Get off the ground (direction sensing)",
         13: "Get off the ground (face down)",
         14: "Get off the ground (face up)",
         15: "Move forward 5 steps (slowly)",
@@ -117,18 +116,14 @@ class Conf:
         18: "Move right 5 steps (slowly)",
         19: "Turn left (5 step turn)",
         20: "Turn right (5 step turn)",
-        21: "Move forward 5 steps (fast but more unstable)",
-        22: "Move backward 5 steps (fast but more unstable)",
-        23: "Move left 5 steps (fast but more unstable)",
-        24: "Move right 5 steps (fast but more unstable)",
         25: "Kick forward with left foot",
         26: "Kick forward with right foot",
         27: "*not sure* kick with left foot",
         28: "*not sure* kick with right foot",
         29: "Kick back with left foot",
         30: "Kick back with right foot",
-        36: "pose",
-        37: "pose",
+        36: "yoga pose left",
+        37: "yoga pose right",
     }
 
     SPIDER_FULL = {
@@ -159,13 +154,7 @@ class Conf:
         21: "turn right continuously",
         22: "turn left continuously",
         23: "forward continuously",
-        24: "",
-        25: "",
-        26: "",
-        27: "",
-        28: "",
-        29: "wave front right paw (continuous?)",
-        30: "",
+        29: "wave back right paw continuous",
         39: "Stance (the legs up"
     }
 
@@ -289,6 +278,7 @@ class Conf:
     CV_WINDOW = "Image window"
     CV_WINDOW_LEFT = "Image window left"
     CV_WINDOW_RIGHT = "Image window right"
+    CV_WINDOW_ROBOT = "Robot instructions window"
     CV_FONT = cv2.FONT_HERSHEY_PLAIN
     CV_FONT_SCALE = 1
     CV_TEXT_COLOR = (255, 0, 255)
@@ -299,8 +289,8 @@ class Conf:
     CV_NOTE_HEIGHT = 200
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
@@ -352,25 +342,28 @@ class Conf:
     ##########################################################################
     # Log settings  ##########################################################
     ##########################################################################
+    default_log_level_file = logging.DEBUG
+    default_log_level_terminal = logging.INFO
     LOG_ROOT = PATH_ROOT + "logs/"
     if not os.path.exists(LOG_ROOT):
         os.mkdir(LOG_ROOT)
     # Main log settings  #####################################################
     LOG_MAIN_NAME = "main"
     LOG_MAIN_FILE = LOG_ROOT + LOG_MAIN_NAME + ".log"
-    LOG_MAIN_FILE_LEVEL = logging.INFO
-    LOG_MAIN_STREAM_LEVEL = logging.INFO
+    LOG_MAIN_FILE_LEVEL = default_log_level_file
+    LOG_MAIN_STREAM_LEVEL = default_log_level_terminal
     # Camera log settings  ###################################################
     LOG_CAM_NAME = "cam"
     LOG_CAM_FILE = LOG_ROOT + LOG_CAM_NAME + ".log"
-    LOG_CAM_FILE_LEVEL = logging.DEBUG
-    LOG_CAM_STREAM_LEVEL = logging.DEBUG
+    LOG_CAM_FILE_LEVEL = default_log_level_file
+    LOG_CAM_STREAM_LEVEL = default_log_level_terminal
     # Robot log settings  ####################################################
     LOG_ROBOT_NAME = "robot"
     LOG_ROBOT_FILE = LOG_ROOT + LOG_ROBOT_NAME + ".log"
-    LOG_ROBOT_FILE_LEVEL = logging.DEBUG
-    LOG_ROBOT_STREAM_LEVEL = logging.DEBUG
+    LOG_ROBOT_FILE_LEVEL = default_log_level_file
+    LOG_ROBOT_STREAM_LEVEL = default_log_level_terminal
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
+    FORMAT_TERMINAL = "%(asctime)s: %(name)s: %(levelname)s: %(message)s"
     FORMAT_DATE = "%Y-%m-%d %H:%M:%S"
     WRITE_FREQUENCY = 30
 
@@ -395,19 +388,28 @@ class Conf:
     CMD_CALIBRATE_STOP = "calibrate stop"
     CMD_AUTO_ON = "auto"
     CMD_AUTO_OFF = "auto off"
+    CMD_FORWARD = "forward"
+    CMD_FORWARD1 = "f"
+    CMD_BACKWARD = "back"
+    CMD_BACKWARD1 = "b"
+    CMD_LEFT = "left"
+    CMD_LEFT1 = "l"
+    CMD_RIGHT = "right"
+    CMD_RIGHT1 = "r"
+    CMD_KICK = "kick"
 
     # Commands for OpenCV window control
     R_CMD_EXIT = ord("e")
     R_CMD_STOP = ord("s")
-    R_CMD_DETECT_ON = ord("d")
-    R_CMD_DETECT_OFF = ord("o")
+    R_CMD_AUTO_ON = ord("a")
+    R_CMD_AUTO_OFF = ord("o")
     R_CMD_CONTINUOUS_FORWARD = 82
     R_CMD_FORWARD = ord("f")
     R_CMD_BACKWARD = ord("b")
     R_CMD_BACKWARD2 = 84
     R_CMD_LEFT = ord("l")
-    R_CMD_LEFT2 = 81
+    R_CMD_LEFT1 = 81
     R_CMD_RIGHT = ord("r")
-    R_CMD_RIGHT2 = 83
-    R_CMD_TURN = ord("t")
+    R_CMD_RIGHT1 = 83
     R_CMD_CLOSE = ord("c")
+    R_CMD_KICK = ord("k")

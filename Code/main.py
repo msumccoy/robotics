@@ -20,7 +20,7 @@ def main():
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     main_logger.info(f"Main function starting on version {Conf.VERSION}")
 
-    robot_type = RobotType.SPIDER
+    robot_type = RobotType.HUMAN
     robot = Robot.get_inst(robot_type)
     cam = Camera.get_inst(
         robot_type,
@@ -33,7 +33,7 @@ def main():
 
     cam_thread = threading.Thread(target=cam.start_recognition)
     manual_robot_thread = threading.Thread(
-        target=robot.manual_control, daemon=True
+        target=robot.manual_control
     )
 
     cam_thread.start()
