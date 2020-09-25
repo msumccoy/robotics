@@ -13,8 +13,9 @@ import numpy as np
 is_rpi = False
 if "raspberrypi" in os.uname():
     is_rpi = True
-    from picamera.array import PiRGBArray
     from picamera import PiCamera
+    from picamera.exc import PiCameraError
+    from picamera.array import PiRGBArray
 
 import log_set_up
 from misc import manual_ender, get_float, get_specific_response, pretty_time
@@ -40,7 +41,7 @@ class Camera:
         return Camera._inst[cam_name]
 
     def __init__(self, robot, cam_num, lens_type, record, take_pic, is_test):
-        self.main_logger.info(f"Camera started on version {Conf.VERSION}")
+        self.main_logger.info(f"Camera: started on version {Conf.VERSION}")
         self.logger.info(
             f"Cam started on version {Conf.VERSION}:\n"
             f"- robot: {robot}\n"
@@ -56,13 +57,13 @@ class Camera:
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
             self.logger.exception(f"'{lens_type}' is not a valid lens type")
             self.main_logger.exception(
-                f"Camera crashed -- '{lens_type}' is not a valid lens type"
+                f"Camera: crashed -- '{lens_type}' is not a valid lens type"
             )
             raise ValueError(f"'{lens_type}' is not a valid lens type")
         if robot != RobotType.HUMAN and robot != RobotType.SPIDER:
             self.logger.exception(f"'{robot}' is not a valid robot type")
             self.main_logger.exception(
-                f"Camera crashed -- '{robot}' is not a valid robot type"
+                f"Camera: crashed -- '{robot}' is not a valid robot type"
             )
             raise ValueError(f"'{robot}' is not a valid robot type")
 
@@ -70,25 +71,7 @@ class Camera:
         self.robot_type = robot
         self.robot = None
         if cam_num < 0:
-            self.height = 480
-            self.width = 640
-            self.cam = PiCamera()
-            self.cam.resolution = (self.width, self.height)
-            self.cam.framerate = 32
-            self.rawCapture = PiRGBArray(
-                self.cam, size=(self.width, self.height)
-            )
-            self.ret = True
-            time.sleep(0.1)
-        else:
-            self.cam = cv2.VideoCapture(cam_num)
-            self.ret, self.frame = self.cam.read()
-        if not self.ret:
-            self.cam_num = -1
-        else:
-            self.cam_num = cam_num
-        while not self.ret:
-            if is_rpi:
+            try:
                 self.height = 480
                 self.width = 640
                 self.cam = PiCamera()
@@ -99,6 +82,30 @@ class Camera:
                 )
                 self.ret = True
                 time.sleep(0.1)
+            except PiCameraError:
+                pass
+        else:
+            self.cam = cv2.VideoCapture(cam_num)
+            self.ret, self.frame = self.cam.read()
+        if not self.ret:
+            self.cam_num = -1
+        else:
+            self.cam_num = cam_num
+        while not self.ret:
+            if is_rpi and self.cam_num < 0:
+                try:
+                    self.cam = PiCamera()
+                    self.height = 480
+                    self.width = 640
+                    self.cam.resolution = (self.width, self.height)
+                    self.cam.framerate = 32
+                    self.rawCapture = PiRGBArray(
+                        self.cam, size=(self.width, self.height)
+                    )
+                    self.ret = True
+                    time.sleep(0.1)
+                except PiCameraError:
+                    self.logger.debug(f"__inti__: Pi Cam not connected")
             else:
                 self.cam = cv2.VideoCapture(self.cam_num)
                 self.ret, self.frame = self.cam.read()
@@ -128,7 +135,7 @@ class Camera:
                     "No profile exist yet test environment not active"
                 )
                 self.main_logger.exception(
-                    "No profile exist yet test environment not active"
+                    "Camera: No profile exist yet test environment not active"
                 )
                 raise ValueError(
                     "No profile exist yet test environment not active"
@@ -217,6 +224,10 @@ class Camera:
             if not self.is_test:
                 cv2.destroyWindow(Conf.CV_WINDOW)
         self.update_instance_settings()
+
+        self.robot_cmd_sent = None
+        self.robot_cmd_time = 0
+
         self.logger.debug(
             f"Cam init ran in {pretty_time(self.start)}"
         )
@@ -232,8 +243,8 @@ class Camera:
         while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
             if not self.is_test:
                 self.main_logger.exception(
-                    "Lens type of camera and settings progile do not match "
-                    "but test env not active. Raising exception now."
+                    "Camera: Lens type of camera and settings progile do not "
+                    "match but test env not active. Raising exception now."
                 )
                 self.logger.exception(
                     "Lens type of camera and settings progile do not match "
@@ -310,7 +321,10 @@ class Camera:
     # Main robot control function ############################################
     ##########################################################################
     def control_robot(self):
+        # All relevant command numbers can be found in config.Conf
+        # HUMANOID_FULL and SPIDER_FULL
         from robot_control import Robot
+        cmd_dur = 0
         self.robot = Robot.get_inst(self.robot_type)
         while ExitControl.gen:
             if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
@@ -322,9 +336,11 @@ class Camera:
                 if dur < Conf.MAX_SEARCH_DUR:
                     if self.obj_dist[DistType.MAIN][ObjDist.LOCATION] == "left":
                         if self.robot_type == RobotType.HUMAN:
-                            self.command = 19  # Conf.HUMANOID_MOTION
+                            self.command = 19
+                            cmd_dur = 5
                         elif self.robot_type == RobotType.SPIDER:
-                            self.command = 7  # Conf.SPIDER_FULL
+                            self.command = 7
+                            cmd_dur = 5
                     else:
                         if self.robot_type == RobotType.HUMAN:
                             self.command = 20  # Conf.HUMANOID_MOTION
@@ -332,8 +348,9 @@ class Camera:
                             self.command = 8  # Conf.SPIDER_FULL
                 else:
                     self.logger.debug(
-                        f"Object not found in {pretty_time(dur, is_raw=False)} "
-                        f"and robot has stopped searching"
+                        "Object not found in "
+                        f"{pretty_time(dur, is_raw=False)} and robot has "
+                        "stopped searching"
                     )
     ##########################################################################
 
@@ -1010,7 +1027,7 @@ class Camera:
 
     def close(self):
         self.main_logger.info(
-            f"Camera is closing after running for {pretty_time(self.start)}"
+            f"Camera: is closing after running for {pretty_time(self.start)}"
         )
         self.logger.info(
             f"Camera is closing after running for {pretty_time(self.start)}\n"
@@ -1029,8 +1046,8 @@ def independent_test():
         RobotType.SPIDER,
         cam_num=2,
         # lens_type=LensType.DOUBLE,
-        record=True,
-        take_pic=True,
+        # record=True,
+        # take_pic=True,
         is_test=True
     )
     # cam.calibrate()
