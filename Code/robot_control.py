@@ -225,51 +225,11 @@ class Robot:
                     self.send_command(command)
                 else:
                     self.logger.info(f"{command} is an unknown motion number")
+    ##########################################################################
 
     def cv2_remote(self):
         # Can't use opencv across threads. May decide to use tkinter.
         self.logger.exception("Remote not enabled")
-        # continue_remote = True
-        # while ExitControl.gen and ExitControl.robot and continue_remote:
-        #     img = np.zeros(
-        #         [30, 300, 3], dtype=np.uint8
-        #     )
-            # cv2.imshow(Conf.CV_WINDOW_ROBOT, img)
-            # k = cv2.waitKey(1000)
-            # if k == Conf.R_CMD_EXIT:
-            #     ExitControl.gen = False
-            #     self.main_logger.info("cv2_remote: Remote exiting program")
-            #     self.logger.info("cv2_remote: Remote exiting program")
-            # elif k == Conf.R_CMD_CLOSE:
-            #     continue_remote = False
-            #     self.logger.debug("cv2_remote exiting")
-            # elif k == Conf.R_CMD_STOP:
-            #     self.send_command(Conf.CMD_STOP)
-            #     self.logger.debug("cv2_remote: stopping robot")
-            # elif k == Conf.R_CMD_AUTO_ON:
-            #     self.active_auto_control = True
-            #     self.logger.debug("cv2_remote: auto on")
-            # elif k == Conf.R_CMD_AUTO_OFF:
-            #     self.active_auto_control = False
-            #     self.logger.debug("cv2_remote: auto off")
-            # elif k == Conf.R_CMD_CONTINUOUS_FORWARD:
-            #     if self.robot_type == RobotType.HUMAN:
-            #         self.send_command(15)
-            #     if self.robot_type == RobotType.SPIDER:
-            #         self.send_command(20)
-            #     self.logger.debug("cv2_remote: continuous forward")
-            # elif k == Conf.R_CMD_FORWARD:
-            #     self.send_command(Conf.CMD_FORWARD)
-            # elif k == Conf.R_CMD_BACKWARD or k == Conf.R_CMD_BACKWARD2:
-            #     self.send_command(Conf.CMD_BACKWARD)
-            # elif k == Conf.R_CMD_LEFT or k == Conf.R_CMD_LEFT1:
-            #     self.send_command(Conf.CMD_LEFT)
-            # elif k == Conf.R_CMD_RIGHT or k == Conf.R_CMD_RIGHT1:
-            #     self.send_command(Conf.CMD_RIGHT)
-            # elif k == Conf.R_CMD_KICK:
-            #     self.send_command(Conf.CMD_KICK)
-        # cv2.destroyWindow(Conf.CV_WINDOW_ROBOT)
-    ##########################################################################
 
     def close(self):
         self.logger.info(
