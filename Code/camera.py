@@ -114,8 +114,8 @@ class Camera:
                 raise Exception("No viable camera found ")
         if self.cam_num != cam_num:
             self.logger.info(
-                f"Cam num changed from {cam_num} to {self.cam_num} because original "
-                "number did not have a camera associated with it"
+                f"Cam num changed from {cam_num} to {self.cam_num} because"
+                " original number did not have a camera associated with it"
             )
         self.lens_type = lens_type
         self.focal_len = None
@@ -337,10 +337,8 @@ class Camera:
                     if self.obj_dist[DistType.MAIN][ObjDist.LOCATION] == "left":
                         if self.robot_type == RobotType.HUMAN:
                             self.command = 19
-                            cmd_dur = 5
                         elif self.robot_type == RobotType.SPIDER:
                             self.command = 7
-                            cmd_dur = 5
                     else:
                         if self.robot_type == RobotType.HUMAN:
                             self.command = 20  # Conf.HUMANOID_MOTION
@@ -352,6 +350,7 @@ class Camera:
                         f"{pretty_time(dur, is_raw=False)} and robot has "
                         "stopped searching"
                     )
+            time.sleep(1)
     ##########################################################################
 
     def show_frames(self):

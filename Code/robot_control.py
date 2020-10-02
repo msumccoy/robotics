@@ -76,7 +76,7 @@ class Robot:
     def send_command(self, motion_cmd):
         # Need to make sure robot is aware that command is being sent before
         # sending command
-        self.logger.debug(f"send_command called; command -- {motion_cmd}")
+        self.logger.debug(f"send_command called: command -- {motion_cmd}")
         if (
                 motion_cmd == Conf.CMD_STOP or motion_cmd == Conf.CMD_STOP1
                 or  type(motion_cmd) == int and motion_cmd < 0
