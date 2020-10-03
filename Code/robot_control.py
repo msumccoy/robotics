@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 
 import serial
+import termios
 
 import log_set_up
 from config import Conf
@@ -71,12 +72,19 @@ class Robot:
             Conf.PARITY,
             timeout=Conf.SER_TIMEOUT
         )
+        time.sleep(3)
+        self.is_connected = True
+        self.send_command(-1)
         self.logger.info(f"Robot init ran in {pretty_time(self.start)}")
 
-    def send_command(self, motion_cmd):
+    def send_command(self, motion_cmd, auto=False):
         # Need to make sure robot is aware that command is being sent before
         # sending command
         self.logger.debug(f"send_command called: command -- {motion_cmd}")
+        if auto:
+            if not self.active_auto_control:
+                self.logger.debug("Auto command sent but auto control off")
+                return False
         if (
                 motion_cmd == Conf.CMD_STOP or motion_cmd == Conf.CMD_STOP1
                 or  type(motion_cmd) == int and motion_cmd < 0
@@ -126,9 +134,20 @@ class Robot:
                 self.sub_send_command(motion_cmd)
                 self.sub_send_command(Conf.HEX_RESUME)
                 self.ser.flush()
+                self.is_connected = True
             except serial.SerialException as e:
-                self.ser.flush()
-                self.logger.exception(f"Serial exception hit: {e}")
+                try:
+                    self.logger.exception(f"Serial exception hit: {e}")
+                    self.ser.flush()
+                except termios.error:
+                    self.main_logger.exception(
+                        "Robot Unable to connect. Please check configuration"
+                    )
+                    self.logger.exception(
+                        "Robot Unable to connect. Please check configuration"
+                    )
+                    self.is_connected = False
+        return True
 
     def sub_send_command(self, hex_cmd, cache_wait=0.05):
         self.logger.debug(
@@ -238,7 +257,7 @@ class Robot:
 
 
 def main():
-    robot = Robot.get_inst(RobotType.HUMAN)
+    robot = Robot.get_inst(RobotType.SPIDER)
     robot.manual_control()
     robot.close()
 

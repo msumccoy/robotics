@@ -102,29 +102,29 @@ class Conf:
     HUMANOID_MOTION = {
         # Condensed dictionary for all accepted movements
         # motion_num: ["name", motion_duration]
-        1: ["Home position", 1],
-        2: ["Waving", 1],
-        3: ["stretch", 1],
-        4: ["Drop to floor and 'cry'", 1],
-        7: ["Clap 1", 1],
-        8: ["Clap 2", 1],
-        9: ["Push ups", 1],
-        13: ["Get off the ground (face down)", 1],
-        14: ["Get off the ground (face up)", 1],
-        15: ["Move forward 5 steps (slowly)", 1],
-        16: ["Move backward 5 steps (slowly)", 1],
-        17: ["Move left 5 steps (slowly)", 1],
-        18: ["Move right 5 steps (slowly)", 1],
-        19: ["Turn left (5 step turn)", 1],
-        20: ["Turn right (5 step turn)", 1],
-        25: ["Kick forward with left foot", 1],
-        26: ["Kick forward with right foot", 1],
-        27: ["*not sure* kick with left foot", 1],
-        28: ["*not sure* kick with right foot", 1],
-        29: ["Kick back with left foot", 1],
-        30: ["Kick back with right foot", 1],
-        36: ["yoga pose left", 1],
-        37: ["yoga pose right", 1],
+        1: HUMANOID_FULL[1],
+        2: HUMANOID_FULL[2],
+        3: HUMANOID_FULL[3],
+        4: HUMANOID_FULL[4],
+        7: HUMANOID_FULL[7],
+        8: HUMANOID_FULL[8],
+        9: HUMANOID_FULL[9],
+        13: HUMANOID_FULL[13],
+        14: HUMANOID_FULL[14],
+        15: HUMANOID_FULL[15],
+        16: HUMANOID_FULL[16],
+        17: HUMANOID_FULL[17],
+        18: HUMANOID_FULL[18],
+        19: HUMANOID_FULL[19],
+        20: HUMANOID_FULL[20],
+        25: HUMANOID_FULL[25],
+        26: HUMANOID_FULL[26],
+        27: HUMANOID_FULL[27],
+        28: HUMANOID_FULL[28],
+        29: HUMANOID_FULL[29],
+        30: HUMANOID_FULL[30],
+        36: HUMANOID_FULL[36],
+        37: HUMANOID_FULL[37],
     }
 
     SPIDER_FULL = {
@@ -135,8 +135,8 @@ class Conf:
         4: ["turn right (fast slight turn)", 1],
         5: ["forward 6 steps (slow)", 1],
         6: ["back 6 steps (slow)", 1],
-        7: ["turn left (slow mid turn)", 1],
-        8: ["turn right (slow mid turn)", 1],
+        7: ["turn left (slow mid turn)", 2],
+        8: ["turn right (slow mid turn)", 2],
         9: ["slow prance", 1],
         # Dance 1: up on hind-legs and wave; forward slightly; back slightly;
         #          wiggle; up on hind-legs move front legs up and down
@@ -290,8 +290,8 @@ class Conf:
     CV_NOTE_HEIGHT = 200
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
@@ -414,3 +414,8 @@ class Conf:
     R_CMD_RIGHT1 = 83
     R_CMD_CLOSE = ord("c")
     R_CMD_KICK = ord("k")
+
+    # Misc Constants
+    CONST_LEFT = "Left"
+    CONST_RIGHT = "Right"
+    CONST_MIDDLE = "Middle"

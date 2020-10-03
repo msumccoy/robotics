@@ -13,6 +13,8 @@ from robot_control import Robot
 from config import Conf
 from enums import RobotType, LensType
 from misc import pretty_time, manual_ender
+from variables import ExitControl
+
 
 
 def main():
@@ -20,27 +22,29 @@ def main():
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     main_logger.info(f"Main function starting on version {Conf.VERSION}")
 
-    robot_type = RobotType.HUMAN
+    robot_type = RobotType.SPIDER
     robot = Robot.get_inst(robot_type)
     cam = Camera.get_inst(
         robot_type,
         # cam_num=2,
         lens_type=LensType.DOUBLE,
-        record=True,
-        take_pic=True,
-        is_test=True
+        # record=True,
+        # take_pic=True,
+        disp_img=True
     )
 
     cam_thread = threading.Thread(target=cam.start_recognition)
+    auto_robot_thread = threading.Thread(target = cam.control_robot)
     manual_robot_thread = threading.Thread(
-        target=robot.manual_control
+        target=robot.manual_control, daemon=True
     )
 
     cam_thread.start()
     manual_robot_thread.start()
+    auto_robot_thread.start()
 
-    cam_thread.join()
-    manual_robot_thread.join()
+    while ExitControl.gen:
+        time.sleep(5)  # Should verify threads are still alive etc.
 
     cam.close()
     robot.close()

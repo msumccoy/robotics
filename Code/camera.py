@@ -20,7 +20,7 @@ if "raspberrypi" in os.uname():
 import log_set_up
 from misc import manual_ender, get_float, get_specific_response, pretty_time
 from config import Conf
-from enums import RobotType, LensType, DistType, ObjDist
+from enums import RobotType, LensType, DistType, ObjDist, RobotCMD
 from variables import ExitControl
 
 
@@ -32,15 +32,15 @@ class Camera:
     @staticmethod
     def get_inst(
             cam_name, cam_num=0, lens_type=LensType.SINGLE,
-            record=False, take_pic=False, is_test=False
+            record=False, take_pic=False, disp_img=False
     ):
         if cam_name not in Camera._inst:
             Camera._inst[cam_name] = Camera(
-                cam_name, cam_num, lens_type, record, take_pic, is_test
+                cam_name, cam_num, lens_type, record, take_pic, disp_img
             )
         return Camera._inst[cam_name]
 
-    def __init__(self, robot, cam_num, lens_type, record, take_pic, is_test):
+    def __init__(self, robot, cam_num, lens_type, record, take_pic, disp_img):
         self.main_logger.info(f"Camera: started on version {Conf.VERSION}")
         self.logger.info(
             f"Cam started on version {Conf.VERSION}:\n"
@@ -49,7 +49,7 @@ class Camera:
             f"- lens_type: {lens_type}\n"
             f"- record: {record}\n"
             f"- take_pic: {take_pic}\n"
-            f"- test environment: {is_test}"
+            f"- Display image: {disp_img}"
         )
         self.start = time.time()
         self.lock = Conf.LOCK_CAM
@@ -67,7 +67,7 @@ class Camera:
             )
             raise ValueError(f"'{robot}' is not a valid robot type")
 
-        self.is_test = is_test
+        self.disp_img = disp_img
         self.robot_type = robot
         self.robot = None
         if cam_num < 0:
@@ -130,7 +130,7 @@ class Camera:
         if lens_type == LensType.DOUBLE:
             self.profile = Conf.CS_DEFAULT2
         if self.profile not in self.settings:
-            if not is_test:
+            if not disp_img:
                 self.logger.exception(
                     "No profile exist yet test environment not active"
                 )
@@ -141,8 +141,8 @@ class Camera:
                     "No profile exist yet test environment not active"
                 )
             setup_profile = True
-            test = self.is_test
-            self.is_test = True
+            temp_disp = self.disp_img
+            self.disp_img = True
             self.reset_profile(self.profile)
         else:
             setup_profile = False
@@ -196,7 +196,7 @@ class Camera:
         self.detected_right = None
         self.is_detected_equal = True
         self.is_detected = False
-        if is_test:
+        if disp_img:
             track_bar = Conf.CV_WINDOW
             track_bar_scale = 4
             track_bar_neigh = 4
@@ -220,8 +220,8 @@ class Camera:
         if setup_profile:
             print(self.settings)
             self.setup_profile(self.profile)
-            self.is_test = test
-            if not self.is_test:
+            self.disp_img = temp_disp
+            if not self.disp_img:
                 cv2.destroyWindow(Conf.CV_WINDOW)
         self.update_instance_settings()
 
@@ -241,7 +241,7 @@ class Camera:
         total_dur = time.time() - self.start
         threshold = Conf.LOOP_DUR_THRESHOLD / 1000
         while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
-            if not self.is_test:
+            if not self.disp_img:
                 self.main_logger.exception(
                     "Camera: Lens type of camera and settings progile do not "
                     "match but test env not active. Raising exception now."
@@ -293,7 +293,7 @@ class Camera:
                     )
             if self.take_pic:
                 self.capture_picture(limit=True)
-            if self.is_test:
+            if self.disp_img:
                 self.show_frames()
             k = cv2.waitKey(50)
             if k == 27:
@@ -324,8 +324,12 @@ class Camera:
         # All relevant command numbers can be found in config.Conf
         # HUMANOID_FULL and SPIDER_FULL
         from robot_control import Robot
-        cmd_dur = 0
+        self.logger.debug("control_robot: Started")
+        cmd_sent = None
+        cmd_sent_time = 0
         self.robot = Robot.get_inst(self.robot_type)
+        wait_time = 0
+        time.sleep(3)
         while ExitControl.gen and ExitControl.cam:
             if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
                 self.last_non_search = time.time()
@@ -334,18 +338,40 @@ class Camera:
                 # Search for object
                 dur = time.time() - self.last_non_search
                 if dur < Conf.MAX_SEARCH_DUR:
-                    if self.obj_dist[DistType.MAIN][ObjDist.LOCATION] == "left":
-                        if self.robot_type == RobotType.HUMAN:
-                            self.command = 19
-                        elif self.robot_type == RobotType.SPIDER:
-                            self.command = 7
-                    else:
-                        if self.robot_type == RobotType.HUMAN:
-                            self.command = 20  # Conf.HUMANOID_MOTION
-                        elif self.robot_type == RobotType.SPIDER:
-                            self.command = 8  # Conf.SPIDER_FULL
+                    dur_temp = time.time() - cmd_sent_time
+                    turning = (
+                            cmd_sent == RobotCMD.TURN_LEFT
+                            or cmd_sent == RobotCMD.TURN_RIGHT
+                    )
+                    if turning and dur_temp > wait_time or not turning:
+                        print("Inside the searching")
+                        turn_direction = (
+                            self.obj_dist[DistType.MAIN][ObjDist.LOCATION]
+                        )
+                        if turn_direction == Conf.CONST_LEFT:
+                            if self.robot_type == RobotType.HUMAN:
+                                self.command = 19
+                                wait_time = Conf.HUMANOID_FULL[19][1]
+                            elif self.robot_type == RobotType.SPIDER:
+                                self.command = 7
+                                wait_time = Conf.SPIDER_FULL[7][1]
+                            cmd_sent = RobotCMD.TURN_LEFT
+                        else:  # Turn right
+                            if self.robot_type == RobotType.HUMAN:
+                                self.command = 20  # Conf.HUMANOID_MOTION
+                                wait_time = Conf.HUMANOID_FULL[20][1]
+                            elif self.robot_type == RobotType.SPIDER:
+                                self.command = 8  # Conf.SPIDER_FULL
+                                wait_time = Conf.SPIDER_FULL[8][1]
+                            cmd_sent = RobotCMD.TURN_RIGHT
+                        self.robot.send_command(self.command, auto=True)
+                        self.logger.debug(
+                            f"control_robot: Turning: {cmd_sent}"
+                        )
+                        print(f"control_robot: Turning: {cmd_sent}")
+                        cmd_sent_time = time.time()
                 else:
-                    self.logger.debug(
+                    self.logger.warning(
                         "Object not found in "
                         f"{pretty_time(dur, is_raw=False)} and robot has "
                         "stopped searching"
@@ -565,6 +591,18 @@ class Camera:
                         Conf.CV_THICKNESS,
                         Conf.CV_LINE
                     )
+                note_y += 20
+                cv2.putText(
+                    self.frame,
+                    "Relative location for main: "
+                    f"{self.obj_dist[DistType.MAIN][ObjDist.LOCATION]}",
+                    (note_x, note_y),
+                    Conf.CV_FONT,
+                    Conf.CV_FONT_SCALE,
+                    Conf.CV_TEXT_COLOR,
+                    Conf.CV_THICKNESS,
+                    Conf.CV_LINE
+                )
 
         else:
             self.logger.debug("detect_object: Object not found")
@@ -624,17 +662,13 @@ class Camera:
                 left_limit = self.midpoint - Conf.CS_MID_TOLERANCE
                 right_limit = self.midpoint + Conf.CS_MID_TOLERANCE
                 if center_point < left_limit:
-                    self.obj_dist[loc][ObjDist.LOCATION] = (
-                        "Left"
-                    )
+                    pos = Conf.CONST_LEFT
                 elif center_point > right_limit:
-                    self.obj_dist[loc][ObjDist.LOCATION] = (
-                        "right"
-                    )
+                    pos = Conf.CONST_RIGHT
                 else:
-                    self.obj_dist[loc][ObjDist.LOCATION] = (
-                        "middle"
-                    )
+                    pos = Conf.CONST_MIDDLE
+                self.obj_dist[loc][ObjDist.LOCATION] = pos
+                self.obj_dist[DistType.MAIN][ObjDist.LOCATION] = pos
                 y_txt = y + h + 20
                 cv2.putText(
                     frame,
@@ -664,7 +698,6 @@ class Camera:
 
     def reset_distances(self, dist_type, full_reset=False):
         self.obj_dist[dist_type][ObjDist.AVG] = 0.0
-        self.obj_dist[dist_type][ObjDist.LOCATION] = "N/A"
         self.obj_dist[dist_type][ObjDist.SUM] = 0.0
         self.obj_dist[dist_type][ObjDist.COUNT] = 0
         self.obj_dist[dist_type][ObjDist.IS_FOUND] = False
@@ -685,8 +718,8 @@ class Camera:
 
     def calibrate(self):
         self.logger.debug("calibrate called")
-        if not self.is_test:
-            self.logger.exception("Can only calibrate in testing mode")
+        if not self.disp_img:
+            self.logger.exception("Can only calibrate when display enabled")
             return
         options = {'y': "yes", 'n': "no"}
         continue_calibrate = True
@@ -760,7 +793,7 @@ class Camera:
 
     def setup_profile(self, profile):
         self.logger.debug(f"setup_profile called for profile: {profile}")
-        if not self.is_test:
+        if not self.disp_img:
             self.logger.exception("Can only setup profile in testing mode")
             return
         options = {'y': "yes", 'n': "no"}
@@ -1044,10 +1077,10 @@ def independent_test():
     cam = Camera.get_inst(
         RobotType.SPIDER,
         cam_num=2,
-        # lens_type=LensType.DOUBLE,
+        lens_type=LensType.DOUBLE,
         # record=True,
         # take_pic=True,
-        is_test=True
+        disp_img=True
     )
     # cam.calibrate()
     cam.start_recognition()
