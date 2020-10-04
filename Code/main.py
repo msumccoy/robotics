@@ -13,6 +13,8 @@ from robot_control import Robot
 from config import Conf
 from enums import RobotType, LensType
 from misc import pretty_time, manual_ender
+from variables import ExitControl
+
 
 
 def main():
@@ -26,21 +28,23 @@ def main():
         robot_type,
         # cam_num=2,
         lens_type=LensType.DOUBLE,
-        record=True,
-        take_pic=True,
-        is_test=True
+        # record=True,
+        # take_pic=True,
+        disp_img=True
     )
 
     cam_thread = threading.Thread(target=cam.start_recognition)
+    auto_robot_thread = threading.Thread(target = cam.control_robot)
     manual_robot_thread = threading.Thread(
         target=robot.manual_control, daemon=True
     )
 
     cam_thread.start()
     manual_robot_thread.start()
+    auto_robot_thread.start()
 
-    cam_thread.join()
-    manual_robot_thread.join()
+    while ExitControl.gen:
+        time.sleep(5)  # Should verify threads are still alive etc.
 
     cam.close()
     robot.close()

@@ -47,126 +47,116 @@ class Conf:
 
     # Movement control dictionaries  #########################################
     HUMANOID_FULL = {  # Full dictionary with all motions in Heart2Heart
-        0: "Bow -- not working!!!",
-        1: "Home position",
-        2: "Waving",
-        3: "stretch",
-        4: "Drop to floor and 'cry'",
-        5: "Dance (hard on servos)",
-        6: "Don't know",
-        7: "Clap 1",
-        8: "Clap 2",
-        9: "Push ups",
-        10: "Don't know (hard on servos)",
-        11: "Jump 3 times (worst on servo)",
-        12: "Get off the ground (direction sensing)",
-        13: "Get off the ground (face down)",
-        14: "Get off the ground (face up)",
-        15: "Move forward 5 steps (slowly)",
-        16: "Move backward 5 steps (slowly)",
-        17: "Move left 5 steps (slowly)",
-        18: "Move right 5 steps (slowly)",
-        19: "Turn left (5 step turn)",
-        20: "Turn right (5 step turn)",
-        21: "Move forward 5 steps (fast but more unstable)",
-        22: "Move backward 5 steps (fast but more unstable)",
-        23: "Move left 5 steps (fast but more unstable)",
-        24: "Move right 5 steps (fast but more unstable)",
-        25: "Kick forward with left foot",
-        26: "Kick forward with right foot",
-        27: "*not sure* kick with left foot",
-        28: "*not sure* kick with right foot",
-        29: "Kick back with left foot",
-        30: "Kick back with right foot",
-        31: "Empty",
-        32: "Defense (fighting)",
-        33: "Punch forward (fighting)",
-        34: "Left punch (fighting)",
-        35: "Right punch (fighting)",
-        36: "pose",
-        37: "pose",
-        38: "Empty",
-        39: "cannot use",
-        40: "cannot use",
-        41: "cannot use",
-        42: "cannot use",
-        43: "cannot use",
-        44: "cannot use",
-        45: "cannot use",
-        46: "cannot use",
-        47: "cannot use",
-        48: "cannot use",
-        49: "cannot use",
-        50: "cannot use",
+        0: ["Bow -- not working!!!", 1],
+        1: ["Home position", 1],
+        2: ["Waving", 1],
+        3: ["stretch", 1],
+        4: ["Drop to floor and 'cry'", 1],
+        5: ["Dance (hard on servos)", 1],
+        6: ["Don't know", 1],
+        7: ["Clap 1", 1],
+        8: ["Clap 2", 1],
+        9: ["Push ups", 1],
+        10: ["Don't know (hard on servos)", 1],
+        11: ["Jump 3 times (worst on servo)", 1],
+        12: ["Get off the ground (direction sensing)", 1],
+        13: ["Get off the ground (face down)", 1],
+        14: ["Get off the ground (face up)", 1],
+        15: ["Move forward 5 steps (slowly)", 1],
+        16: ["Move backward 5 steps (slowly)", 1],
+        17: ["Move left 5 steps (slowly)", 1],
+        18: ["Move right 5 steps (slowly)", 1],
+        19: ["Turn left (5 step turn)", 1],
+        20: ["Turn right (5 step turn)", 1],
+        21: ["Move forward 5 steps (fast but more unstable)", 1],
+        22: ["Move backward 5 steps (fast but more unstable)", 1],
+        23: ["Move left 5 steps (fast but more unstable)", 1],
+        24: ["Move right 5 steps (fast but more unstable)", 1],
+        25: ["Kick forward with left foot", 1],
+        26: ["Kick forward with right foot", 1],
+        27: ["*not sure* kick with left foot", 1],
+        28: ["*not sure* kick with right foot", 1],
+        29: ["Kick back with left foot", 1],
+        30: ["Kick back with right foot", 1],
+        31: ["Empty", 1],
+        32: ["Defense (fighting)", 1],
+        33: ["Punch forward (fighting)", 1],
+        34: ["Left punch (fighting)", 1],
+        35: ["Right punch (fighting)", 1],
+        36: ["pose", 1],
+        37: ["pose", 1],
+        38: ["Empty", 1],
+        39: ["cannot use", 1],
+        40: ["cannot use", 1],
+        41: ["cannot use", 1],
+        42: ["cannot use", 1],
+        43: ["cannot use", 1],
+        44: ["cannot use", 1],
+        45: ["cannot use", 1],
+        46: ["cannot use", 1],
+        47: ["cannot use", 1],
+        48: ["cannot use", 1],
+        49: ["cannot use", 1],
+        50: ["cannot use", 1],
     }
     HUMANOID_MOTION = {
         # Condensed dictionary for all accepted movements
-        1: "Home position",
-        2: "Waving",
-        3: "stretch",
-        4: "Drop to floor and 'cry'",
-        7: "Clap 1",
-        8: "Clap 2",
-        9: "Push ups",
-        12: "Get off the ground (direction sensing)",
-        13: "Get off the ground (face down)",
-        14: "Get off the ground (face up)",
-        15: "Move forward 5 steps (slowly)",
-        16: "Move backward 5 steps (slowly)",
-        17: "Move left 5 steps (slowly)",
-        18: "Move right 5 steps (slowly)",
-        19: "Turn left (5 step turn)",
-        20: "Turn right (5 step turn)",
-        21: "Move forward 5 steps (fast but more unstable)",
-        22: "Move backward 5 steps (fast but more unstable)",
-        23: "Move left 5 steps (fast but more unstable)",
-        24: "Move right 5 steps (fast but more unstable)",
-        25: "Kick forward with left foot",
-        26: "Kick forward with right foot",
-        27: "*not sure* kick with left foot",
-        28: "*not sure* kick with right foot",
-        29: "Kick back with left foot",
-        30: "Kick back with right foot",
-        36: "pose",
-        37: "pose",
+        # motion_num: ["name", motion_duration]
+        1: HUMANOID_FULL[1],
+        2: HUMANOID_FULL[2],
+        3: HUMANOID_FULL[3],
+        4: HUMANOID_FULL[4],
+        7: HUMANOID_FULL[7],
+        8: HUMANOID_FULL[8],
+        9: HUMANOID_FULL[9],
+        13: HUMANOID_FULL[13],
+        14: HUMANOID_FULL[14],
+        15: HUMANOID_FULL[15],
+        16: HUMANOID_FULL[16],
+        17: HUMANOID_FULL[17],
+        18: HUMANOID_FULL[18],
+        19: HUMANOID_FULL[19],
+        20: HUMANOID_FULL[20],
+        25: HUMANOID_FULL[25],
+        26: HUMANOID_FULL[26],
+        27: HUMANOID_FULL[27],
+        28: HUMANOID_FULL[28],
+        29: HUMANOID_FULL[29],
+        30: HUMANOID_FULL[30],
+        36: HUMANOID_FULL[36],
+        37: HUMANOID_FULL[37],
     }
 
     SPIDER_FULL = {
-        0: "up and down",
-        1: "forward slightly",
-        2: "back slightly",
-        3: "turn left (fast slight turn)",
-        4: "turn right (fast slight turn)",
-        5: "forward 6 steps (slow)",
-        6: "back 6 steps (slow)",
-        7: "turn left (slow mid turn)",
-        8: "turn right (slow mid turn)",
-        9: "slow prance",
+        0: ["up and down", 1],
+        1: ["forward slightly", 1],
+        2: ["back slightly", 1],
+        3: ["turn left (fast slight turn)", 1],
+        4: ["turn right (fast slight turn)", 1],
+        5: ["forward 6 steps (slow)", 4],
+        6: ["back 6 steps (slow)", 4],
+        7: ["turn left (slow mid turn)", 2],
+        8: ["turn right (slow mid turn)", 2],
+        9: ["slow prance", 4],
         # Dance 1: up on hind-legs and wave; forward slightly; back slightly;
         #          wiggle; up on hind-legs move front legs up and down
-        10: "dance 1",
+        10: ["dance 1", 1],
         # up and down several times; fast prance; wiggle
-        11: "dance 2",
-        12: "turn right (slow big turn)",
-        13: "turn left (slow big turn)",
-        14: "forward then back (fast)",
-        15: "dance (wiggle then remain mid height)",
-        16: "slow wiggle",
-        17: "stand mid height",
-        18: "forward 3 steps (slow remain mid height)",
-        19: "back 3 steps (slow remain mid height)",
-        20: "forward continuously",
-        21: "turn right continuously",
-        22: "turn left continuously",
-        23: "forward continuously",
-        24: "",
-        25: "",
-        26: "",
-        27: "",
-        28: "",
-        29: "wave front right paw (continuous?)",
-        30: "",
-        39: "Stance (the legs up"
+        11: ["dance 2", 1],
+        12: ["turn right (slow big turn)", 1],
+        13: ["turn left (slow big turn)", 1],
+        14: ["forward then back (fast)", 1],
+        15: ["dance (wiggle then remain mid height)", 1],
+        16: ["slow wiggle", 1],
+        17: ["stand mid height", 1],
+        18: ["forward 3 steps (slow remain mid height)", 1],
+        19: ["back 3 steps (slow remain mid height)", 1],
+        20: ["forward continuously", 1],
+        21: ["turn right continuously", 1],
+        22: ["turn left continuously", 1],
+        23: ["forward continuously", 1],
+        29: ["wave back right paw continuous", 1],
+        39: ["Stance (the legs up)", 10]
     }
 
     # Hex Constants  #########################################################
@@ -289,6 +279,7 @@ class Conf:
     CV_WINDOW = "Image window"
     CV_WINDOW_LEFT = "Image window left"
     CV_WINDOW_RIGHT = "Image window right"
+    CV_WINDOW_ROBOT = "Robot instructions window"
     CV_FONT = cv2.FONT_HERSHEY_PLAIN
     CV_FONT_SCALE = 1
     CV_TEXT_COLOR = (255, 0, 255)
@@ -299,8 +290,8 @@ class Conf:
     CV_NOTE_HEIGHT = 200
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
@@ -344,33 +335,38 @@ class Conf:
     LOOP_DUR_THRESHOLD = 200  # milliseconds before triggering a warning
 
     # Cam memory settings  ###################################################
-    MEM_DIST_LIST_LEN = 10
+    MEM_DIST_LIST_LEN = 1
     # Maximum change in distance that won't be considered an outlier
     DIST_DISCREPANCY = 20
     MAX_LAST_SEEN = 2
+    KICK_DIST = 7
+    KICK_RANGE = 3
 
     ##########################################################################
     # Log settings  ##########################################################
     ##########################################################################
+    default_log_level_file = logging.DEBUG
+    default_log_level_terminal = logging.INFO
     LOG_ROOT = PATH_ROOT + "logs/"
     if not os.path.exists(LOG_ROOT):
         os.mkdir(LOG_ROOT)
     # Main log settings  #####################################################
     LOG_MAIN_NAME = "main"
     LOG_MAIN_FILE = LOG_ROOT + LOG_MAIN_NAME + ".log"
-    LOG_MAIN_FILE_LEVEL = logging.INFO
-    LOG_MAIN_STREAM_LEVEL = logging.INFO
+    LOG_MAIN_FILE_LEVEL = default_log_level_file
+    LOG_MAIN_STREAM_LEVEL = default_log_level_terminal
     # Camera log settings  ###################################################
     LOG_CAM_NAME = "cam"
     LOG_CAM_FILE = LOG_ROOT + LOG_CAM_NAME + ".log"
-    LOG_CAM_FILE_LEVEL = logging.DEBUG
-    LOG_CAM_STREAM_LEVEL = logging.DEBUG
+    LOG_CAM_FILE_LEVEL = default_log_level_file
+    LOG_CAM_STREAM_LEVEL = default_log_level_terminal
     # Robot log settings  ####################################################
     LOG_ROBOT_NAME = "robot"
     LOG_ROBOT_FILE = LOG_ROOT + LOG_ROBOT_NAME + ".log"
-    LOG_ROBOT_FILE_LEVEL = logging.DEBUG
-    LOG_ROBOT_STREAM_LEVEL = logging.DEBUG
+    LOG_ROBOT_FILE_LEVEL = default_log_level_file
+    LOG_ROBOT_STREAM_LEVEL = default_log_level_terminal
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
+    FORMAT_TERMINAL = "%(asctime)s: %(name)s: %(levelname)s: %(message)s"
     FORMAT_DATE = "%Y-%m-%d %H:%M:%S"
     WRITE_FREQUENCY = 30
 
@@ -395,19 +391,33 @@ class Conf:
     CMD_CALIBRATE_STOP = "calibrate stop"
     CMD_AUTO_ON = "auto"
     CMD_AUTO_OFF = "auto off"
+    CMD_FORWARD = "forward"
+    CMD_FORWARD1 = "f"
+    CMD_BACKWARD = "back"
+    CMD_BACKWARD1 = "b"
+    CMD_LEFT = "left"
+    CMD_LEFT1 = "l"
+    CMD_RIGHT = "right"
+    CMD_RIGHT1 = "r"
+    CMD_KICK = "kick"
+    CMD_DANCE = "dance"
+    CMD_DANCE1 = "d"
 
     # Commands for OpenCV window control
     R_CMD_EXIT = ord("e")
     R_CMD_STOP = ord("s")
-    R_CMD_DETECT_ON = ord("d")
-    R_CMD_DETECT_OFF = ord("o")
+    R_CMD_AUTO_ON = ord("a")
+    R_CMD_AUTO_OFF = ord("o")
     R_CMD_CONTINUOUS_FORWARD = 82
     R_CMD_FORWARD = ord("f")
     R_CMD_BACKWARD = ord("b")
     R_CMD_BACKWARD2 = 84
     R_CMD_LEFT = ord("l")
-    R_CMD_LEFT2 = 81
+    R_CMD_LEFT1 = 81
     R_CMD_RIGHT = ord("r")
-    R_CMD_RIGHT2 = 83
-    R_CMD_TURN = ord("t")
+    R_CMD_RIGHT1 = 83
     R_CMD_CLOSE = ord("c")
+    R_CMD_KICK = ord("k")
+
+    # Misc Constants
+    CONST_MIDDLE = "Middle"
