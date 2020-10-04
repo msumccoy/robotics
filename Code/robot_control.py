@@ -87,7 +87,7 @@ class Robot:
                 return False
         if (
                 motion_cmd == Conf.CMD_STOP or motion_cmd == Conf.CMD_STOP1
-                or  type(motion_cmd) == int and motion_cmd < 0
+                or type(motion_cmd) == int and motion_cmd < 0
         ):
             if self.robot_type == RobotType.HUMAN:
                 motion_cmd = self.get_hex_cmd(1)
@@ -113,6 +113,11 @@ class Robot:
                 motion_cmd = self.get_hex_cmd(20)
             elif self.robot_type == RobotType.SPIDER:
                 motion_cmd = self.get_hex_cmd(12)
+        elif motion_cmd == Conf.CMD_DANCE or motion_cmd == Conf.CMD_DANCE1:
+            if self.robot_type == RobotType.HUMAN:
+                motion_cmd = self.get_hex_cmd(7)
+            elif self.robot_type == RobotType.SPIDER:
+                motion_cmd = self.get_hex_cmd(16)
         elif motion_cmd == Conf.CMD_KICK:
             if self.robot_type == RobotType.HUMAN:
                 motion_cmd = self.get_hex_cmd(25)
@@ -222,6 +227,8 @@ class Robot:
                 self.send_command(Conf.CMD_LEFT)
             elif command == Conf.CMD_RIGHT or command == Conf.CMD_RIGHT1:
                 self.send_command(Conf.CMD_RIGHT)
+            elif command == Conf.CMD_DANCE or command == Conf.CMD_DANCE1:
+                self.send_command(command)
             elif command == Conf.CMD_KICK:
                 self.send_command(Conf.CMD_KICK)
             else:

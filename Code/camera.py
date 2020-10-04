@@ -20,7 +20,7 @@ if "raspberrypi" in os.uname():
 import log_set_up
 from misc import manual_ender, get_float, get_specific_response, pretty_time
 from config import Conf
-from enums import RobotType, LensType, DistType, ObjDist, RobotCMD
+from enums import RobotType, LensType, DistType, ObjDist
 from variables import ExitControl
 
 
@@ -325,50 +325,86 @@ class Camera:
         # HUMANOID_FULL and SPIDER_FULL
         from robot_control import Robot
         self.logger.debug("control_robot: Started")
+        self.robot = Robot.get_inst(self.robot_type)
+        turning = False
         cmd_sent = None
         cmd_sent_time = 0
-        self.robot = Robot.get_inst(self.robot_type)
         wait_time = 0
         time.sleep(3)
         while ExitControl.gen and ExitControl.cam:
             if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
                 self.last_non_search = time.time()
-                # Walk to ball, kick ball, etc.
-            else:
-                # Search for object
+                dur = time.time() - cmd_sent_time
+                if turning:
+                    self.robot.send_command(-1, auto=True)
+                if dur > wait_time:
+                    if (
+                            Conf.KICK_DIST + Conf.KICK_RANGE
+                            > self.obj_dist[DistType.MAIN][ObjDist.AVG]
+                            > Conf.KICK_DIST - Conf.KICK_RANGE
+                    ):  # Within kick range
+                        if self.robot_type == RobotType.HUMAN:
+                            self.command = 26
+                            wait_time = Conf.HUMANOID_FULL[self.command][1]
+                        elif self.robot_type == RobotType.SPIDER:
+                            self.command = 29
+                            wait_time = Conf.SPIDER_FULL[self.command][1]
+                        cmd_sent = Conf.CMD_KICK
+                    elif (
+                            self.obj_dist[DistType.MAIN][ObjDist.AVG]
+                            > Conf.KICK_DIST
+                    ):  # Walk forward
+                        if self.robot_type == RobotType.HUMAN:
+                            self.command = 15
+                            wait_time = Conf.HUMANOID_FULL[self.command][1]
+                        elif self.robot_type == RobotType.SPIDER:
+                            self.command = 5
+                            wait_time = Conf.SPIDER_FULL[self.command][1]
+                        cmd_sent = Conf.CMD_FORWARD
+                    else:  # Walk backward
+                        if self.robot_type == RobotType.HUMAN:
+                            self.command = 16
+                            wait_time = Conf.HUMANOID_FULL[self.command][1]
+                        elif self.robot_type == RobotType.SPIDER:
+                            self.command = 6
+                            wait_time = Conf.SPIDER_FULL[self.command][1]
+                        cmd_sent = Conf.CMD_BACKWARD
+                    cmd_sent_time = time.time()
+                    self.robot.send_command(self.command, auto=True)
+                    self.logger.info(
+                        f"control_robot: Command sent: {cmd_sent}"
+                    )
+                else:
+                    print(f"waiting with wait time {wait_time}")
+            else:  # Search for object
                 dur = time.time() - self.last_non_search
                 if dur < Conf.MAX_SEARCH_DUR:
                     dur_temp = time.time() - cmd_sent_time
                     turning = (
-                            cmd_sent == RobotCMD.TURN_LEFT
-                            or cmd_sent == RobotCMD.TURN_RIGHT
+                            cmd_sent == Conf.CMD_LEFT
+                            or cmd_sent == Conf.CMD_RIGHT
                     )
-                    if turning and dur_temp > wait_time or not turning:
-                        print("Inside the searching")
+                    if not turning or turning and dur_temp > wait_time:
                         turn_direction = (
                             self.obj_dist[DistType.MAIN][ObjDist.LOCATION]
                         )
-                        if turn_direction == Conf.CONST_LEFT:
+                        if turn_direction == Conf.CMD_LEFT:
                             if self.robot_type == RobotType.HUMAN:
                                 self.command = 19
-                                wait_time = Conf.HUMANOID_FULL[19][1]
+                                wait_time = Conf.HUMANOID_FULL[self.command][1]
                             elif self.robot_type == RobotType.SPIDER:
                                 self.command = 7
-                                wait_time = Conf.SPIDER_FULL[7][1]
-                            cmd_sent = RobotCMD.TURN_LEFT
+                                wait_time = Conf.SPIDER_FULL[self.command][1]
+                            cmd_sent = Conf.CMD_LEFT
                         else:  # Turn right
                             if self.robot_type == RobotType.HUMAN:
                                 self.command = 20  # Conf.HUMANOID_MOTION
-                                wait_time = Conf.HUMANOID_FULL[20][1]
+                                wait_time = Conf.HUMANOID_FULL[self.command][1]
                             elif self.robot_type == RobotType.SPIDER:
                                 self.command = 8  # Conf.SPIDER_FULL
-                                wait_time = Conf.SPIDER_FULL[8][1]
-                            cmd_sent = RobotCMD.TURN_RIGHT
+                                wait_time = Conf.SPIDER_FULL[self.command][1]
+                            cmd_sent = Conf.CMD_RIGHT
                         self.robot.send_command(self.command, auto=True)
-                        self.logger.debug(
-                            f"control_robot: Turning: {cmd_sent}"
-                        )
-                        print(f"control_robot: Turning: {cmd_sent}")
                         cmd_sent_time = time.time()
                 else:
                     self.logger.warning(
@@ -376,6 +412,8 @@ class Camera:
                         f"{pretty_time(dur, is_raw=False)} and robot has "
                         "stopped searching"
                     )
+            if dur > wait_time:
+                self.logger.info(f"Command sent: {cmd_sent}")
             time.sleep(1)
     ##########################################################################
 
@@ -662,9 +700,9 @@ class Camera:
                 left_limit = self.midpoint - Conf.CS_MID_TOLERANCE
                 right_limit = self.midpoint + Conf.CS_MID_TOLERANCE
                 if center_point < left_limit:
-                    pos = Conf.CONST_LEFT
+                    pos = Conf.CMD_LEFT
                 elif center_point > right_limit:
-                    pos = Conf.CONST_RIGHT
+                    pos = Conf.CMD_RIGHT
                 else:
                     pos = Conf.CONST_MIDDLE
                 self.obj_dist[loc][ObjDist.LOCATION] = pos

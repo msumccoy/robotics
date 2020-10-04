@@ -133,11 +133,11 @@ class Conf:
         2: ["back slightly", 1],
         3: ["turn left (fast slight turn)", 1],
         4: ["turn right (fast slight turn)", 1],
-        5: ["forward 6 steps (slow)", 1],
-        6: ["back 6 steps (slow)", 1],
+        5: ["forward 6 steps (slow)", 4],
+        6: ["back 6 steps (slow)", 4],
         7: ["turn left (slow mid turn)", 2],
         8: ["turn right (slow mid turn)", 2],
-        9: ["slow prance", 1],
+        9: ["slow prance", 4],
         # Dance 1: up on hind-legs and wave; forward slightly; back slightly;
         #          wiggle; up on hind-legs move front legs up and down
         10: ["dance 1", 1],
@@ -156,7 +156,7 @@ class Conf:
         22: ["turn left continuously", 1],
         23: ["forward continuously", 1],
         29: ["wave back right paw continuous", 1],
-        39: ["Stance (the legs up)", 1]
+        39: ["Stance (the legs up)", 10]
     }
 
     # Hex Constants  #########################################################
@@ -290,8 +290,8 @@ class Conf:
     CV_NOTE_HEIGHT = 200
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
-    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
@@ -339,6 +339,8 @@ class Conf:
     # Maximum change in distance that won't be considered an outlier
     DIST_DISCREPANCY = 20
     MAX_LAST_SEEN = 2
+    KICK_DIST = 5
+    KICK_RANGE = 3
 
     ##########################################################################
     # Log settings  ##########################################################
@@ -398,6 +400,8 @@ class Conf:
     CMD_RIGHT = "right"
     CMD_RIGHT1 = "r"
     CMD_KICK = "kick"
+    CMD_DANCE = "dance"
+    CMD_DANCE1 = "d"
 
     # Commands for OpenCV window control
     R_CMD_EXIT = ord("e")
@@ -416,6 +420,4 @@ class Conf:
     R_CMD_KICK = ord("k")
 
     # Misc Constants
-    CONST_LEFT = "Left"
-    CONST_RIGHT = "Right"
     CONST_MIDDLE = "Middle"
