@@ -335,11 +335,11 @@ class Conf:
     LOOP_DUR_THRESHOLD = 200  # milliseconds before triggering a warning
 
     # Cam memory settings  ###################################################
-    MEM_DIST_LIST_LEN = 10
+    MEM_DIST_LIST_LEN = 1
     # Maximum change in distance that won't be considered an outlier
     DIST_DISCREPANCY = 20
     MAX_LAST_SEEN = 2
-    KICK_DIST = 5
+    KICK_DIST = 7
     KICK_RANGE = 3
 
     ##########################################################################

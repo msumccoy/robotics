@@ -332,11 +332,14 @@ class Camera:
         wait_time = 0
         time.sleep(3)
         while ExitControl.gen and ExitControl.cam:
+            success = False
+            dur = time.time() - cmd_sent_time
+            orig_wait_time = wait_time
             if self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND]:
                 self.last_non_search = time.time()
-                dur = time.time() - cmd_sent_time
                 if turning:
                     self.robot.send_command(-1, auto=True)
+                    wait_time = 0
                 if dur > wait_time:
                     if (
                             Conf.KICK_DIST + Conf.KICK_RANGE
@@ -370,21 +373,15 @@ class Camera:
                             wait_time = Conf.SPIDER_FULL[self.command][1]
                         cmd_sent = Conf.CMD_BACKWARD
                     cmd_sent_time = time.time()
-                    self.robot.send_command(self.command, auto=True)
-                    self.logger.info(
-                        f"control_robot: Command sent: {cmd_sent}"
-                    )
-                else:
-                    print(f"waiting with wait time {wait_time}")
+                    success = self.robot.send_command(self.command, auto=True)
             else:  # Search for object
-                dur = time.time() - self.last_non_search
-                if dur < Conf.MAX_SEARCH_DUR:
-                    dur_temp = time.time() - cmd_sent_time
+                non_search_dur = time.time() - self.last_non_search
+                if non_search_dur < Conf.MAX_SEARCH_DUR:
                     turning = (
                             cmd_sent == Conf.CMD_LEFT
                             or cmd_sent == Conf.CMD_RIGHT
                     )
-                    if not turning or turning and dur_temp > wait_time:
+                    if not turning or turning and non_search_dur > wait_time:
                         turn_direction = (
                             self.obj_dist[DistType.MAIN][ObjDist.LOCATION]
                         )
@@ -404,17 +401,19 @@ class Camera:
                                 self.command = 8  # Conf.SPIDER_FULL
                                 wait_time = Conf.SPIDER_FULL[self.command][1]
                             cmd_sent = Conf.CMD_RIGHT
-                        self.robot.send_command(self.command, auto=True)
+                        success = self.robot.send_command(
+                            self.command, auto=True
+                        )
                         cmd_sent_time = time.time()
                 else:
                     self.logger.warning(
                         "Object not found in "
-                        f"{pretty_time(dur, is_raw=False)} and robot has "
-                        "stopped searching"
+                        f"{pretty_time(non_search_dur, is_raw=False)}"
+                        " and robot has stopped searching"
                     )
-            if dur > wait_time:
-                self.logger.info(f"Command sent: {cmd_sent}")
-            time.sleep(1)
+            if success and dur > orig_wait_time:
+                self.logger.info(f"control_robot: Command sent: {cmd_sent}")
+            time.sleep(2)
     ##########################################################################
 
     def show_frames(self):
@@ -425,7 +424,9 @@ class Camera:
 
     def get_frame(self):
         if self.cam_num < 0:
-            self.cam.capture(self.rawCapture, format="bgr", use_video_port=True)
+            self.cam.capture(
+                self.rawCapture, format="bgr", use_video_port=True
+            )
             self.frame = self.rawCapture.array
             self.ret = True
         else:
