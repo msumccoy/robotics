@@ -37,10 +37,6 @@ class Robot:
             f"- robot_type: {robot_type}"
         )
         self.start = time.time()
-        if robot_type != RobotType.HUMAN and robot_type != RobotType.SPIDER:
-            raise ValueError(
-                f"{robot_type} is not a valid option for robot type"
-            )
         if robot_type == RobotType.HUMAN:
             com_port = Conf.HUMANOID_PORT
             self.full_dict = Conf.HUMANOID_FULL

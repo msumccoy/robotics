@@ -130,16 +130,6 @@ class Camera:
         if lens_type == LensType.DOUBLE:
             self.profile = Conf.CS_DEFAULT2
         if self.profile not in self.settings:
-            if not disp_img:
-                self.logger.exception(
-                    "No profile exist yet test environment not active"
-                )
-                self.main_logger.exception(
-                    "Camera: No profile exist yet test environment not active"
-                )
-                raise ValueError(
-                    "No profile exist yet test environment not active"
-                )
             setup_profile = True
             temp_disp = self.disp_img
             self.disp_img = True
@@ -153,7 +143,7 @@ class Camera:
             self.pic_num = files[-1] + 1
         else:
             self.pic_num = 0
-        self.last_pic = 0
+        self.last_pic_time = 0
         self.take_pic = take_pic
 
         self.frame_left = None
@@ -218,15 +208,11 @@ class Camera:
                 "min Neigh", track_bar, track_bar_neigh, 50, self.set_neigh
             )
         if setup_profile:
-            print(self.settings)
             self.setup_profile(self.profile)
             self.disp_img = temp_disp
             if not self.disp_img:
                 cv2.destroyWindow(Conf.CV_WINDOW)
         self.update_instance_settings()
-
-        self.robot_cmd_sent = None
-        self.robot_cmd_time = 0
 
         self.logger.debug(
             f"Cam init ran in {pretty_time(self.start)}"
@@ -485,10 +471,6 @@ class Camera:
                 )
 
             if self.num_objects == 1:
-                # Formula: F = (P x  D) / W
-                # Transposed: D = (F x W) / P
-                # F is focal length, P is pixel width, D is distance,
-                # W is width irl
                 self.label_detected(DistType.MAIN)
             else:
                 self.logger.debug(
@@ -660,9 +642,13 @@ class Camera:
             focal_len = self.focal_len_r
             frame = self.frame_right
         for (x, y, w, h) in detected:
+            # Formula: F = (P x  D) / W
+            # Transposed: D = (F x W) / P
+            # F is focal length, P is pixel width, D is distance,
+            # W is width irl
             dist = (focal_len * self.obj_width) / w
             check = self.obj_dist[loc][ObjDist.AVG] - dist
-            if check < Conf.DIST_DISCREPANCY:
+            if -Conf.DIST_DISCREPANCY < check < Conf.DIST_DISCREPANCY:
                 self.obj_dist[loc][ObjDist.LIST].insert(0, dist)
                 self.obj_dist[loc][ObjDist.SUM] += dist
                 self.obj_dist[loc][ObjDist.COUNT] += 1
@@ -749,7 +735,7 @@ class Camera:
         self.settings[profile] = {}
         self.settings[profile][Conf.CS_NEIGH] = 3
         self.settings[profile][Conf.CS_SCALE] = 1.305
-        self.settings[profile][Conf.CS_OBJ_WIDTH] = 3.0
+        self.settings[profile][Conf.CS_OBJ_WIDTH] = 2.56
         self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
         self.settings[profile][Conf.CS_FOCAL_R] = 1
         self.settings[profile][Conf.CS_FOCAL_L] = 1
@@ -773,7 +759,10 @@ class Camera:
             if response == "0":
                 continue_calibrate = False
             elif response == "1":
-                profile = Conf.CS_DEFAULT
+                if self.lens_type == LensType.SINGLE:
+                    profile = Conf.CS_DEFAULT
+                if self.lens_type == LensType.DOUBLE:
+                    profile = Conf.CS_DEFAULT2
                 print(
                     f"The current parameters for {profile} are:\n"
                     f"     Focal length --> "
@@ -782,11 +771,17 @@ class Camera:
                     f"{self.settings[profile][Conf.CS_OBJ_WIDTH]}"
                 )
                 self.setup_profile(Conf.CS_DEFAULT)
-                if self.profile != Conf.CS_DEFAULT:
+                if (
+                        self.profile != Conf.CS_DEFAULT
+                        or self.profile != Conf.CS_DEFAULT2
+                ):
                     print("Would you like to change your profile to default?")
                     response = get_specific_response(options)
                     if response == 'y':
-                        self.profile = Conf.CS_DEFAULT
+                        if self.lens_type == LensType.SINGLE:
+                            profile = Conf.CS_DEFAULT
+                        if self.lens_type == LensType.DOUBLE:
+                            profile = Conf.CS_DEFAULT2
                         self.update_instance_settings()
             elif response == "2":
                 for key in self.settings:
@@ -1070,7 +1065,7 @@ class Camera:
 
     def capture_picture(self, limit=False):
         if limit:
-            dur = time.time() - self.last_pic
+            dur = time.time() - self.last_pic_time
             if dur < Conf.FREQUENCY_PIC:
                 return
 
@@ -1079,7 +1074,7 @@ class Camera:
             f"capture_picture: Photo taken with name {self.pic_num}.jpg"
         )
         self.pic_num += 1
-        self.last_pic = time.time()
+        self.last_pic_time = time.time()
 
     def update_instance_settings(self):
         self.logger.debug("update_instance_settings called")

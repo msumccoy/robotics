@@ -16,7 +16,6 @@ from misc import pretty_time, manual_ender
 from variables import ExitControl
 
 
-
 def main():
     start = time.time()
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
@@ -34,7 +33,7 @@ def main():
     )
 
     cam_thread = threading.Thread(target=cam.start_recognition)
-    auto_robot_thread = threading.Thread(target = cam.control_robot)
+    auto_robot_thread = threading.Thread(target=cam.control_robot)
     manual_robot_thread = threading.Thread(
         target=robot.manual_control, daemon=True
     )
