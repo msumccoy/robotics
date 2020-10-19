@@ -34,10 +34,11 @@ class Camera:
             cam_name, cam_num=0, lens_type=LensType.SINGLE,
             record=False, take_pic=False, disp_img=False
     ):
-        if cam_name not in Camera._inst:
-            Camera._inst[cam_name] = Camera(
-                cam_name, cam_num, lens_type, record, take_pic, disp_img
-            )
+        with Conf.LOCK_CAM:
+            if cam_name not in Camera._inst:
+                Camera._inst[cam_name] = Camera(
+                    cam_name, cam_num, lens_type, record, take_pic, disp_img
+                )
         return Camera._inst[cam_name]
 
     def __init__(self, robot, cam_num, lens_type, record, take_pic, disp_img):
@@ -51,7 +52,7 @@ class Camera:
             f"- take_pic: {take_pic}\n"
             f"- Display image: {disp_img}"
         )
-        self.start = time.time()
+        self.start_time = time.time()
         self.lock = Conf.LOCK_CAM
         self.count = 0
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
@@ -87,6 +88,7 @@ class Camera:
         else:
             self.cam = cv2.VideoCapture(cam_num)
             self.ret, self.frame = self.cam.read()
+            self.frame_pure = self.frame
         if not self.ret:
             self.cam_num = -1
         else:
@@ -193,12 +195,17 @@ class Camera:
             if self.profile in self.settings:
                 if Conf.CS_SCALE in self.settings[Conf.CS_DEFAULT]:
                     track_bar_scale = (
-                            (self.settings[self.profile][Conf.CS_SCALE] - 1.005)
+                            (
+                                self.settings[self.profile][Conf.CS_SCALE]
+                                - 1.005
+                            )
                             / 0.1
                     )
                     track_bar_scale = int(f"{track_bar_scale: .0f}")
                 if Conf.CS_NEIGH in self.settings[Conf.CS_DEFAULT]:
-                    track_bar_neigh = self.settings[self.profile][Conf.CS_NEIGH]
+                    track_bar_neigh = (
+                        self.settings[self.profile][Conf.CS_NEIGH]
+                    )
             cv2.namedWindow(Conf.CV_WINDOW)
             cv2.namedWindow(track_bar)
             cv2.createTrackbar(
@@ -215,7 +222,7 @@ class Camera:
         self.update_instance_settings()
 
         self.logger.debug(
-            f"Cam init ran in {pretty_time(self.start)}"
+            f"Cam init ran in {pretty_time(self.start_time)}"
         )
 
     ##########################################################################
@@ -224,9 +231,12 @@ class Camera:
     def start_recognition(self):
         self.logger.debug("start_recognition started")
         loop_dur = 0
-        total_dur = time.time() - self.start
+        total_dur = time.time() - self.start_time
         threshold = Conf.LOOP_DUR_THRESHOLD / 1000
-        while self.settings[self.profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
+        while (
+                self.settings[self.profile][Conf.CS_LENS_TYPE]
+                != self.lens_type.value
+        ):
             if not self.disp_img:
                 self.main_logger.exception(
                     "Camera: Lens type of camera and settings progile do not "
@@ -246,24 +256,13 @@ class Camera:
             loop_start = time.time()
             self.get_frame()
             self.detect_object()
-            note_x = 10
-            note_y = self.height + Conf.CV_NOTE_HEIGHT - 20
-            cv2.putText(
-                self.frame,
-                f"loop duration: {pretty_time(loop_dur, False)} --"
-                f" Total duration {pretty_time(total_dur, False)}",
-                (note_x, note_y),
-                Conf.CV_FONT,
-                Conf.CV_FONT_SCALE,
-                Conf.CV_TEXT_COLOR,
-                Conf.CV_THICKNESS,
-                Conf.CV_LINE
-            )
-            if self.record:
-                note_x = self.width - 100
+            with self.lock:
+                note_x = 10
+                note_y = self.height + Conf.CV_NOTE_HEIGHT - 20
                 cv2.putText(
                     self.frame,
-                    "Recording",
+                    f"loop duration: {pretty_time(loop_dur, False)} --"
+                    f" Total duration {pretty_time(total_dur, False)}",
                     (note_x, note_y),
                     Conf.CV_FONT,
                     Conf.CV_FONT_SCALE,
@@ -271,6 +270,19 @@ class Camera:
                     Conf.CV_THICKNESS,
                     Conf.CV_LINE
                 )
+            if self.record:
+                with self.lock:
+                    note_x = self.width - 100
+                    cv2.putText(
+                        self.frame,
+                        "Recording",
+                        (note_x, note_y),
+                        Conf.CV_FONT,
+                        Conf.CV_FONT_SCALE,
+                        Conf.CV_TEXT_COLOR,
+                        Conf.CV_THICKNESS,
+                        Conf.CV_LINE
+                    )
                 dur = time.time() - self.last_vid_write
                 if dur > self.vid_write_frequency:
                     self.video_writer.write(self.frame)
@@ -286,7 +298,7 @@ class Camera:
                 ExitControl.gen = False
 
             loop_dur = time.time() - loop_start
-            total_dur = time.time() - self.start
+            total_dur = time.time() - self.start_time
             if loop_dur < threshold:
                 self.logger.debug(
                     f"Recognition loop ran in {pretty_time(loop_dur, False)}"
@@ -374,7 +386,9 @@ class Camera:
                         if turn_direction == Conf.CMD_LEFT:
                             if self.robot_type == RobotType.HUMAN:
                                 self.command = 19
-                                wait_time = Conf.HUMANOID_FULL[self.command][1]
+                                wait_time = (
+                                    Conf.HUMANOID_FULL[self.command][1]
+                                )
                             elif self.robot_type == RobotType.SPIDER:
                                 self.command = 7
                                 wait_time = Conf.SPIDER_FULL[self.command][1]
@@ -382,7 +396,9 @@ class Camera:
                         else:  # Turn right
                             if self.robot_type == RobotType.HUMAN:
                                 self.command = 20  # Conf.HUMANOID_MOTION
-                                wait_time = Conf.HUMANOID_FULL[self.command][1]
+                                wait_time = (
+                                    Conf.HUMANOID_FULL[self.command][1]
+                                )
                             elif self.robot_type == RobotType.SPIDER:
                                 self.command = 8  # Conf.SPIDER_FULL
                                 wait_time = Conf.SPIDER_FULL[self.command][1]
@@ -409,20 +425,22 @@ class Camera:
             cv2.imshow(Conf.CV_WINDOW_RIGHT, self.frame_right)
 
     def get_frame(self):
-        if self.cam_num < 0:
-            self.cam.capture(
-                self.rawCapture, format="bgr", use_video_port=True
+        with self.lock:
+            if self.cam_num < 0:
+                self.cam.capture(
+                    self.rawCapture, format="bgr", use_video_port=True
+                )
+                self.frame = self.rawCapture.array
+                self.ret = True
+            else:
+                self.ret, self.frame = self.cam.read()
+                self.frame_pure = self.frame
+            display = np.zeros(
+                [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
             )
-            self.frame = self.rawCapture.array
-            self.ret = True
-        else:
-            self.ret, self.frame = self.cam.read()
-        display = np.zeros(
-            [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
-        )
-        self.frame = np.vstack((self.frame, display))
-        if self.lens_type == LensType.DOUBLE:
-            self.get_dual_image()
+            self.frame = np.vstack((self.frame, display))
+            if self.lens_type == LensType.DOUBLE:
+                self.get_dual_image()
 
     def detect_object(self):
         if self.lens_type == LensType.SINGLE:
@@ -834,7 +852,10 @@ class Camera:
         if profile not in self.settings:
             self.settings[profile] = {}
         if Conf.CS_LENS_TYPE in self.settings[profile]:
-            if self.settings[profile][Conf.CS_LENS_TYPE] != self.lens_type.value:
+            if (
+                    self.settings[profile][Conf.CS_LENS_TYPE]
+                    != self.lens_type.value
+            ):
                 print(
                     f"The lens type of this profile is "
                     f"{self.settings[profile][Conf.CS_LENS_TYPE]}. "
@@ -843,7 +864,9 @@ class Camera:
                 )
                 response = get_specific_response(options)
                 if response == 'y':
-                    self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
+                    self.settings[profile][Conf.CS_LENS_TYPE] = (
+                        self.lens_type.value
+                    )
                 else:
                     print("Canceling set up")
                     return
@@ -859,8 +882,8 @@ class Camera:
         response = ""
         while response == "":
             response = input(
-                "Would you like the program to calculate focal length or would "
-                "you like to enter it manually? '1' for the program to "
+                "Would you like the program to calculate focal length or "
+                "would you like to enter it manually? '1' for the program to "
                 "calculate and '2' for manual: "
             ).strip()
             if response != '1' and response != '2':
@@ -1093,15 +1116,18 @@ class Camera:
 
     def close(self):
         self.main_logger.info(
-            f"Camera: is closing after running for {pretty_time(self.start)}"
+            "Camera: closing after running for "
+            f"{pretty_time(self.start_time)}"
         )
         self.logger.info(
-            f"Camera is closing after running for {pretty_time(self.start)}\n"
+            "Camera: closing after running for "
+            f"{pretty_time(self.start_time)}\n"
         )
         with open(Conf.CAM_SETTINGS_FILE, 'w') as file:
             json.dump(self.settings, file, indent=4)
         self.cam.release()
         cv2.destroyAllWindows()
+        ExitControl.cam = False
 
 
 def independent_test():

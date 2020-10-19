@@ -290,14 +290,15 @@ class Conf:
     CV_NOTE_HEIGHT = 200
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
+    CV_CASCADE_FILE = (
+            CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
+    )
     CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
-    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
     # Camera settings   ######################################################
     ##########################################################################
-    LOCK_CAM = threading.Lock()
     VIDEO_ROOT = PATH_ROOT + "videos/"
     PIC_ROOT = PATH_ROOT + "pictures/"
     if not os.path.exists(VIDEO_ROOT):
@@ -365,6 +366,13 @@ class Conf:
     LOG_ROBOT_FILE = LOG_ROOT + LOG_ROBOT_NAME + ".log"
     LOG_ROBOT_FILE_LEVEL = default_log_level_file
     LOG_ROBOT_STREAM_LEVEL = default_log_level_terminal
+    # Robot log settings  ####################################################
+    LOG_GUI_NAME = "gui"
+    LOG_GUI_FILE = LOG_ROOT + LOG_GUI_NAME + ".log"
+    LOG_GUI_FILE_LEVEL = default_log_level_file
+    LOG_GUI_STREAM_LEVEL = default_log_level_terminal
+
+    # Misc ###################################################################
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
     FORMAT_TERMINAL = "%(asctime)s: %(name)s: %(levelname)s: %(message)s"
     FORMAT_DATE = "%Y-%m-%d %H:%M:%S"
@@ -373,6 +381,8 @@ class Conf:
     ##########################################################################
     # Locks  #################################################################
     ##########################################################################
+    LOCK_GEN = threading.Lock()
+    LOCK_CAM = threading.Lock()
     LOCK_HUMANOID = threading.Lock()
     LOCK_SPIDER = threading.Lock()
 
