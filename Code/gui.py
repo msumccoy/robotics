@@ -1,7 +1,10 @@
 import logging
+import os
 import tkinter as tk
+import tkinter.font as tkFont
 import time
 import cv2
+import psutil
 from PIL import Image, ImageTk
 
 import log_set_up
@@ -23,39 +26,64 @@ class GUI:
         self.start_time = time.time()
         self.cam = Camera.get_inst(robot_type)
         self.root = tk.Tk()
+        self.process = psutil.Process(os.getpid())
+        print(self.process.memory_info().rss / 1024)
         self.layout = {
             "quit_btn": {
                 "row": 10,
                 "col": 1,
                 "col_span": 1,
                 "row_span": 1,
+                "sticky": "w",
             },
             "frame": {
                 "row": 1,
                 "col": 1,
                 "col_span": 1,
                 "row_span": 1,
+                "sticky": "",
+            },
+            "mem": {
+                "row": 1,
+                "col": 1,
+                "col_span": 1,
+                "row_span": 1,
+                "sticky": "nw",
             },
         }
 
+        font_style = tkFont.Font(family="Lucida Grande", size=20)
+
         self.frame = tk.Label(self.root)
+        self.mem_label = tk.Label(self.root, font=font_style)
+        key = "mem"
+        self.mem_label.grid(
+            row=self.layout[key]["row"],
+            column=self.layout[key]["col"],
+            columnspan=self.layout[key]["col_span"],
+            rowspan=self.layout[key]["row_span"],
+            sticky=self.layout[key]["sticky"],
+        )
         img = cv2.cvtColor(self.cam.frame, cv2.COLOR_BGR2RGB)
         img = ImageTk.PhotoImage(image=Image.fromarray(img))
         self.frame.config(image=img)
+        key = "frame"
         self.frame.grid(
-            row=self.layout["frame"]["row"],
-            column=self.layout["frame"]["col"],
-            columnspan=self.layout["frame"]["col_span"],
-            rowspan=self.layout["frame"]["row_span"],
+            row=self.layout[key]["row"],
+            column=self.layout[key]["col"],
+            columnspan=self.layout[key]["col_span"],
+            rowspan=self.layout[key]["row_span"],
+            sticky=self.layout[key]["sticky"],
         )
 
         self.quit_btn = tk.Button(self.root, text="quit", command=self.close)
+        key = "quit_btn"
         self.quit_btn.grid(
-            row=self.layout["quit_btn"]["row"],
-            column=self.layout["quit_btn"]["col"],
-            columnspan=self.layout["quit_btn"]["col_span"],
-            rowspan=self.layout["quit_btn"]["row_span"],
-            sticky="nw"
+            row=self.layout[key]["row"],
+            column=self.layout[key]["col"],
+            columnspan=self.layout[key]["col_span"],
+            rowspan=self.layout[key]["row_span"],
+            sticky=self.layout[key]["sticky"],
         )
 
     def start(self):
@@ -64,7 +92,12 @@ class GUI:
         self.root.mainloop()
 
     def update_image(self):
-        img = cv2.cvtColor(self.cam.frame_pure, cv2.COLOR_BGR2RGB)
+        mem_use = self.process.memory_info().rss / 1024
+        self.mem_label['text'] = mem_use
+        frame_tk = self.cam.frame[
+           0: self.cam.height, 0: self.cam.width
+        ]
+        img = cv2.cvtColor(frame_tk, cv2.COLOR_BGR2RGB)
         img = ImageTk.PhotoImage(image=Image.fromarray(img))
         self.frame.config(image=img)
         self.frame.photo_ref = img

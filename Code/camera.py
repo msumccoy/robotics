@@ -88,7 +88,7 @@ class Camera:
         else:
             self.cam = cv2.VideoCapture(cam_num)
             self.ret, self.frame = self.cam.read()
-            self.frame_pure = self.frame
+            self.frame_tk = self.frame
         if not self.ret:
             self.cam_num = -1
         else:
@@ -420,9 +420,6 @@ class Camera:
 
     def show_frames(self):
         cv2.imshow(Conf.CV_WINDOW, self.frame)
-        if self.lens_type == LensType.DOUBLE:
-            cv2.imshow(Conf.CV_WINDOW_LEFT, self.frame_left)
-            cv2.imshow(Conf.CV_WINDOW_RIGHT, self.frame_right)
 
     def get_frame(self):
         with self.lock:
@@ -434,137 +431,48 @@ class Camera:
                 self.ret = True
             else:
                 self.ret, self.frame = self.cam.read()
-                self.frame_pure = self.frame
+            self.frame_tk = self.frame
+            if self.lens_type == LensType.DOUBLE:
+                self.get_dual_image()
             display = np.zeros(
                 [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
             )
             self.frame = np.vstack((self.frame, display))
-            if self.lens_type == LensType.DOUBLE:
-                self.get_dual_image()
 
     def detect_object(self):
-        if self.lens_type == LensType.SINGLE:
-            gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-            self.detected_objects = Conf.CV_DETECTOR.detectMultiScale(
-                gray_frame,
-                self.settings[self.profile][Conf.CS_SCALE],
-                self.settings[self.profile][Conf.CS_NEIGH],
-            )
-            if self.detected_objects is not None:
-                self.num_objects = len(self.detected_objects)
-            else:
-                self.num_objects = 0
-        elif self.lens_type == LensType.DOUBLE:
-            gray_left = cv2.cvtColor(self.frame_left, cv2.COLOR_BGR2GRAY)
-            gray_right = cv2.cvtColor(self.frame_right, cv2.COLOR_BGR2GRAY)
-            self.detected_left = Conf.CV_DETECTOR.detectMultiScale(
-                gray_left,
-                self.settings[self.profile][Conf.CS_SCALE],
-                self.settings[self.profile][Conf.CS_NEIGH],
-            )
-            self.detected_right = Conf.CV_DETECTOR.detectMultiScale(
-                gray_right,
-                self.settings[self.profile][Conf.CS_SCALE],
-                self.settings[self.profile][Conf.CS_NEIGH],
-            )
-            self.num_left = len(self.detected_left)
-            self.num_right = len(self.detected_right)
-            self.num_objects = self.num_left
-            if self.num_left == self.num_right:
-                self.is_detected_equal = True
-            else:
-                self.is_detected_equal = False
-                if self.num_right > self.num_left:
-                    self.num_objects = self.num_right
+        gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        self.detected_objects = Conf.CV_DETECTOR.detectMultiScale(
+            gray_frame,
+            self.settings[self.profile][Conf.CS_SCALE],
+            self.settings[self.profile][Conf.CS_NEIGH],
+        )
+        if self.detected_objects is not None:
+            self.num_objects = len(self.detected_objects)
+        else:
+            self.num_objects = 0
 
         ######################################################################
         # Draw bounding boxes and record distances ect.  #####################
         ######################################################################
-        if self.lens_type == LensType.SINGLE:
-            for (x, y, w, h) in self.detected_objects:
-                x1 = x + w
-                y1 = y + h
-                cv2.rectangle(
-                    self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
-                )
+        for (x, y, w, h) in self.detected_objects:
+            x1 = x + w
+            y1 = y + h
+            cv2.rectangle(
+                self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+            )
 
-            if self.num_objects == 1:
-                self.label_detected(DistType.MAIN)
-            else:
-                self.logger.debug(
-                    f"detect_object:Several objects detected. "
-                    f"Num: {self.num_objects}"
-                )
-            dur = (
-                time.time() - self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN]
+        if self.num_objects == 1:
+            self.label_detected(DistType.MAIN)
+        else:
+            self.logger.debug(
+                f"detect_object:Several objects detected. "
+                f"Num: {self.num_objects}"
             )
-            if dur > Conf.MAX_LAST_SEEN:
-                self.reset_distances(DistType.MAIN)
-        # Double  ############################################################
-        elif self.lens_type == LensType.DOUBLE:
-            for (x, y, w, h) in self.detected_left:
-                x1 = x + w
-                y1 = y + h
-                cv2.rectangle(
-                    self.frame_left, (x, y), (x1, y1), Conf.CV_LINE_COLOR
-                )
-            for (x, y, w, h) in self.detected_right:
-                x1 = x + w
-                y1 = y + h
-                cv2.rectangle(
-                    self.frame_right, (x, y), (x1, y1), Conf.CV_LINE_COLOR
-                )
-            if self.num_left <= 1 and self.num_right <= 1:
-                self.label_detected(DistType.LEFT)
-                if self.detected_left != ():
-                    self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND] = True
-                    self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
-                self.label_detected(DistType.RIGHT)
-                if self.detected_right != ():
-                    self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND] = True
-                    self.obj_dist[DistType.MAIN][ObjDist.IS_FOUND] = True
-                if (
-                        self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND]
-                        and self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND]
-                ):
-                    self.obj_dist[DistType.MAIN][ObjDist.AVG] = (
-                        (
-                            self.obj_dist[DistType.LEFT][ObjDist.AVG]
-                            + self.obj_dist[DistType.RIGHT][ObjDist.AVG]
-                        ) / 2
-                    )
-                elif self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND]:
-                    self.obj_dist[DistType.MAIN][ObjDist.AVG] = (
-                        self.obj_dist[DistType.LEFT][ObjDist.AVG]
-                    )
-                elif self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND]:
-                    self.obj_dist[DistType.MAIN][ObjDist.AVG] = (
-                        self.obj_dist[DistType.RIGHT][ObjDist.AVG]
-                    )
-            else:
-                self.logger.debug(
-                    "Several objects detected. "
-                    f"Left: {self.num_left}. Right: {self.num_right}"
-                )
-            dur0 = (
-                    time.time() -
-                    self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN]
-            )
-            dur1 = (
-                    time.time() -
-                    self.obj_dist[DistType.LEFT][ObjDist.LAST_SEEN]
-            )
-            dur2 = (
-                    time.time() -
-                    self.obj_dist[DistType.RIGHT][ObjDist.LAST_SEEN]
-            )
-            if dur0 > Conf.MAX_LAST_SEEN:
-                self.reset_distances(DistType.MAIN)
-            if dur1 > Conf.MAX_LAST_SEEN:
-                self.reset_distances(DistType.LEFT)
-            if dur2 > Conf.MAX_LAST_SEEN:
-                self.reset_distances(DistType.RIGHT)
-
+        dur = (
+            time.time() - self.obj_dist[DistType.MAIN][ObjDist.LAST_SEEN]
+        )
+        if dur > Conf.MAX_LAST_SEEN:
+            self.reset_distances(DistType.MAIN)
         note_x = 10
         note_y = self.height + 20
         cv2.putText(
@@ -590,59 +498,18 @@ class Camera:
                 Conf.CV_THICKNESS,
                 Conf.CV_LINE
             )
-            if self.lens_type == LensType.SINGLE:
-                note_y += 20
-                cv2.putText(
-                    self.frame,
-                    "Relative location in vision: "
-                    f"{self.obj_dist[DistType.MAIN][ObjDist.LOCATION]}",
-                    (note_x, note_y),
-                    Conf.CV_FONT,
-                    Conf.CV_FONT_SCALE,
-                    Conf.CV_TEXT_COLOR,
-                    Conf.CV_THICKNESS,
-                    Conf.CV_LINE
-                )
-            elif self.lens_type == LensType.DOUBLE:
-                if self.obj_dist[DistType.LEFT][ObjDist.IS_FOUND]:
-                    note_y += 20
-                    cv2.putText(
-                        self.frame,
-                        "Relative location in left vision: "
-                        f"{self.obj_dist[DistType.LEFT][ObjDist.LOCATION]}",
-                        (note_x, note_y),
-                        Conf.CV_FONT,
-                        Conf.CV_FONT_SCALE,
-                        Conf.CV_TEXT_COLOR,
-                        Conf.CV_THICKNESS,
-                        Conf.CV_LINE
-                    )
-                if self.obj_dist[DistType.RIGHT][ObjDist.IS_FOUND]:
-                    note_y += 20
-                    cv2.putText(
-                        self.frame,
-                        "Relative location in right vision: "
-                        f"{self.obj_dist[DistType.RIGHT][ObjDist.LOCATION]}",
-                        (note_x, note_y),
-                        Conf.CV_FONT,
-                        Conf.CV_FONT_SCALE,
-                        Conf.CV_TEXT_COLOR,
-                        Conf.CV_THICKNESS,
-                        Conf.CV_LINE
-                    )
-                note_y += 20
-                cv2.putText(
-                    self.frame,
-                    "Relative location for main: "
-                    f"{self.obj_dist[DistType.MAIN][ObjDist.LOCATION]}",
-                    (note_x, note_y),
-                    Conf.CV_FONT,
-                    Conf.CV_FONT_SCALE,
-                    Conf.CV_TEXT_COLOR,
-                    Conf.CV_THICKNESS,
-                    Conf.CV_LINE
-                )
-
+            note_y += 20
+            cv2.putText(
+                self.frame,
+                "Relative location in vision: "
+                f"{self.obj_dist[DistType.MAIN][ObjDist.LOCATION]}",
+                (note_x, note_y),
+                Conf.CV_FONT,
+                Conf.CV_FONT_SCALE,
+                Conf.CV_TEXT_COLOR,
+                Conf.CV_THICKNESS,
+                Conf.CV_LINE
+            )
         else:
             self.logger.debug("detect_object: Object not found")
 
@@ -734,10 +601,11 @@ class Camera:
 
     def get_dual_image(self):
         height = self.height
-        self.frame_left = self.frame[0: height, 0: self.full_midpoint]
-        self.frame_right = (
-            self.frame[0: height, self.full_midpoint: self.width]
-        )
+        self.frame = self.frame[0: height, 0: self.full_midpoint]
+        # self.frame_left = self.frame[0: height, 0: self.full_midpoint]
+        # self.frame_right = (
+        #     self.frame[0: height, self.full_midpoint: self.width]
+        # )
 
     def reset_distances(self, dist_type, full_reset=False):
         self.obj_dist[dist_type][ObjDist.AVG] = 0.0
@@ -777,10 +645,7 @@ class Camera:
             if response == "0":
                 continue_calibrate = False
             elif response == "1":
-                if self.lens_type == LensType.SINGLE:
-                    profile = Conf.CS_DEFAULT
-                if self.lens_type == LensType.DOUBLE:
-                    profile = Conf.CS_DEFAULT2
+                profile = Conf.CS_DEFAULT
                 print(
                     f"The current parameters for {profile} are:\n"
                     f"     Focal length --> "
@@ -796,10 +661,7 @@ class Camera:
                     print("Would you like to change your profile to default?")
                     response = get_specific_response(options)
                     if response == 'y':
-                        if self.lens_type == LensType.SINGLE:
-                            profile = Conf.CS_DEFAULT
-                        if self.lens_type == LensType.DOUBLE:
-                            profile = Conf.CS_DEFAULT2
+                        profile = Conf.CS_DEFAULT
                         self.update_instance_settings()
             elif response == "2":
                 for key in self.settings:
@@ -899,61 +761,22 @@ class Camera:
             do_calibration = True
             while do_calibration:
                 self.ret, self.frame = self.cam.read()
-                if self.lens_type == LensType.SINGLE:
-                    gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-                    detected_objects = Conf.CV_DETECTOR.detectMultiScale(
-                        gray_frame,
-                        self.settings[self.profile][Conf.CS_SCALE],
-                        self.settings[self.profile][Conf.CS_NEIGH],
-                    )
-                    if detected_objects is not None:
-                        for (x, y, w, h) in detected_objects:
-                            x1 = x + w
-                            y1 = y + h
-                            cv2.rectangle(
-                                self.frame,
-                                (x, y),
-                                (x1, y1),
-                                Conf.CV_LINE_COLOR
-                            )
-                elif self.lens_type == LensType.DOUBLE:
-                    self.get_dual_image()
-                    gray_left = cv2.cvtColor(
-                        self.frame_left, cv2.COLOR_BGR2GRAY
-                    )
-                    gray_right = cv2.cvtColor(
-                        self.frame_right, cv2.COLOR_BGR2GRAY
-                    )
-                    detected_left = Conf.CV_DETECTOR.detectMultiScale(
-                        gray_left,
-                        self.settings[self.profile][Conf.CS_SCALE],
-                        self.settings[self.profile][Conf.CS_NEIGH],
-                    )
-                    detected_right = Conf.CV_DETECTOR.detectMultiScale(
-                        gray_right,
-                        self.settings[self.profile][Conf.CS_SCALE],
-                        self.settings[self.profile][Conf.CS_NEIGH],
-                    )
-                    if detected_left is not None:
-                        for (x, y, w, h) in detected_left:
-                            x1 = x + w
-                            y1 = y + h
-                            cv2.rectangle(
-                                self.frame_left,
-                                (x, y),
-                                (x1, y1),
-                                Conf.CV_LINE_COLOR
-                            )
-                    if detected_right is not None:
-                        for (x, y, w, h) in detected_right:
-                            x1 = x + w
-                            y1 = y + h
-                            cv2.rectangle(
-                                self.frame_right,
-                                (x, y),
-                                (x1, y1),
-                                Conf.CV_LINE_COLOR
-                            )
+                gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+                detected_objects = Conf.CV_DETECTOR.detectMultiScale(
+                    gray_frame,
+                    self.settings[self.profile][Conf.CS_SCALE],
+                    self.settings[self.profile][Conf.CS_NEIGH],
+                )
+                if detected_objects is not None:
+                    for (x, y, w, h) in detected_objects:
+                        x1 = x + w
+                        y1 = y + h
+                        cv2.rectangle(
+                            self.frame,
+                            (x, y),
+                            (x1, y1),
+                            Conf.CV_LINE_COLOR
+                        )
                 cv2.imshow(Conf.CV_WINDOW, self.frame)
                 k = cv2.waitKey(1) & 0xFF
                 if k != -1 and k != 255:
@@ -979,112 +802,39 @@ class Camera:
             do_calibration = True
             while do_calibration:
                 self.ret, self.frame = self.cam.read()
-                if self.lens_type == LensType.SINGLE:
-                    gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-                    detected_objects = Conf.CV_DETECTOR.detectMultiScale(
-                        gray_frame,
-                        self.settings[self.profile][Conf.CS_SCALE],
-                        self.settings[self.profile][Conf.CS_NEIGH],
-                    )
-                    if detected_objects is not None:
-                        if len(detected_objects) == 1:
-                            pixel_width = 0
-                            for (x, y, w, h) in detected_objects:
-                                x1 = x + w
-                                y1 = y + h
-                                pixel_width = w
-                                cv2.rectangle(
-                                    self.frame,
-                                    (x, y),
-                                    (x1, y1),
-                                    Conf.CV_LINE_COLOR
-                                )
-                            cv2.imshow(Conf.CV_WINDOW, self.frame)
-                            k = cv2.waitKey() & 0xFF
-                            if k == ord('y'):
-                                do_calibration = False
-                                self.settings[profile][Conf.CS_FOCAL] = (
-                                        (pixel_width * distance)
-                                        /
-                                        self.settings
-                                        [profile][Conf.CS_OBJ_WIDTH]
-                                )
-                elif self.lens_type == LensType.DOUBLE:
-                    self.get_dual_image()
-                    gray_left = cv2.cvtColor(
-                        self.frame_left, cv2.COLOR_BGR2GRAY
-                    )
-                    gray_right = cv2.cvtColor(
-                        self.frame_right, cv2.COLOR_BGR2GRAY
-                    )
-                    detected_left = Conf.CV_DETECTOR.detectMultiScale(
-                        gray_left,
-                        self.settings[self.profile][Conf.CS_SCALE],
-                        self.settings[self.profile][Conf.CS_NEIGH],
-                    )
-                    detected_right = Conf.CV_DETECTOR.detectMultiScale(
-                        gray_right,
-                        self.settings[self.profile][Conf.CS_SCALE],
-                        self.settings[self.profile][Conf.CS_NEIGH],
-                    )
-                    if (
-                            detected_left is not None
-                            and detected_right is not None
-                    ):
-                        if (
-                                len(detected_left) == len(detected_right)
-                                and len(detected_left) == 1
-                        ):
-                            width_left = 0
-                            width_right = 0
-                            for (x, y, w, h) in detected_left:
-                                x1 = x + w
-                                y1 = y + h
-                                width_left = w
-                                cv2.rectangle(
-                                    self.frame_left,
-                                    (x, y),
-                                    (x1, y1),
-                                    Conf.CV_LINE_COLOR
-                                )
-                            for (x, y, w, h) in detected_right:
-                                x1 = x + w
-                                y1 = y + h
-                                width_right = w
-                                cv2.rectangle(
-                                    self.frame_right,
-                                    (x, y),
-                                    (x1, y1),
-                                    Conf.CV_LINE_COLOR
-                                )
-                            cv2.imshow(Conf.CV_WINDOW, self.frame)
-                            k = cv2.waitKey() & 0xFF
-                            if k == ord('y'):
-                                do_calibration = False
-                                self.settings[profile][Conf.CS_FOCAL_L] = (
-                                        (width_left * distance)
-                                        /
-                                        self.settings
-                                        [profile][Conf.CS_OBJ_WIDTH]
-                                )
-                                self.settings[profile][Conf.CS_FOCAL_R] = (
-                                        (width_right * distance)
-                                        /
-                                        self.settings
-                                        [profile][Conf.CS_OBJ_WIDTH]
-                                )
+                gray_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+                detected_objects = Conf.CV_DETECTOR.detectMultiScale(
+                    gray_frame,
+                    self.settings[self.profile][Conf.CS_SCALE],
+                    self.settings[self.profile][Conf.CS_NEIGH],
+                )
+                if detected_objects is not None:
+                    if len(detected_objects) == 1:
+                        pixel_width = 0
+                        for (x, y, w, h) in detected_objects:
+                            x1 = x + w
+                            y1 = y + h
+                            pixel_width = w
+                            cv2.rectangle(
+                                self.frame,
+                                (x, y),
+                                (x1, y1),
+                                Conf.CV_LINE_COLOR
+                            )
+                        cv2.imshow(Conf.CV_WINDOW, self.frame)
+                        k = cv2.waitKey() & 0xFF
+                        if k == ord('y'):
+                            do_calibration = False
+                            self.settings[profile][Conf.CS_FOCAL] = (
+                                    (pixel_width * distance)
+                                    /
+                                    self.settings
+                                    [profile][Conf.CS_OBJ_WIDTH]
+                            )
         elif response == '2':
-            if self.lens_type == LensType.SINGLE:
-                self.settings[profile][Conf.CS_FOCAL] = get_float(
-                    "Enter focal length: "
-                )
-            elif self.lens_type == LensType.DOUBLE:
-                self.settings[profile][Conf.CS_FOCAL_L] = get_float(
-                    "Enter left focal length: "
-                )
-                self.settings[profile][Conf.CS_FOCAL_R] = get_float(
-                    "Enter right focal length: "
-                )
+            self.settings[profile][Conf.CS_FOCAL] = get_float(
+                "Enter focal length: "
+            )
 
     def capture_picture(self, limit=False):
         if limit:
@@ -1101,11 +851,7 @@ class Camera:
 
     def update_instance_settings(self):
         self.logger.debug("update_instance_settings called")
-        if self.lens_type == LensType.SINGLE:
-            self.focal_len = self.settings[self.profile][Conf.CS_FOCAL]
-        elif self.lens_type == LensType.DOUBLE:
-            self.focal_len_l = self.settings[self.profile][Conf.CS_FOCAL_L]
-            self.focal_len_r = self.settings[self.profile][Conf.CS_FOCAL_R]
+        self.focal_len = self.settings[self.profile][Conf.CS_FOCAL]
         self.obj_width = self.settings[self.profile][Conf.CS_OBJ_WIDTH]
 
     def set_scale(self, position):
