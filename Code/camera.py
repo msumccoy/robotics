@@ -124,17 +124,23 @@ class Camera:
         self.focal_len_r = None
         self.obj_width = None
         self.height, self.width, _ = self.frame_pure.shape
-        self.frame = self.frame_pure.copy()
+        self.midpoint = int(self.width / 2)
+        if lens_type == LensType.DOUBLE:
+            self.midpoint = int(self.width / 4)
+            self.width = int(self.width / 2)
+            self.get_dual_image()
         self.note_frame = np.zeros(
             [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
         )
+        self.frame = self.frame_pure.copy()
         self.frame_full = np.vstack((self.frame, self.note_frame))
         self.write_note = True
 
         with open(Conf.CAM_SETTINGS_FILE) as file:
             self.settings = json.load(file)
-        self.profile = Conf.CS_DEFAULT
-        if lens_type == LensType.DOUBLE:
+        if lens_type == LensType.SINGLE:
+            self.profile = Conf.CS_DEFAULT
+        elif lens_type == LensType.DOUBLE:
             self.profile = Conf.CS_DEFAULT2
         if self.profile not in self.settings:
             setup_profile = True
@@ -152,13 +158,6 @@ class Camera:
             self.pic_num = 0
         self.last_pic_time = 0
         self.take_pic = take_pic
-
-        self.full_midpoint = self.midpoint = int(self.width / 2)
-        if lens_type == LensType.DOUBLE:
-            self.midpoint = int(self.midpoint / 2)
-            self.get_dual_image()
-            if self.height > self.full_midpoint:
-                self.logger.warning(Conf.WARN_CAM_TYPE.substitute())
 
         self.last_vid_write = 0
         frame_rate = 10
@@ -558,8 +557,8 @@ class Camera:
 
     def get_dual_image(self):
         height = self.height
-        with self.lock:
-            self.frame_pure = self.frame_pure[0: height, 0: self.full_midpoint]
+        end = self.width * 2
+        self.frame_pure = self.frame_pure[0: height, self.width: end]
 
     def reset_distances(self, full_reset=False):
         self.obj_dist[ObjDist.AVG] = 0.0
