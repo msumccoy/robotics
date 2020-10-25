@@ -6,6 +6,7 @@ import time
 import cv2
 import psutil
 from PIL import Image, ImageTk
+import numpy as np
 
 import log_set_up
 from config import Conf
@@ -64,7 +65,7 @@ class GUI:
             rowspan=self.layout[key]["row_span"],
             sticky=self.layout[key]["sticky"],
         )
-        img = cv2.cvtColor(self.cam.frame, cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(self.cam.frame_pure, cv2.COLOR_BGR2RGB)
         img = ImageTk.PhotoImage(image=Image.fromarray(img))
         self.frame.config(image=img)
         key = "frame"
@@ -94,9 +95,8 @@ class GUI:
     def update_image(self):
         mem_use = self.process.memory_info().rss / 1024
         self.mem_label['text'] = mem_use
-        frame_tk = self.cam.frame[
-           0: self.cam.height, 0: self.cam.width
-        ]
+        with self.cam.lock:
+            frame_tk = self.cam.frame_full
         img = cv2.cvtColor(frame_tk, cv2.COLOR_BGR2RGB)
         img = ImageTk.PhotoImage(image=Image.fromarray(img))
         self.frame.config(image=img)

@@ -284,6 +284,7 @@ class Conf:
     CV_FONT_SCALE = 1
     CV_TEXT_COLOR = (255, 0, 255)
     CV_LINE_COLOR = (255, 75, 5)
+    CV_LINE_COLOR2 = (5, 75, 255)
     CV_THICKNESS = 1
     CV_LINE = cv2.LINE_AA
     CV_SIZE = (128, 512, 3)
@@ -330,6 +331,8 @@ class Conf:
     CS_OBJ_WIDTH = "object_width"
     CS_SCALE = "scale"
     CS_NEIGH = "nearest_neighbour"
+    CS_X_OFFSET = 10
+    CS_Y_OFFSET = 20
 
     CS_MID_TOLERANCE = 20
     FREQUENCY_PIC = 30
