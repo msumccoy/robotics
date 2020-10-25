@@ -191,7 +191,7 @@ class Camera:
             track_bar_scale = 4
             track_bar_neigh = 4
             if self.profile in self.settings:
-                if Conf.CS_SCALE in self.settings[Conf.CS_DEFAULT]:
+                if Conf.CS_SCALE in self.settings[self.profile]:
                     track_bar_scale = (
                             (
                                 self.settings[self.profile][Conf.CS_SCALE]
@@ -200,7 +200,7 @@ class Camera:
                             / 0.1
                     )
                     track_bar_scale = int(f"{track_bar_scale: .0f}")
-                if Conf.CS_NEIGH in self.settings[Conf.CS_DEFAULT]:
+                if Conf.CS_NEIGH in self.settings[self.profile]:
                     track_bar_neigh = (
                         self.settings[self.profile][Conf.CS_NEIGH]
                     )
@@ -241,7 +241,7 @@ class Camera:
                     "match but test env not active. Raising exception now."
                 )
                 self.logger.exception(
-                    "Lens type of camera and settings progile do not match "
+                    "Lens type of camera and settings profile do not match "
                     "but test env not active. Raising exception now."
                 )
                 raise Exception("ERROR: lens type error - start_recognition ")
@@ -364,13 +364,15 @@ class Camera:
                             f"{self.obj_dist[ObjDist.AVG]} vs dist: {dist}"
                         )
             else:
-                for (x, y, w, h) in self.detected_objects:
-                    x1 = x + w
-                    y1 = y + h
-                    with self.lock:
-                        cv2.rectangle(
-                            self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR2
-                        )
+                if self.detected_objects is not None:
+                    for (x, y, w, h) in self.detected_objects:
+                        x1 = x + w
+                        y1 = y + h
+                        with self.lock:
+                            cv2.rectangle(
+                                self.frame, (x, y), (x1, y1),
+                                Conf.CV_LINE_COLOR2
+                            )
                 self.logger.debug(
                     f"main_loop_support:Several objects detected. "
                     f"Num: {self.num_objects}"
@@ -520,8 +522,8 @@ class Camera:
             self.frame_full = np.vstack((self.frame, self.note_frame))
             cv2.imshow(Conf.CV_WINDOW, self.frame_full)
 
-    def get_frame(self):
-        with self.lock:
+    def get_frame(self, with_lock=True):
+        def sub_get_frame():
             if self.cam_num < 0:
                 self.cam.capture(
                     self.rawCapture, format="bgr", use_video_port=True
@@ -536,6 +538,12 @@ class Camera:
                 [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
             )
             self.write_note = True
+
+        if with_lock:
+            with self.lock:
+                sub_get_frame()
+        else:
+            sub_get_frame()
 
     def detect_object(self):
         gray_frame = cv2.cvtColor(self.frame_pure, cv2.COLOR_BGR2GRAY)
@@ -712,27 +720,26 @@ class Camera:
             )
             do_calibration = True
             while do_calibration:
-                self.ret, self.frame_pure = self.cam.read()
+                self.get_frame(with_lock=False)
                 gray_frame = cv2.cvtColor(self.frame_pure, cv2.COLOR_BGR2GRAY)
                 detected_objects = Conf.CV_DETECTOR.detectMultiScale(
                     gray_frame,
                     self.settings[self.profile][Conf.CS_SCALE],
                     self.settings[self.profile][Conf.CS_NEIGH],
                 )
-                if detected_objects is not None:
-                    for (x, y, w, h) in detected_objects:
-                        x1 = x + w
-                        y1 = y + h
-                        with self.lock:
-                            cv2.rectangle(
-                                self.frame_pure,
-                                (x, y),
-                                (x1, y1),
-                                Conf.CV_LINE_COLOR
-                            )
+                for (x, y, w, h) in detected_objects:
+                    x1 = x + w
+                    y1 = y + h
+                    pixel_width = w
+                    cv2.rectangle(
+                        self.frame_pure,
+                        (x, y),
+                        (x1, y1),
+                        Conf.CV_LINE_COLOR
+                    )
                 cv2.imshow(Conf.CV_WINDOW, self.frame_pure)
                 k = cv2.waitKey(1) & 0xFF
-                if k != -1 and k != 255:
+                if k != -1 and k != 255 and len(detected_objects):
                     do_calibration = False
             # Calibrate focal length  #######################################
             # Formula: F = (P x  D) / W
@@ -744,47 +751,14 @@ class Camera:
             distance = get_float(
                 "Please enter the objects distance from the camera: "
             )
-            print(
-                "\n"
-                "The program will now automatically detect the pixel size of "
-                "the object. \nPress any key other than 'y' to cycle through "
-                "all obtained sizes from the camera denoted by the bounding "
-                "box (space recommended). \nOnce the detection is to your "
-                "satisfaction please press 'y' to continue."
+            self.settings[profile][Conf.CS_FOCAL] = (
+                    (pixel_width * distance)
+                    / self.settings[profile][Conf.CS_OBJ_WIDTH]
             )
-            do_calibration = True
-            while do_calibration:
-                self.ret, self.frame_pure = self.cam.read()
-                gray_frame = cv2.cvtColor(self.frame_pure, cv2.COLOR_BGR2GRAY)
-                detected_objects = Conf.CV_DETECTOR.detectMultiScale(
-                    gray_frame,
-                    self.settings[self.profile][Conf.CS_SCALE],
-                    self.settings[self.profile][Conf.CS_NEIGH],
-                )
-                if detected_objects is not None:
-                    if len(detected_objects) == 1:
-                        pixel_width = 0
-                        for (x, y, w, h) in detected_objects:
-                            x1 = x + w
-                            y1 = y + h
-                            pixel_width = w
-                            with self.lock:
-                                cv2.rectangle(
-                                    self.frame_pure,
-                                    (x, y),
-                                    (x1, y1),
-                                    Conf.CV_LINE_COLOR
-                                )
-                        cv2.imshow(Conf.CV_WINDOW, self.frame_pure)
-                        k = cv2.waitKey() & 0xFF
-                        if k == ord('y'):
-                            do_calibration = False
-                            self.settings[profile][Conf.CS_FOCAL] = (
-                                    (pixel_width * distance)
-                                    /
-                                    self.settings
-                                    [profile][Conf.CS_OBJ_WIDTH]
-                            )
+            print(
+                "Calculated focal length "
+                f"= {self.settings[profile][Conf.CS_FOCAL]}"
+            )
         elif response == '2':
             self.settings[profile][Conf.CS_FOCAL] = get_float(
                 "Enter focal length: "

@@ -4,7 +4,7 @@ from variables import ExitControl
 
 
 def get_int(prompt="Enter an integer: "):
-    while not ExitControl.gen:
+    while ExitControl.gen:
         try:
             num = input(prompt)
             num = int(num)
@@ -14,7 +14,7 @@ def get_int(prompt="Enter an integer: "):
 
 
 def get_float(prompt="Enter a float: "):
-    while not ExitControl.gen:
+    while ExitControl.gen:
         try:
             num = input(prompt)
             num = float(num)
@@ -34,7 +34,7 @@ def get_specific_response(options, prompt=None):
                 prompt += f"    - {option}\n"
     if type(options) != dict and type(options) != list:
         raise TypeError(f"options type is not valid: {type(options)}")
-    while not ExitControl.gen:
+    while ExitControl.gen:
         response = input(prompt).strip()
         if response in options:
             return response
@@ -77,7 +77,7 @@ def pretty_time(duration, is_raw=True):
 
 def manual_ender():
     # Used to exit program from terminal when no cv window is displayed
-    while not ExitControl.gen:
+    while ExitControl.gen:
         check = input("Press e to exit")
         if check == "e":
             ExitControl.gen = True
