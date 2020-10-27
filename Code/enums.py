@@ -17,12 +17,6 @@ class LensType(Enum):
     DOUBLE = 1
 
 
-class DistType(Enum):
-    MAIN = 0
-    LEFT = 1
-    RIGHT = 2
-
-
 class ObjDist(Enum):
     AVG = 0
     LOCATION = 1
@@ -31,6 +25,13 @@ class ObjDist(Enum):
     LAST_SEEN = 4
     IS_FOUND = 5
     LIST = 6
+
+
+class DurTypes(Enum):
+    MAIN_LOOP = 0
+    MAIN_DUR = 1
+    MAIN_SUP_LOOP = 2
+    MAIN_SUP_DUR = 3
 
 
 if __name__ == "__main__":

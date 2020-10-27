@@ -58,3 +58,18 @@ robot_stream_handler.setLevel(Conf.LOG_ROBOT_STREAM_LEVEL)
 
 robot_logger.addHandler(robot_file_handler)
 robot_logger.addHandler(robot_stream_handler)
+
+# Set up gui logger  #########################################################
+robot_logger = logging.getLogger(Conf.LOG_GUI_NAME)
+robot_logger.setLevel(logging.DEBUG)
+
+robot_file_handler = logging.FileHandler(Conf.LOG_GUI_FILE)
+robot_file_handler.setFormatter(formatter)
+robot_file_handler.setLevel(Conf.LOG_GUI_FILE_LEVEL)
+
+robot_stream_handler = logging.StreamHandler()
+robot_stream_handler.setFormatter(formatter_terminal)
+robot_stream_handler.setLevel(Conf.LOG_GUI_STREAM_LEVEL)
+
+robot_logger.addHandler(robot_file_handler)
+robot_logger.addHandler(robot_stream_handler)

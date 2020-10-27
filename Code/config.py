@@ -284,20 +284,22 @@ class Conf:
     CV_FONT_SCALE = 1
     CV_TEXT_COLOR = (255, 0, 255)
     CV_LINE_COLOR = (255, 75, 5)
+    CV_LINE_COLOR2 = (5, 75, 255)
     CV_THICKNESS = 1
     CV_LINE = cv2.LINE_AA
     CV_SIZE = (128, 512, 3)
     CV_NOTE_HEIGHT = 200
 
     CASCADE_ROOT = PATH_ROOT + "cascade_files/"
+    CV_CASCADE_FILE = (
+            CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
+    )
     CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
-    CV_CASCADE_FILE = CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
     # Camera settings   ######################################################
     ##########################################################################
-    LOCK_CAM = threading.Lock()
     VIDEO_ROOT = PATH_ROOT + "videos/"
     PIC_ROOT = PATH_ROOT + "pictures/"
     if not os.path.exists(VIDEO_ROOT):
@@ -329,6 +331,8 @@ class Conf:
     CS_OBJ_WIDTH = "object_width"
     CS_SCALE = "scale"
     CS_NEIGH = "nearest_neighbour"
+    CS_X_OFFSET = 10
+    CS_Y_OFFSET = 20
 
     CS_MID_TOLERANCE = 20
     FREQUENCY_PIC = 30
@@ -365,6 +369,13 @@ class Conf:
     LOG_ROBOT_FILE = LOG_ROOT + LOG_ROBOT_NAME + ".log"
     LOG_ROBOT_FILE_LEVEL = default_log_level_file
     LOG_ROBOT_STREAM_LEVEL = default_log_level_terminal
+    # Robot log settings  ####################################################
+    LOG_GUI_NAME = "gui"
+    LOG_GUI_FILE = LOG_ROOT + LOG_GUI_NAME + ".log"
+    LOG_GUI_FILE_LEVEL = default_log_level_file
+    LOG_GUI_STREAM_LEVEL = default_log_level_terminal
+
+    # Misc ###################################################################
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
     FORMAT_TERMINAL = "%(asctime)s: %(name)s: %(levelname)s: %(message)s"
     FORMAT_DATE = "%Y-%m-%d %H:%M:%S"
@@ -373,6 +384,9 @@ class Conf:
     ##########################################################################
     # Locks  #################################################################
     ##########################################################################
+    LOCK_CLASS = threading.Lock()
+    LOCK_GEN = threading.Lock()
+    LOCK_CAM = threading.Lock()
     LOCK_HUMANOID = threading.Lock()
     LOCK_SPIDER = threading.Lock()
 

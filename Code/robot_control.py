@@ -26,8 +26,9 @@ class Robot:
 
     @staticmethod
     def get_inst(robot_type):
-        if robot_type not in Robot._inst:
-            Robot._inst[robot_type] = Robot(robot_type)
+        with Conf.LOCK_GEN:
+            if robot_type not in Robot._inst:
+                Robot._inst[robot_type] = Robot(robot_type)
         return Robot._inst[robot_type]
 
     def __init__(self, robot_type):
@@ -37,18 +38,16 @@ class Robot:
             f"- robot_type: {robot_type}"
         )
         self.start = time.time()
-        if robot_type != RobotType.HUMAN and robot_type != RobotType.SPIDER:
-            raise ValueError(
-                f"{robot_type} is not a valid option for robot type"
-            )
         if robot_type == RobotType.HUMAN:
             com_port = Conf.HUMANOID_PORT
             self.full_dict = Conf.HUMANOID_FULL
             self.short_dict = Conf.HUMANOID_MOTION
+            self.lock = Conf.LOCK_HUMANOID
             self.logger.info("Initializing Humanoid")
         elif robot_type == RobotType.SPIDER:
             com_port = Conf.SPIDER_PORT
             self.full_dict = self.short_dict = Conf.SPIDER_FULL
+            self.lock = Conf.LOCK_SPIDER
             self.logger.info("Initializing spider")
         else:
             self.logger.exception(
@@ -65,19 +64,30 @@ class Robot:
         self.full_control = False
 
         # Create serial port object for connection to the robot
-        self.ser = serial.Serial(
-            com_port,
-            Conf.BAUDRATE,
-            Conf.BYTESIZE,
-            Conf.PARITY,
-            timeout=Conf.SER_TIMEOUT
-        )
+        try:
+            self.ser = serial.Serial(
+                com_port,
+                Conf.BAUDRATE,
+                Conf.BYTESIZE,
+                Conf.PARITY,
+                timeout=Conf.SER_TIMEOUT
+            )
+        except serial.serialutil.SerialException:
+            self.ser = None
+            ExitControl.robot = False
+            self.is_connected = False
+            self.logger.exception(
+                "Robot control failed. Cannot connect to robot!!!!!!!!!!!!!!!"
+            )
         time.sleep(3)
         self.is_connected = True
         self.send_command(-1)
         self.logger.info(f"Robot init ran in {pretty_time(self.start)}")
 
     def send_command(self, motion_cmd, auto=False):
+        if self.ser is None:
+            self.logger.debug("send_command: no robot to connect to")
+            return False
         # Need to make sure robot is aware that command is being sent before
         # sending command
         self.logger.debug(f"send_command called: command -- {motion_cmd}")
@@ -126,12 +136,7 @@ class Robot:
         elif type(motion_cmd) == int:
             motion_cmd = self.get_hex_cmd(motion_cmd)
 
-        if self.robot_type == RobotType.HUMAN:
-            lock = Conf.LOCK_HUMANOID
-        elif self.robot_type == RobotType.SPIDER:
-            lock = Conf.LOCK_SPIDER
-
-        with lock:
+        with self.lock:
             try:
                 self.sub_send_command(Conf.HEX_STOP)
                 self.sub_send_command(Conf.HEX_RESET)
@@ -186,7 +191,6 @@ class Robot:
     ##########################################################################
     def manual_control(self):
         self.logger.debug("control started")
-        remote = threading.Thread(target=self.cv2_remote)
         while ExitControl.gen and ExitControl.robot:
             if self.full_control:
                 print("FULL CONTROL ACTIVE!!!!!!!!! BE CAREFUL!!!!!!!!")
@@ -196,13 +200,6 @@ class Robot:
                 self.logger.debug(
                     f"Full control Toggled: full_control={self.full_control}"
                 )
-            elif command == Conf.CMD_REMOTE:
-                if remote.is_alive():
-                    self.logger.debug("manual_control: Remote already on")
-                    print("manual_control: Remote already on")
-                else:
-                    remote = threading.Thread(target=self.cv2_remote)
-                    remote.start()
             elif command == Conf.CMD_AUTO_ON:
                 self.active_auto_control = True
                 self.logger.debug("Enabling auto control")
@@ -253,14 +250,14 @@ class Robot:
                     self.logger.info(f"{command} is an unknown motion number")
     ##########################################################################
 
-    def cv2_remote(self):
-        # Can't use opencv across threads. May decide to use tkinter.
-        self.logger.exception("Remote not enabled")
-
     def close(self):
-        self.logger.info(
-            f"Robot is closing after running for {pretty_time(self.start)} "
+        self.main_logger.info(
+            f"Robot: is closing after running for {pretty_time(self.start)}"
         )
+        self.logger.info(
+            f"Robot: is closing after running for {pretty_time(self.start)}\n"
+        )
+        ExitControl.robot = False
 
 
 def main():
