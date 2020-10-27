@@ -34,7 +34,7 @@ class Camera:
             cam_name, cam_num=0, lens_type=LensType.SINGLE,
             record=False, take_pic=False, disp_img=False
     ):
-        with Conf.LOCK_CAM:
+        with Conf.LOCK_CLASS:
             if cam_name not in Camera._inst:
                 Camera._inst[cam_name] = Camera(
                     cam_name, cam_num, lens_type, record, take_pic, disp_img
@@ -71,6 +71,9 @@ class Camera:
         self.disp_img = disp_img
         self.robot_type = robot
         self.robot = None
+        self.cam_num = cam_num
+        self.lens_type = lens_type
+        self.frame_pure = None
         if cam_num < 0:
             try:
                 self.height = 480
@@ -78,20 +81,15 @@ class Camera:
                 self.cam = PiCamera()
                 self.cam.resolution = (self.width, self.height)
                 self.cam.framerate = 32
-                self.rawCapture = PiRGBArray(
-                    self.cam, size=(self.width, self.height)
-                )
-                self.ret = True
-                time.sleep(0.1)
+                self.get_frame()
             except PiCameraError:
-                pass
+                self.logger.exception("Tried to start pi cam but failed")
         else:
             self.cam = cv2.VideoCapture(cam_num)
             self.ret, self.frame_pure = self.cam.read()
+            self.height, self.width, _ = self.frame_pure.shape
         if not self.ret:
             self.cam_num = -1
-        else:
-            self.cam_num = cam_num
         while not self.ret:
             if is_rpi and self.cam_num < 0:
                 try:
@@ -100,30 +98,29 @@ class Camera:
                     self.width = 640
                     self.cam.resolution = (self.width, self.height)
                     self.cam.framerate = 32
-                    self.rawCapture = PiRGBArray(
-                        self.cam, size=(self.width, self.height)
-                    )
-                    self.ret = True
-                    time.sleep(0.1)
+                    self.get_frame()
                 except PiCameraError:
-                    self.logger.debug(f"__inti__: Pi Cam not connected")
+                    pass
             else:
                 self.cam = cv2.VideoCapture(self.cam_num)
                 self.ret, self.frame_pure = self.cam.read()
+                self.height, self.width, _ = self.frame_pure.shape
             self.cam_num += 1
             if self.cam_num > 5:
+                self.logger.exception("No viable camera found")
+                self.main_logger.exception(
+                    "Camera: crashed -- No viable camera found"
+                )
                 raise Exception("No viable camera found ")
         if self.cam_num != cam_num:
             self.logger.info(
                 f"Cam num changed from {cam_num} to {self.cam_num} because"
                 " original number did not have a camera associated with it"
             )
-        self.lens_type = lens_type
         self.focal_len = None
         self.focal_len_l = None
         self.focal_len_r = None
         self.obj_width = None
-        self.height, self.width, _ = self.frame_pure.shape
         self.midpoint = int(self.width / 2)
         if lens_type == LensType.DOUBLE:
             self.midpoint = int(self.width / 4)
@@ -143,12 +140,10 @@ class Camera:
         elif lens_type == LensType.DOUBLE:
             self.profile = Conf.CS_DEFAULT2
         if self.profile not in self.settings:
-            setup_profile = True
-            temp_disp = self.disp_img
-            self.disp_img = True
+            self.do_setup_profile = True
             self.reset_profile(self.profile)
         else:
-            setup_profile = False
+            self.do_setup_profile = False
         files = os.listdir(Conf.PIC_ROOT)
         if len(files) > 0:
             files = [int(f[:-4]) for f in files]
@@ -212,14 +207,9 @@ class Camera:
             cv2.createTrackbar(
                 "min Neigh", track_bar, track_bar_neigh, 50, self.set_neigh
             )
-        if setup_profile:
-            self.setup_profile(self.profile)
-            self.disp_img = temp_disp
-            if not self.disp_img:
-                cv2.destroyWindow(Conf.CV_WINDOW)
         self.update_instance_settings()
 
-        self.logger.debug(
+        self.logger.info(
             f"Cam init ran in {pretty_time(self.start_time)}"
         )
 
@@ -228,10 +218,20 @@ class Camera:
     ##########################################################################
     def start_recognition(self):
         self.logger.debug("start_recognition started")
+        if self.do_setup_profile:
+            self.logger.debug("start_recognition: profile has to be set up")
+            if self.disp_img:
+                self.setup_profile(self.profile)
+            else:
+                self.logger.exception(
+                    "start_recognition: WARNING USING "
+                    "DEFAULT VALUES FOR MEASUREMENT"
+                )
         loop_dur = 0
         total_dur = time.time() - self.start_time
         threshold = Conf.LOOP_DUR_THRESHOLD / 1000
         while (
+                ExitControl.gen and ExitControl.cam and
                 self.settings[self.profile][Conf.CS_LENS_TYPE]
                 != self.lens_type.value
         ):
@@ -522,13 +522,16 @@ class Camera:
             self.frame_full = np.vstack((self.frame, self.note_frame))
             cv2.imshow(Conf.CV_WINDOW, self.frame_full)
 
-    def get_frame(self, with_lock=True):
-        def sub_get_frame():
+    def get_frame(self):
+        with self.lock:
             if self.cam_num < 0:
-                self.cam.capture(
-                    self.rawCapture, format="bgr", use_video_port=True
+                rawCapture = PiRGBArray(
+                    self.cam, size=(self.width, self.height)
                 )
-                self.frame_pure = self.rawCapture.array
+                self.cam.capture(
+                    rawCapture, format="bgr", use_video_port=True
+                )
+                self.frame_pure = rawCapture.array
                 self.ret = True
             else:
                 self.ret, self.frame_pure = self.cam.read()
@@ -538,12 +541,6 @@ class Camera:
                 [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
             )
             self.write_note = True
-
-        if with_lock:
-            with self.lock:
-                sub_get_frame()
-        else:
-            sub_get_frame()
 
     def detect_object(self):
         gray_frame = cv2.cvtColor(self.frame_pure, cv2.COLOR_BGR2GRAY)
@@ -570,6 +567,7 @@ class Camera:
 
     def reset_distances(self, full_reset=False):
         self.obj_dist[ObjDist.AVG] = 0.0
+        self.obj_dist[ObjDist.LOCATION] = "N/A"
         self.obj_dist[ObjDist.SUM] = 0.0
         self.obj_dist[ObjDist.COUNT] = 0
         self.obj_dist[ObjDist.IS_FOUND] = False
@@ -594,7 +592,7 @@ class Camera:
             return
         options = {'y': "yes", 'n': "no"}
         continue_calibrate = True
-        while continue_calibrate:
+        while ExitControl.gen and ExitControl.cam and continue_calibrate:
             response = input(
                 f"current profile: {self.profile}\n"
                 "Enter:\n"
@@ -644,7 +642,7 @@ class Camera:
                         self.setup_profile(profile)
                 else:
                     alert = ""
-                    while alert == "":
+                    while ExitControl.gen and ExitControl.cam and alert == "":
                         print(
                             f"You entered '{profile}' which does not exist. "
                             f"Are you sure you want to create a new profile?"
@@ -702,7 +700,7 @@ class Camera:
             "Enter object real world width: "
         )
         response = ""
-        while response == "":
+        while ExitControl.gen and ExitControl.cam and response == "":
             response = input(
                 "Would you like the program to calculate focal length or "
                 "would you like to enter it manually? '1' for the program to "
@@ -719,27 +717,27 @@ class Camera:
                 "press any letter on the keyboard to continue."
             )
             do_calibration = True
-            while do_calibration:
-                self.get_frame(with_lock=False)
-                gray_frame = cv2.cvtColor(self.frame_pure, cv2.COLOR_BGR2GRAY)
-                detected_objects = Conf.CV_DETECTOR.detectMultiScale(
-                    gray_frame,
-                    self.settings[self.profile][Conf.CS_SCALE],
-                    self.settings[self.profile][Conf.CS_NEIGH],
-                )
-                for (x, y, w, h) in detected_objects:
+            while ExitControl.gen and ExitControl.cam and do_calibration:
+                self.get_frame()
+                self.frame = self.frame_pure
+                self.detect_object()
+                for (x, y, w, h) in self.detected_objects:
                     x1 = x + w
                     y1 = y + h
                     pixel_width = w
                     cv2.rectangle(
-                        self.frame_pure,
+                        self.frame,
                         (x, y),
                         (x1, y1),
                         Conf.CV_LINE_COLOR
                     )
-                cv2.imshow(Conf.CV_WINDOW, self.frame_pure)
+                self.show_frames()
                 k = cv2.waitKey(1) & 0xFF
-                if k != -1 and k != 255 and len(detected_objects):
+                if k == 27:
+                    self.logger.debug("setup_profile: Exiting camera")
+                    ExitControl.cam = False
+                    return
+                elif k != -1 and k != 255 and len(self.detected_objects):
                     do_calibration = False
             # Calibrate focal length  #######################################
             # Formula: F = (P x  D) / W
@@ -814,7 +812,10 @@ class Camera:
         )
         with open(Conf.CAM_SETTINGS_FILE, 'w') as file:
             json.dump(self.settings, file, indent=4)
-        self.cam.release()
+        if self.cam_num < 0:
+            self.cam.close()
+        else:
+            self.cam.release()
         cv2.destroyAllWindows()
         ExitControl.cam = False
 

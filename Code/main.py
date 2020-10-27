@@ -26,7 +26,10 @@ def cam_starter(robot_type):
         # take_pic=True,
         disp_img=True
     )
-    cam.start_recognition()
+    try:
+        cam.start_recognition()
+    finally:
+        cam.close()
 
 
 def main():
