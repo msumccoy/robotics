@@ -16,3 +16,5 @@ Tools/.idea/
 *.exe
 *.xml
 *.log
+*.iml
+/Code/cam_settings.json
