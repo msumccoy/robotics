@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import threading
 import tkinter as tk
 import tkinter.font as tkFont
 import time
@@ -156,23 +157,29 @@ class GUI2(Ui_MainWindow):
         )
         self.btn_close.clicked.connect(self.close)
         ######################################################################
+        self.cont = True
+        t = threading.Thread(target=self.play_vid)
+        t.start()
 
     def button_action(self, text):
-        _, self.frame = self.cam.read()
-        height, width, chan = self.frame.shape
-        bt_line = 3 * width
-        self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
-        qImg = QImage(self.frame.data, width, height, bt_line, QImage.Format_RGB888)
-        img = QtGui.QPixmap.fromImage(qImg)
-        pixmap = QPixmap(img)
-        self.image_frame.setPixmap(pixmap)
         print(f"Button pressed -- {text}")
+
+    def play_vid(self):
+        while self.cont:
+            _, self.frame = self.cam.read()
+            height, width, chan = self.frame.shape
+            bt_line = 3 * width
+            self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
+            qImg = QImage(self.frame.data, width, height, bt_line, QImage.Format_RGB888)
+            img = QtGui.QPixmap.fromImage(qImg)
+            pixmap = QPixmap(img)
+            self.image_frame.setPixmap(pixmap)
 
     def start(self):
         self.main_window.show()
 
-    @staticmethod
-    def close():
+    def close(self):
+        self.cont = False
         sys.exit()
 
     def clean_up(self):
