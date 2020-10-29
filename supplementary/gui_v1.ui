@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>789</width>
+    <height>451</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QLabel" name="image_frame">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>401</width>
+      <height>291</height>
+     </rect>
+    </property>
+    <property name="statusTip">
+     <string/>
+    </property>
+    <property name="text">
+     <string>Put Camera Image Here</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="widget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>440</x>
+      <y>30</y>
+      <width>300</width>
+      <height>250</height>
+     </rect>
+    </property>
+    <widget class="QPushButton" name="btn_back">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>150</y>
+       <width>100</width>
+       <height>100</height>
+      </rect>
+     </property>
+     <property name="statusTip">
+      <string>Send back command to robot</string>
+     </property>
+     <property name="text">
+      <string>Backward</string>
+     </property>
+     <property name="shortcut">
+      <string>Down</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_left">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>60</y>
+       <width>100</width>
+       <height>100</height>
+      </rect>
+     </property>
+     <property name="statusTip">
+      <string>Send turn left command to robot</string>
+     </property>
+     <property name="text">
+      <string>Turn Left</string>
+     </property>
+     <property name="shortcut">
+      <string>Left</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_stop">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>100</y>
+       <width>100</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="statusTip">
+      <string>Stop robot motion and disable auto</string>
+     </property>
+     <property name="text">
+      <string>Stop</string>
+     </property>
+     <property name="shortcut">
+      <string>Space</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_right">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>60</y>
+       <width>100</width>
+       <height>100</height>
+      </rect>
+     </property>
+     <property name="statusTip">
+      <string>Send turn right command to robt</string>
+     </property>
+     <property name="text">
+      <string>Turn Right</string>
+     </property>
+     <property name="shortcut">
+      <string>Right</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btn_forward">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>0</y>
+       <width>100</width>
+       <height>100</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string/>
+     </property>
+     <property name="statusTip">
+      <string extracomment="Move robot Forward">Send forward command to robot</string>
+     </property>
+     <property name="text">
+      <string>Forward</string>
+     </property>
+     <property name="shortcut">
+      <string>Up</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="pushButton">
+    <property name="geometry">
+     <rect>
+      <x>680</x>
+      <y>380</y>
+      <width>80</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="statusTip">
+     <string>Close program</string>
+    </property>
+    <property name="text">
+     <string>Close</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>789</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuCamera">
+    <property name="title">
+     <string>Camera</string>
+    </property>
+    <addaction name="actionRobot_Control"/>
+   </widget>
+   <addaction name="menuCamera"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionRobot_Control">
+   <property name="text">
+    <string>Robot Control</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

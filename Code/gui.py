@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import tkinter as tk
 import tkinter.font as tkFont
 import time
@@ -7,12 +8,14 @@ import cv2
 import psutil
 from PIL import Image, ImageTk
 import numpy as np
+from PyQt5 import QtWidgets
 
 import log_set_up
 from config import Conf
 from camera import Camera
 from misc import pretty_time
 from variables import ExitControl
+from pyqt5_gui import Ui_MainWindow
 
 
 class GUI:
@@ -119,3 +122,54 @@ class GUI:
         )
         self.root.destroy()
         ExitControl.gen = False
+
+
+class GUI2(Ui_MainWindow):
+    """
+    This class is just to test using PyQt5 before creating the actual class
+    that will be used.
+    """
+
+    def __init__(self):
+        self.app = QtWidgets.QApplication(sys.argv)
+        super().__init__()
+        self.main_window = QtWidgets.QMainWindow()
+        self.setupUi(self.main_window)
+
+        self.btn_forward.clicked.connect(
+            lambda: self.button_action(Conf.CMD_FORWARD)
+        )
+        self.btn_back.clicked.connect(
+            lambda: self.button_action(Conf.CMD_BACKWARD)
+        )
+        self.btn_left.clicked.connect(
+            lambda: self.button_action(Conf.CMD_LEFT)
+        )
+        self.btn_right.clicked.connect(
+            lambda: self.button_action(Conf.CMD_RIGHT)
+        )
+        self.pushButton.clicked.connect(self.close)
+
+    def button_action(self, text):
+        self.image_frame.setText(text)
+        self.image_frame.adjustSize()
+
+    def start(self):
+        self.main_window.show()
+
+    @staticmethod
+    def close():
+        sys.exit()
+
+    def clean_up(self):
+        sys.exit(self.app.exec_())
+
+
+def independent_test():
+    ui = GUI2()
+    ui.start()
+    ui.clean_up()
+
+
+if __name__ == "__main__":
+    independent_test()
