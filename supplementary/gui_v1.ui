@@ -29,6 +29,9 @@
     <property name="text">
      <string>Put Camera Image Here</string>
     </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
    </widget>
    <widget class="QWidget" name="widget" native="true">
     <property name="geometry">
@@ -49,7 +52,7 @@
       </rect>
      </property>
      <property name="statusTip">
-      <string>Send back command to robot</string>
+      <string>Shortcut = Down arrow</string>
      </property>
      <property name="text">
       <string>Backward</string>
@@ -68,7 +71,7 @@
       </rect>
      </property>
      <property name="statusTip">
-      <string>Send turn left command to robot</string>
+      <string>Shortcut = left arrow</string>
      </property>
      <property name="text">
       <string>Turn Left</string>
@@ -87,7 +90,7 @@
       </rect>
      </property>
      <property name="statusTip">
-      <string>Stop robot motion and disable auto</string>
+      <string>Shortcut = spacebar</string>
      </property>
      <property name="text">
       <string>Stop</string>
@@ -106,7 +109,7 @@
       </rect>
      </property>
      <property name="statusTip">
-      <string>Send turn right command to robt</string>
+      <string>Shortcut = right arrow</string>
      </property>
      <property name="text">
       <string>Turn Right</string>
@@ -128,7 +131,7 @@
       <string/>
      </property>
      <property name="statusTip">
-      <string extracomment="Move robot Forward">Send forward command to robot</string>
+      <string extracomment="Move robot Forward">Shortcut = Up arrow</string>
      </property>
      <property name="text">
       <string>Forward</string>
@@ -148,7 +151,7 @@
      </rect>
     </property>
     <property name="statusTip">
-     <string>Close program</string>
+     <string>Shortcut = esc</string>
     </property>
     <property name="text">
      <string>Close</string>
