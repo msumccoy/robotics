@@ -6,9 +6,11 @@ import tkinter.font as tkFont
 import time
 import cv2
 import psutil
+from IPython.external.qt_for_kernel import QtGui
 from PIL import Image, ImageTk
 import numpy as np
 from PyQt5 import QtWidgets
+from PyQt5.QtGui import QImage, QPixmap
 
 import log_set_up
 from config import Conf
@@ -130,12 +132,16 @@ class GUI2(Ui_MainWindow):
     that will be used.
     """
 
-    def __init__(self):
+    def __init__(self, robot_type):
         self.app = QtWidgets.QApplication(sys.argv)
         super().__init__()
         self.main_window = QtWidgets.QMainWindow()
         self.setupUi(self.main_window)
+        # self.cam = Camera.get_inst(robot_type)
+        self.cam = cv2.VideoCapture(0)
+        _, self.frame = self.cam.read()
 
+        # Set button actions  ################################################
         self.btn_forward.clicked.connect(
             lambda: self.button_action(Conf.CMD_FORWARD)
         )
@@ -148,11 +154,19 @@ class GUI2(Ui_MainWindow):
         self.btn_right.clicked.connect(
             lambda: self.button_action(Conf.CMD_RIGHT)
         )
-        self.pushButton.clicked.connect(self.close)
+        self.btn_close.clicked.connect(self.close)
+        ######################################################################
 
     def button_action(self, text):
-        self.image_frame.setText(text)
-        self.image_frame.adjustSize()
+        _, self.frame = self.cam.read()
+        height, width, chan = self.frame.shape
+        bt_line = 3 * width
+        self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
+        qImg = QImage(self.frame.data, width, height, bt_line, QImage.Format_RGB888)
+        img = QtGui.QPixmap.fromImage(qImg)
+        pixmap = QPixmap(img)
+        self.image_frame.setPixmap(pixmap)
+        print(f"Button pressed -- {text}")
 
     def start(self):
         self.main_window.show()
@@ -166,7 +180,9 @@ class GUI2(Ui_MainWindow):
 
 
 def independent_test():
-    ui = GUI2()
+    from enums import RobotType
+    robot_type = RobotType.SPIDER
+    ui = GUI2(robot_type)
     ui.start()
     ui.clean_up()
 
