@@ -11,12 +11,14 @@ from IPython.external.qt_for_kernel import QtGui
 from PIL import Image, ImageTk
 import numpy as np
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QThread
 from PyQt5.QtGui import QImage, QPixmap
 
 import log_set_up
 from config import Conf
 from camera import Camera
 from misc import pretty_time
+from robot_control import Robot
 from variables import ExitControl
 from pyqt5_gui import Ui_MainWindow
 
@@ -132,15 +134,21 @@ class GUI2(Ui_MainWindow):
     This class is just to test using PyQt5 before creating the actual class
     that will be used.
     """
+    main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
+    logger = logging.getLogger(Conf.LOG_GUI_NAME)
 
     def __init__(self, robot_type):
+        self.main_logger.info(f"GUI: started on version {Conf.VERSION}")
+        self.logger.info(
+            f"GUI: started on version {Conf.VERSION}\n"
+            f"- robot: {robot_type}"
+        )
         self.app = QtWidgets.QApplication(sys.argv)
         super().__init__()
         self.main_window = QtWidgets.QMainWindow()
         self.setupUi(self.main_window)
-        # self.cam = Camera.get_inst(robot_type)
-        self.cam = cv2.VideoCapture(0)
-        _, self.frame = self.cam.read()
+        self.cam = Camera.get_inst(robot_type)
+        self.robot = Robot.get_inst(robot_type)
 
         # Set button actions  ################################################
         self.btn_forward.clicked.connect(
@@ -157,16 +165,71 @@ class GUI2(Ui_MainWindow):
         )
         self.btn_close.clicked.connect(self.close)
         ######################################################################
-        self.cont = True
-        t = threading.Thread(target=self.play_vid)
-        t.start()
+        val = (
+              self.cam.settings[self.cam.profile][Conf.CS_SCALE] - 1.005
+        ) / 0.1
+        self.CV_Scale_slider.setValue(int(val))
+        self.CV_Scale_val.setNum(val)
+        self.CV_Neigh_slider.setValue(
+            self.cam.settings[self.cam.profile][Conf.CS_NEIGH]
+        )
+        self.CV_Neigh_val.setNum(
+            self.cam.settings[self.cam.profile][Conf.CS_NEIGH]
+        )
+        self.CV_Scale_slider.valueChanged.connect(self.set_scale)
+        self.CV_Neigh_slider.valueChanged.connect(self.set_neigh)
+
+        if self.cam.is_pi_cam:
+            self.RPi_Brightness_label.setEnabled(True)
+            self.RPi_Brightness_slider.setEnabled(True)
+            self.RPi_Brightness_val.setEnabled(True)
+            self.RPi_Contrast_label.setEnabled(True)
+            self.RPi_Contrast_slider.setEnabled(True)
+            self.RPi_Contrast_val.setEnabled(True)
+            self.RPi_ISO_label.setEnabled(True)
+            self.RPi_ISO_slider.setEnabled(True)
+            self.RPi_ISO_val.setEnabled(True)
+        self.RPi_Brightness_slider.valueChanged.connect(
+            lambda: self.rpi_slider(1)
+        )
+        self.RPi_Contrast_slider.valueChanged.connect(
+            lambda: self.rpi_slider(2)
+        )
+        self.RPi_ISO_slider.valueChanged.connect(
+            lambda: self.rpi_slider(3)
+        )
+        ######################################################################
+
+        vid_thread = threading.Thread(target=self.play_vid)
+        vid_thread.start()
+
+    def rpi_slider(self, option):
+        if option == 1:
+            self.RPi_Brightness_val.setNum(self.RPi_Brightness_slider.value())
+        elif option == 2:
+            self.RPi_Contrast_val.setNum(self.RPi_Contrast_slider.value())
+        else:
+            self.RPi_ISO_val.setNum(self.RPi_ISO_slider.value())
+
+    def set_scale(self):
+        val = int(self.CV_Scale_slider.value())
+        self.cam.set_scale(val)
+        self.CV_Scale_val.setNum(val)
+
+    def set_neigh(self):
+        val = self.CV_Neigh_slider.value()
+        self.cam.set_neigh(val)
+        self.CV_Neigh_val.setNum(val)
 
     def button_action(self, text):
         print(f"Button pressed -- {text}")
 
     def play_vid(self):
-        while self.cont:
-            _, self.frame = self.cam.read()
+        time.sleep(.5)
+        while ExitControl.gen:
+            time.sleep(.09)
+            self.cam.main_loop_support()
+            self.frame = self.cam.frame_full
             height, width, chan = self.frame.shape
             bt_line = 3 * width
             self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
@@ -179,16 +242,33 @@ class GUI2(Ui_MainWindow):
         self.main_window.show()
 
     def close(self):
-        self.cont = False
+        ExitControl.gen = False
         sys.exit()
 
     def clean_up(self):
         sys.exit(self.app.exec_())
 
 
+def cam_starter(robot_type):
+    cam = Camera.get_inst(
+        robot_type,
+        # cam_num=2,
+        # lens_type=LensType.DOUBLE,
+        # record=True,
+        # take_pic=True,
+        # disp_img=True
+    )
+    try:
+        cam.start_recognition()
+    finally:
+        cam.close()
+
+
 def independent_test():
     from enums import RobotType
     robot_type = RobotType.SPIDER
+    tt = threading.Thread(target=cam_starter, args=(robot_type,))
+    tt.start()
     ui = GUI2(robot_type)
     ui.start()
     ui.clean_up()
