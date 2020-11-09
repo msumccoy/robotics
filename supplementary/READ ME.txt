@@ -1,0 +1,2 @@
+pyuic5 -x gui_v1.ui -o ../Code/pyqt5_gui.py
+

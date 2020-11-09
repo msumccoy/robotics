@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>734</width>
+    <height>548</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QLabel" name="image_frame">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>441</width>
+      <height>491</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="statusTip">
+     <string/>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Box</enum>
+    </property>
+    <property name="text">
+     <string>Put Camera Image Here</string>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_close">
+    <property name="geometry">
+     <rect>
+      <x>450</x>
+      <y>480</y>
+      <width>271</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="statusTip">
+     <string>Shortcut = esc</string>
+    </property>
+    <property name="text">
+     <string>Close</string>
+    </property>
+    <property name="shortcut">
+     <string>Esc</string>
+    </property>
+   </widget>
+   <widget class="QTabWidget" name="tabWidget">
+    <property name="geometry">
+     <rect>
+      <x>450</x>
+      <y>10</y>
+      <width>271</width>
+      <height>471</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="tab">
+     <attribute name="title">
+      <string>Camera Controls</string>
+     </attribute>
+     <widget class="QSlider" name="CV_Scale_slider">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>40</y>
+        <width>201</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="maximum">
+       <number>30</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="tickPosition">
+       <enum>QSlider::TicksBelow</enum>
+      </property>
+      <property name="tickInterval">
+       <number>1</number>
+      </property>
+     </widget>
+     <widget class="QSlider" name="CV_Neigh_slider">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>100</y>
+        <width>201</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="maximum">
+       <number>30</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="tickPosition">
+       <enum>QSlider::TicksBelow</enum>
+      </property>
+      <property name="tickInterval">
+       <number>1</number>
+      </property>
+     </widget>
+     <widget class="QLabel" name="CV_Scale_label">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>20</y>
+        <width>81</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Scale Slider</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="CV_Neigh_label">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>80</y>
+        <width>111</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Neighbour Slider</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="CV_Scale_val">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>40</y>
+        <width>31</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>1</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="CV_Neigh_val">
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>100</y>
+        <width>31</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>1</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RPi_Brightness_val">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>160</y>
+        <width>31</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>1</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RPi_Brightness_label">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>140</y>
+        <width>141</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>RPi Cam Brightness</string>
+      </property>
+     </widget>
+     <widget class="QSlider" name="RPi_Brightness_slider">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>160</y>
+        <width>201</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="maximum">
+       <number>100</number>
+      </property>
+      <property name="value">
+       <number>50</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="tickPosition">
+       <enum>QSlider::TicksBelow</enum>
+      </property>
+      <property name="tickInterval">
+       <number>10</number>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RPi_Contrast_val">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>220</y>
+        <width>31</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>1</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RPi_Contrast_label">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>200</y>
+        <width>111</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>RPi Cam Contras</string>
+      </property>
+     </widget>
+     <widget class="QSlider" name="RPi_Contrast_slider">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>220</y>
+        <width>201</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="maximum">
+       <number>100</number>
+      </property>
+      <property name="value">
+       <number>50</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="tickPosition">
+       <enum>QSlider::TicksBelow</enum>
+      </property>
+      <property name="tickInterval">
+       <number>10</number>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RPi_ISO_val">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>230</x>
+        <y>280</y>
+        <width>31</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>1</string>
+      </property>
+     </widget>
+     <widget class="QSlider" name="RPi_ISO_slider">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>280</y>
+        <width>201</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <number>0</number>
+      </property>
+      <property name="maximum">
+       <number>800</number>
+      </property>
+      <property name="value">
+       <number>0</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="tickPosition">
+       <enum>QSlider::TicksBelow</enum>
+      </property>
+      <property name="tickInterval">
+       <number>50</number>
+      </property>
+     </widget>
+     <widget class="QLabel" name="RPi_ISO_label">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>260</y>
+        <width>111</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>RPi Cam ISO</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_2">
+     <attribute name="title">
+      <string>Robot Control</string>
+     </attribute>
+     <widget class="QWidget" name="action_buttons" native="true">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>241</width>
+        <height>211</height>
+       </rect>
+      </property>
+      <widget class="QPushButton" name="btn_back">
+       <property name="geometry">
+        <rect>
+         <x>80</x>
+         <y>130</y>
+         <width>80</width>
+         <height>80</height>
+        </rect>
+       </property>
+       <property name="statusTip">
+        <string>Shortcut = Down arrow</string>
+       </property>
+       <property name="text">
+        <string>Backward</string>
+       </property>
+       <property name="shortcut">
+        <string>Down</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="btn_left">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>70</y>
+         <width>80</width>
+         <height>80</height>
+        </rect>
+       </property>
+       <property name="statusTip">
+        <string>Shortcut = left arrow</string>
+       </property>
+       <property name="text">
+        <string>Turn Left</string>
+       </property>
+       <property name="shortcut">
+        <string>Left</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="btn_stop">
+       <property name="geometry">
+        <rect>
+         <x>80</x>
+         <y>80</y>
+         <width>80</width>
+         <height>50</height>
+        </rect>
+       </property>
+       <property name="statusTip">
+        <string>Shortcut = spacebar</string>
+       </property>
+       <property name="text">
+        <string>Stop</string>
+       </property>
+       <property name="shortcut">
+        <string>Space</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="btn_right">
+       <property name="geometry">
+        <rect>
+         <x>160</x>
+         <y>70</y>
+         <width>80</width>
+         <height>80</height>
+        </rect>
+       </property>
+       <property name="statusTip">
+        <string>Shortcut = right arrow</string>
+       </property>
+       <property name="text">
+        <string>Turn Right</string>
+       </property>
+       <property name="shortcut">
+        <string>Right</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="btn_forward">
+       <property name="geometry">
+        <rect>
+         <x>80</x>
+         <y>0</y>
+         <width>80</width>
+         <height>80</height>
+        </rect>
+       </property>
+       <property name="toolTip">
+        <string/>
+       </property>
+       <property name="statusTip">
+        <string extracomment="Move robot Forward">Shortcut = Up arrow</string>
+       </property>
+       <property name="text">
+        <string>Forward</string>
+       </property>
+       <property name="shortcut">
+        <string>Up</string>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>734</width>
+     <height>20</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionRobot_Control">
+   <property name="text">
+    <string>Robot Control</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
