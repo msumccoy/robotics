@@ -3,6 +3,7 @@ import os
 import sys
 import threading
 import tkinter as tk
+from tkinter import ttk
 import tkinter.font as tkFont
 import time
 import cv2
@@ -37,74 +38,81 @@ class GUI:
         self.root = tk.Tk()
         self.process = psutil.Process(os.getpid())
         print(self.process.memory_info().rss / 1024)
-        self.layout = {
-            "quit_btn": {
-                "row": 10,
-                "col": 1,
-                "col_span": 1,
-                "row_span": 1,
-                "sticky": "w",
-            },
-            "frame": {
-                "row": 1,
-                "col": 1,
-                "col_span": 1,
-                "row_span": 1,
-                "sticky": "",
-            },
-            "mem": {
-                "row": 1,
-                "col": 1,
-                "col_span": 1,
-                "row_span": 1,
-                "sticky": "nw",
-            },
-        }
+        self.root.title(Conf.CV_WINDOW)  # Set window title
+        self.root.geometry("734x548")  # Set window size --> width x height
+        self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
 
         font_style = tkFont.Font(family="Lucida Grande", size=20)
-
-        self.frame = tk.Label(self.root)
         self.mem_label = tk.Label(self.root, font=font_style)
-        key = "mem"
-        self.mem_label.grid(
-            row=self.layout[key]["row"],
-            column=self.layout[key]["col"],
-            columnspan=self.layout[key]["col_span"],
-            rowspan=self.layout[key]["row_span"],
-            sticky=self.layout[key]["sticky"],
+        self.quit_btn = tk.Button(self.root, text="quit", command=self.close)
+        self.frame = tk.Label(self.root)
+
+        # Create tabs with controls
+        self.tab_main = ttk.Notebook(self.root, width=271, height=471)
+        self.tab_cam = ttk.Frame(self.tab_main)
+        self.tab_robot = ttk.Frame(self.tab_main)
+        self.tab_main.add(self.tab_cam, text="Camera Controls")
+        self.tab_main.add(self.tab_robot, text="Robot Controls")
+
+        # Set up controls in tabs
+        self.scale_slider = tk.Scale(
+            self.tab_cam, label="Scale Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
         )
-        img = cv2.cvtColor(self.cam.frame_pure, cv2.COLOR_BGR2RGB)
-        img = ImageTk.PhotoImage(image=Image.fromarray(img))
-        self.frame.config(image=img)
-        key = "frame"
-        self.frame.grid(
-            row=self.layout[key]["row"],
-            column=self.layout[key]["col"],
-            columnspan=self.layout[key]["col_span"],
-            rowspan=self.layout[key]["row_span"],
-            sticky=self.layout[key]["sticky"],
+        self.neigh_slider = tk.Scale(
+            self.tab_cam, label="Nearest Neighbour Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
+        )
+        self.rpi_brightness_slider = tk.Scale(
+            self.tab_cam, label="RPi Cam Brightness Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
+        )
+        self.rpi_contrast_slider = tk.Scale(
+            self.tab_cam, label="RPi Cam Contrast Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
+        )
+        self.rpi_iso_slider = tk.Scale(
+            self.tab_cam, label="RPi Cam ISO Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
         )
 
-        self.quit_btn = tk.Button(self.root, text="quit", command=self.close)
-        key = "quit_btn"
-        self.quit_btn.grid(
-            row=self.layout[key]["row"],
-            column=self.layout[key]["col"],
-            columnspan=self.layout[key]["col_span"],
-            rowspan=self.layout[key]["row_span"],
-            sticky=self.layout[key]["sticky"],
-        )
+        self.scale_slider.bind_all("<MouseWheel>", self.on_mouse_wheel)
+
+        self.scale_slider.grid(row=1, column=1)
+        self.neigh_slider.grid(row=2, column=1)
+        self.rpi_brightness_slider.grid(row=3, column=1)
+        self.rpi_contrast_slider.grid(row=4, column=1)
+        self.rpi_iso_slider.grid(row=5, column=1)
+
+        # Create frame for image
+        self.frame_height = 491
+        self.frame_width = 441
+
+        # Set all elements in grid
+        self.mem_label.grid(row=1, column=1, sticky="nw")
+        self.frame.grid(row=1, column=1)
+        self.quit_btn.grid(row=10, column=1, sticky="w")
+        self.tab_main.grid(row=1, column=2, sticky="nw")
+
+    def on_mouse_wheel(self, event):
+        print("mouse wheel")
+        print(event.x)
+        print(event.y)
 
     def start(self):
         self.update_image()
         self.life_check()
         self.root.mainloop()
+        if ExitControl.gen:
+            ExitControl.gen = False
 
     def update_image(self):
         mem_use = self.process.memory_info().rss / 1024
         self.mem_label['text'] = mem_use
+        self.cam.main_loop_support()
         with self.cam.lock:
             frame_tk = self.cam.frame_full
+        frame_tk = cv2.resize(frame_tk, (self.frame_width, self.frame_height))
         img = cv2.cvtColor(frame_tk, cv2.COLOR_BGR2RGB)
         img = ImageTk.PhotoImage(image=Image.fromarray(img))
         self.frame.config(image=img)
@@ -115,6 +123,9 @@ class GUI:
         if not ExitControl.gen:
             self.close()
         self.root.after(1000, self.life_check)
+
+    def escape(self, event):
+        self.close()
 
     def close(self):
         self.main_logger.info(
@@ -267,11 +278,10 @@ def cam_starter(robot_type):
 def independent_test():
     from enums import RobotType
     robot_type = RobotType.SPIDER
-    tt = threading.Thread(target=cam_starter, args=(robot_type,))
-    tt.start()
-    ui = GUI2(robot_type)
+    cam_thread = threading.Thread(target=cam_starter, args=(robot_type,))
+    cam_thread.start()
+    ui = GUI(robot_type)
     ui.start()
-    ui.clean_up()
 
 
 if __name__ == "__main__":
