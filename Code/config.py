@@ -14,6 +14,7 @@ import cv2
 import serial
 
 config_file = "/home/pi/file.json"  # This is system specific
+# config_file = "/home/kuwin/file2.json"  # This is system specific
 with open(config_file) as file:
     config = json.load(file)
 
@@ -345,6 +346,13 @@ class Conf:
     MAX_LAST_SEEN = 2
     KICK_DIST = 7
     KICK_RANGE = 3
+
+    ##########################################################################
+    # GUI settings  ##########################################################
+    ##########################################################################
+    G_FRAME_HEIGHT = 491
+    G_FRAME_WIDTH = 441
+    G_SLIDE_HEIGHT = 70
 
     ##########################################################################
     # Log settings  ##########################################################

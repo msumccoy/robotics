@@ -39,7 +39,6 @@ class GUI:
         self.process = psutil.Process(os.getpid())
         print(self.process.memory_info().rss / 1024)
         self.root.title(Conf.CV_WINDOW)  # Set window title
-        self.root.geometry("734x548")  # Set window size --> width x height
         self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
 
         font_style = tkFont.Font(family="Lucida Grande", size=20)
@@ -57,15 +56,15 @@ class GUI:
         # Set up controls in tabs
         self.scale_slider = tk.Scale(
             self.tab_cam, label="Scale Slider", from_=1, to=100,
-            orient=tk.HORIZONTAL, length=230
+            orient=tk.HORIZONTAL, length=230, command=self.cam.set_scale
         )
         self.neigh_slider = tk.Scale(
             self.tab_cam, label="Nearest Neighbour Slider", from_=1, to=100,
-            orient=tk.HORIZONTAL, length=230
+            orient=tk.HORIZONTAL, length=230, command=self.cam.set_neigh
         )
         self.rpi_brightness_slider = tk.Scale(
             self.tab_cam, label="RPi Cam Brightness Slider", from_=1, to=100,
-            orient=tk.HORIZONTAL, length=230
+            orient=tk.HORIZONTAL, length=230, command=self.cam.set_brightness
         )
         self.rpi_contrast_slider = tk.Scale(
             self.tab_cam, label="RPi Cam Contrast Slider", from_=1, to=100,
@@ -76,13 +75,16 @@ class GUI:
             orient=tk.HORIZONTAL, length=230
         )
 
-        self.scale_slider.bind_all("<MouseWheel>", self.on_mouse_wheel)
-
         self.scale_slider.grid(row=1, column=1)
         self.neigh_slider.grid(row=2, column=1)
         self.rpi_brightness_slider.grid(row=3, column=1)
         self.rpi_contrast_slider.grid(row=4, column=1)
         self.rpi_iso_slider.grid(row=5, column=1)
+
+        # set row sizes for sliders
+        num_col, num_row = self.tab_cam.grid_size()
+        for row in range(1, num_row+1):
+            self.tab_cam.grid_rowconfigure(row, minsize=Conf.G_SLIDE_HEIGHT)
 
         # Create frame for image
         self.frame_height = 491
@@ -112,7 +114,9 @@ class GUI:
         self.cam.main_loop_support()
         with self.cam.lock:
             frame_tk = self.cam.frame_full
-        frame_tk = cv2.resize(frame_tk, (self.frame_width, self.frame_height))
+        frame_tk = cv2.resize(
+            frame_tk, (Conf.G_FRAME_WIDTH, Conf.G_FRAME_HEIGHT)
+        )
         img = cv2.cvtColor(frame_tk, cv2.COLOR_BGR2RGB)
         img = ImageTk.PhotoImage(image=Image.fromarray(img))
         self.frame.config(image=img)

@@ -752,11 +752,17 @@ class Camera:
         self.obj_width = self.settings[self.profile][Conf.CS_OBJ_WIDTH]
 
     def set_scale(self, position):
+        position = int(position)
         with self.lock_detect:
-            self.settings[self.profile][Conf.CS_SCALE] = 0.1 * position + 1.005
+            self.settings[self.profile][Conf.CS_SCALE] = 0.1*position+1.005
 
     def set_neigh(self, position):
+        position = int(position)
         self.settings[self.profile][Conf.CS_NEIGH] = position
+
+    def set_brightness(self, position):
+        position = int(position)
+        print(position)
 
     def put_text(self, text, x, y, *, frame=None, color=Conf.CV_TEXT_COLOR):
         with self.lock:
