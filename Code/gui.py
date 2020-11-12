@@ -94,11 +94,11 @@ class GUI:
         self.frame_width = 441
 
         # Set all elements in grid
-        self.mem_label.grid(row=1, column=1, sticky="nw")
         self.frame.grid(row=1, column=1)
-        self.quit_btn.grid(row=10, column=1, sticky="w")
         self.tab_main.grid(row=1, column=2, sticky="nw")
+        self.mem_label.grid(row=10, column=2, sticky="nw")
         self.main_loop_label.grid(row=10, column=2, sticky="e")
+        self.quit_btn.grid(row=10, column=1, sticky="w")
 
         self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
 
@@ -108,8 +108,8 @@ class GUI:
         print(event.y)
 
     def start(self):
-        self.update_image()
-        self.life_check()
+        self.root.after(1, self.update_image)
+        self.root.after(100, self.life_check)
         self.root.after(100, self.check_main_loop_time)
         self.root.mainloop()
         if ExitControl.gen:
@@ -122,9 +122,7 @@ class GUI:
         else:
             self.main_loop_label['fg'] = "black"
         print(pretty_time(self.cam.main_loop_dur, False))
-        print("hello")
         self.root.after(100, self.check_main_loop_time)
-
 
     def update_image(self):
         mem_use = self.process.memory_info().rss / 1024
