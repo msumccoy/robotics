@@ -187,6 +187,7 @@ class Camera:
         self.is_detected_equal = True
         self.is_detected = False
         self.update_instance_settings()
+        self.main_loop_dur = 0
 
         self.logger.info(
             f"Cam init ran in {pretty_time(self.start_time)}"
@@ -206,7 +207,6 @@ class Camera:
                     "start_recognition: WARNING USING "
                     "DEFAULT VALUES FOR MEASUREMENT"
                 )
-        loop_dur = 0
         total_dur = time.time() - self.start_time
         threshold = Conf.LOOP_DUR_THRESHOLD / 1000
         while (
@@ -242,7 +242,7 @@ class Camera:
             ]
             note_y -= Conf.CS_Y_OFFSET
             self.main_loop_time_info = [
-                f"Main loop time = {pretty_time(loop_dur, False)}",
+                f"Main loop time = {pretty_time(self.main_loop_dur, False)}",
                 note_x, note_y
             ]
 
@@ -250,18 +250,18 @@ class Camera:
             if k == 27:
                 ExitControl.gen = False
 
-            loop_dur = time.time() - loop_start
+            self.main_loop_dur = time.time() - loop_start
             total_dur = time.time() - self.start_time
-            if loop_dur < threshold:
+            if self.main_loop_dur < threshold:
                 self.logger.debug(
-                    f"Recognition loop ran in {pretty_time(loop_dur, False)}"
+                    f"Recognition loop ran in {pretty_time(self.main_loop_dur, False)}"
                 )
                 self.logger.debug(
                     f"Total runtime {pretty_time(total_dur, False)}"
                 )
             else:
-                self.logger.warning(
-                    f"Recognition loop ran in {pretty_time(loop_dur, False)}"
+                self.logger.debug(
+                    f"Recognition loop ran in {pretty_time(self.main_loop_dur, False)}"
                     f"\n----------------------------- "
                     f"This is greater than the threshold of "
                     f"{Conf.LOOP_DUR_THRESHOLD}ms"
@@ -382,7 +382,7 @@ class Camera:
             note_x = self.width - (Conf.CS_X_OFFSET * 10)
             note_y = Conf.CV_NOTE_HEIGHT - Conf.CS_Y_OFFSET
             text = "Recording"
-            self.put_text(text, note_x, note_y)
+            self.put_text(text, note_x, note_y, frame=self.note_frame)
             dur = time.time() - self.last_vid_write
             if dur > self.vid_write_frequency:
                 self.video_writer.write(self.frame_full)
