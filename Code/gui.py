@@ -26,7 +26,7 @@ class MainClass:
 
         font_style = tkFont.Font(family="Lucida Grande", size=20)
         self.mem_label = tk.Label(self.root, font=font_style)
-        self.quit_btn = tk.Button(self.root, text="quit")
+        self.btn_quit = tk.Button(self.root, text="quit")
         self.main_loop_label = tk.Label(self.root)
         self.frame = tk.Label(self.root)
 
@@ -101,7 +101,7 @@ class MainClass:
         self.tab_main.grid(row=1, column=2, sticky="nw")
         self.mem_label.grid(row=10, column=2, sticky="nw")
         self.main_loop_label.grid(row=10, column=2, sticky="e")
-        self.quit_btn.grid(row=10, column=1, sticky="w")
+        self.btn_quit.grid(row=10, column=1, sticky="w")
         ######################################################################
 
 
@@ -119,7 +119,7 @@ class GUI(MainClass):
         self.cam = Camera.get_inst(robot_type)
         self.process = psutil.Process(os.getpid())
         self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
-        self.quit_btn.configure(command=self.close)
+        self.btn_quit.configure(command=self.close)
 
         # Set functions executed on movement of slider
         self.scale_slider.configure(command=self.cam.set_scale)
@@ -136,11 +136,6 @@ class GUI(MainClass):
             self.rpi_iso_slider.configure(state=tk.DISABLED)
 
         self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
-
-    def on_mouse_wheel(self, event):
-        print("mouse wheel")
-        print(event.x)
-        print(event.y)
 
     def start(self):
         self.root.after(1, self.update_image)
