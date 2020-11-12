@@ -19,6 +19,69 @@ from robot_control import Robot
 from variables import ExitControl
 
 
+class MainClass:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title(Conf.CV_WINDOW)  # Set window title
+
+        font_style = tkFont.Font(family="Lucida Grande", size=20)
+        self.mem_label = tk.Label(self.root, font=font_style)
+        self.quit_btn = tk.Button(self.root, text="quit")
+        self.main_loop_label = tk.Label(self.root)
+        self.frame = tk.Label(self.root)
+
+        # Create tabs with controls
+        self.tab_main = ttk.Notebook(self.root, width=271, height=471)
+        self.tab_cam = ttk.Frame(self.tab_main)
+        self.tab_robot = ttk.Frame(self.tab_main)
+        self.tab_main.add(self.tab_cam, text="Camera Controls")
+        self.tab_main.add(self.tab_robot, text="Robot Controls")
+
+        # Set up controls in tabs
+        self.scale_slider = tk.Scale(
+            self.tab_cam, label="Scale Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
+        )
+        self.neigh_slider = tk.Scale(
+            self.tab_cam, label="Nearest Neighbour Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
+        )
+        self.rpi_brightness_slider = tk.Scale(
+            self.tab_cam, label="RPi Cam Brightness Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
+        )
+        self.rpi_contrast_slider = tk.Scale(
+            self.tab_cam, label="RPi Cam Contrast Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
+        )
+        self.rpi_iso_slider = tk.Scale(
+            self.tab_cam, label="RPi Cam ISO Slider", from_=1, to=100,
+            orient=tk.HORIZONTAL, length=230
+        )
+
+        # Set up grid for Tabbed window ######################################
+        # Slider tab
+        self.scale_slider.grid(row=1, column=1)
+        self.neigh_slider.grid(row=2, column=1)
+        self.rpi_brightness_slider.grid(row=3, column=1)
+        self.rpi_contrast_slider.grid(row=4, column=1)
+        self.rpi_iso_slider.grid(row=5, column=1)
+
+        # set row sizes for sliders
+        num_col, num_row = self.tab_cam.grid_size()
+        for row in range(1, num_row + 1):
+            self.tab_cam.grid_rowconfigure(row, minsize=Conf.G_SLIDE_HEIGHT)
+
+        # Robot Control tab
+        ######################################################################
+        # Set up grid from main window #######################################
+        self.frame.grid(row=1, column=1)
+        self.tab_main.grid(row=1, column=2, sticky="nw")
+        self.mem_label.grid(row=10, column=2, sticky="nw")
+        self.main_loop_label.grid(row=10, column=2, sticky="e")
+        self.quit_btn.grid(row=10, column=1, sticky="w")
+
+
 class GUI:
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     logger = logging.getLogger(Conf.LOG_GUI_NAME)
