@@ -117,6 +117,7 @@ class GUI(MainClass):
         )
         self.start_time = time.time()
         self.cam = Camera.get_inst(robot_type)
+        self.robot = Robot.get_inst(robot_type)
         self.process = psutil.Process(os.getpid())
         self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
         self.btn_quit.configure(command=self.close)
@@ -125,6 +126,23 @@ class GUI(MainClass):
         self.scale_slider.configure(command=self.cam.set_scale)
         self.neigh_slider.configure(command=self.cam.set_neigh)
         self.rpi_brightness_slider.configure(command=self.cam.set_brightness)
+
+        # Set shortcuts and commands for robot control buttons
+        self.btn_forward.configure(
+            command=lambda: self.robot_btn(Conf.CMD_FORWARD)
+        )
+        self.btn_back.configure(
+            command=lambda: self.robot_btn(Conf.CMD_BACKWARD)
+        )
+        self.btn_left.configure(
+            command=lambda: self.robot_btn(Conf.CMD_LEFT)
+        )
+        self.btn_right.configure(
+            command=lambda: self.robot_btn(Conf.CMD_RIGHT)
+        )
+        self.btn_stop.configure(
+            command=lambda: self.robot_btn(Conf.CMD_KICK)
+        )
 
         val = self.cam.settings[self.cam.profile][Conf.CS_SCALE] / 0.1 - 1.005  # Calculation is WRONG!!!
         self.scale_slider.set(val)
@@ -144,6 +162,9 @@ class GUI(MainClass):
         self.root.mainloop()
         if ExitControl.gen:
             ExitControl.gen = False
+
+    def robot_btn(self, action):
+        print(f"Action was {action}")
 
     def check_main_loop_time(self):
         self.main_loop_label['text'] = pretty_time(self.cam.main_loop_dur, False)
