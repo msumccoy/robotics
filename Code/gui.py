@@ -59,7 +59,23 @@ class MainClass:
             orient=tk.HORIZONTAL, length=230
         )
 
-        # Set up grid for Tabbed window ######################################
+        self.btn_forward = tk.Button(
+            self.tab_robot, text="Forward", height=80, width=80
+        )
+        self.btn_back = tk.Button(
+            self.tab_robot, text="Backward", height=80, width=80
+        )
+        self.btn_left = tk.Button(
+            self.tab_robot, text="Turn Left", height=80, width=80
+        )
+        self.btn_right = tk.Button(
+            self.tab_robot, text="Turn Right", height=80, width=80
+        )
+        self.btn_stop = tk.Button(
+            self.tab_robot, text="Stop", height=50, width=80
+        )
+
+        # Set up placement of elements in tabbed window ######################################
         # Slider tab
         self.scale_slider.grid(row=1, column=1)
         self.neigh_slider.grid(row=2, column=1)
@@ -73,8 +89,14 @@ class MainClass:
             self.tab_cam.grid_rowconfigure(row, minsize=Conf.G_SLIDE_HEIGHT)
 
         # Robot Control tab
+        self.btn_forward.place(x=80, y=0)
+        self.btn_back.place(x=80, y=130)
+        self.btn_left.place(x=0, y=70)
+        self.btn_right.place(x=160, y=70)
+        self.btn_stop.place(x=80, y=80)
         ######################################################################
-        # Set up grid from main window #######################################
+
+        # Set up placement for elements in main window #######################
         self.frame.grid(row=1, column=1)
         self.tab_main.grid(row=1, column=2, sticky="nw")
         self.mem_label.grid(row=10, column=2, sticky="nw")
