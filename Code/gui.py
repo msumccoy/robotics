@@ -80,88 +80,38 @@ class MainClass:
         self.mem_label.grid(row=10, column=2, sticky="nw")
         self.main_loop_label.grid(row=10, column=2, sticky="e")
         self.quit_btn.grid(row=10, column=1, sticky="w")
+        ######################################################################
 
 
-class GUI:
+class GUI(MainClass):
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     logger = logging.getLogger(Conf.LOG_GUI_NAME)
 
     def __init__(self, robot_type):
+        super().__init__()
         self.main_logger.info(f"GUI: started on version {Conf.VERSION}")
         self.logger.info(
             f"GUI started on version {Conf.VERSION}:"
         )
         self.start_time = time.time()
         self.cam = Camera.get_inst(robot_type)
-        self.root = tk.Tk()
         self.process = psutil.Process(os.getpid())
-        self.root.title(Conf.CV_WINDOW)  # Set window title
         self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
+        self.quit_btn.configure(command=self.close)
 
-        font_style = tkFont.Font(family="Lucida Grande", size=20)
-        self.mem_label = tk.Label(self.root, font=font_style)
-        self.quit_btn = tk.Button(self.root, text="quit", command=self.close)
-        self.main_loop_label = tk.Label(self.root)
-        self.frame = tk.Label(self.root)
+        # Set functions executed on movement of slider
+        self.scale_slider.configure(command=self.cam.set_scale)
+        self.neigh_slider.configure(command=self.cam.set_neigh)
+        self.rpi_brightness_slider.configure(command=self.cam.set_brightness)
 
-        # Create tabs with controls
-        self.tab_main = ttk.Notebook(self.root, width=271, height=471)
-        self.tab_cam = ttk.Frame(self.tab_main)
-        self.tab_robot = ttk.Frame(self.tab_main)
-        self.tab_main.add(self.tab_cam, text="Camera Controls")
-        self.tab_main.add(self.tab_robot, text="Robot Controls")
-
-        # Set up controls in tabs
-        self.scale_slider = tk.Scale(
-            self.tab_cam, label="Scale Slider", from_=1, to=100,
-            orient=tk.HORIZONTAL, length=230, command=self.cam.set_scale
-        )
-        self.neigh_slider = tk.Scale(
-            self.tab_cam, label="Nearest Neighbour Slider", from_=1, to=100,
-            orient=tk.HORIZONTAL, length=230, command=self.cam.set_neigh
-        )
-        self.rpi_brightness_slider = tk.Scale(
-            self.tab_cam, label="RPi Cam Brightness Slider", from_=1, to=100,
-            orient=tk.HORIZONTAL, length=230, command=self.cam.set_brightness
-        )
-        self.rpi_contrast_slider = tk.Scale(
-            self.tab_cam, label="RPi Cam Contrast Slider", from_=1, to=100,
-            orient=tk.HORIZONTAL, length=230
-        )
-        self.rpi_iso_slider = tk.Scale(
-            self.tab_cam, label="RPi Cam ISO Slider", from_=1, to=100,
-            orient=tk.HORIZONTAL, length=230
-        )
-
-        val = self.cam.settings[self.cam.profile][Conf.CS_SCALE] / 0.1 - 1.005
+        val = self.cam.settings[self.cam.profile][Conf.CS_SCALE] / 0.1 - 1.005  # Calculation is WRONG!!!
         self.scale_slider.set(val)
         self.neigh_slider.set(self.cam.settings[self.cam.profile][Conf.CS_NEIGH])
-        if not self.cam.is_pi_cam:
-            self.rpi_brightness_slider.configure(state='disabled')
-            self.rpi_contrast_slider.configure(state='disabled')
-            self.rpi_iso_slider.configure(state='disabled')
-
-        self.scale_slider.grid(row=1, column=1)
-        self.neigh_slider.grid(row=2, column=1)
-        self.rpi_brightness_slider.grid(row=3, column=1)
-        self.rpi_contrast_slider.grid(row=4, column=1)
-        self.rpi_iso_slider.grid(row=5, column=1)
-
-        # set row sizes for sliders
-        num_col, num_row = self.tab_cam.grid_size()
-        for row in range(1, num_row+1):
-            self.tab_cam.grid_rowconfigure(row, minsize=Conf.G_SLIDE_HEIGHT)
-
-        # Create frame for image
-        self.frame_height = 491
-        self.frame_width = 441
-
-        # Set all elements in grid
-        self.frame.grid(row=1, column=1)
-        self.tab_main.grid(row=1, column=2, sticky="nw")
-        self.mem_label.grid(row=10, column=2, sticky="nw")
-        self.main_loop_label.grid(row=10, column=2, sticky="e")
-        self.quit_btn.grid(row=10, column=1, sticky="w")
+        # Disable pi cam controls if not using pi cam
+        if self.cam.is_pi_cam:
+            self.rpi_brightness_slider.configure(state=tk.DISABLED)  # vs. tk.NORMAL
+            self.rpi_contrast_slider.configure(state=tk.DISABLED)
+            self.rpi_iso_slider.configure(state=tk.DISABLED)
 
         self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
 
