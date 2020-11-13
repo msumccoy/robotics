@@ -88,13 +88,17 @@ class Camera:
             except PiCameraError:
                 self.logger.exception("Tried to start pi cam but failed")
         else:
-            self.cam = cv2.VideoCapture(cam_num)
-            self.ret, self.frame_pure = self.cam.read()
-            self.height, self.width, _ = self.frame_pure.shape
-            self.is_pi_cam = False
+            try:
+                self.cam = cv2.VideoCapture(cam_num)
+                self.ret, self.frame_pure = self.cam.read()
+                self.height, self.width, _ = self.frame_pure.shape
+                self.is_pi_cam = False
+            except AttributeError:
+                pass
         if not self.ret:
-            self.cam_num = -1
+            self.cam_num = -2
         while not self.ret:
+            self.cam_num += 1
             if is_rpi and self.cam_num < 0:
                 try:
                     self.cam = PiCamera()
@@ -107,11 +111,13 @@ class Camera:
                 except PiCameraError:
                     pass
             else:
-                self.cam = cv2.VideoCapture(self.cam_num)
-                self.ret, self.frame_pure = self.cam.read()
-                self.height, self.width, _ = self.frame_pure.shape
-                self.is_pi_cam = False
-            self.cam_num += 1
+                try:
+                    self.cam = cv2.VideoCapture(self.cam_num)
+                    self.ret, self.frame_pure = self.cam.read()
+                    self.height, self.width, _ = self.frame_pure.shape
+                    self.is_pi_cam = False
+                except AttributeError:
+                    pass
             if self.cam_num > 5:
                 self.logger.exception("No viable camera found")
                 self.main_logger.exception(
@@ -754,7 +760,7 @@ class Camera:
     def set_scale(self, position):
         position = int(position)
         with self.lock_detect:
-            self.settings[self.profile][Conf.CS_SCALE] = 0.1*position+1.005
+            self.settings[self.profile][Conf.CS_SCALE] = 0.1 * position + 1.005
 
     def set_neigh(self, position):
         position = int(position)

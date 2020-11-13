@@ -134,11 +134,13 @@ class GUI(MainClass):
             command=lambda: self.robot_btn(Conf.CMD_STOP)
         )
 
-        val = self.cam.settings[self.cam.profile][Conf.CS_SCALE] / 0.1 - 1.005  # Calculation is WRONG!!!
+        val = (self.cam.settings[self.cam.profile][Conf.CS_SCALE] - 1.005) / 0.1
         self.scale_slider.set(val)
         self.neigh_slider.set(self.cam.settings[self.cam.profile][Conf.CS_NEIGH])
         # Disable pi cam controls if not using pi cam
-        if not self.cam.is_pi_cam:
+        if self.cam.is_pi_cam:
+            print(self.cam.brightness)
+        else:
             self.rpi_brightness_slider.grid_remove()
             self.rpi_contrast_slider.grid_remove()
             self.rpi_iso_slider.grid_remove()
