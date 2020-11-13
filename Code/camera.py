@@ -190,8 +190,6 @@ class Camera:
         self.detected_objects = None
         self.detected_left = None
         self.detected_right = None
-        self.is_detected_equal = True
-        self.is_detected = False
         self.update_instance_settings()
         self.main_loop_dur = 0
 

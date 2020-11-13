@@ -193,11 +193,11 @@ class GUI(MainClass):
 
     def life_check(self):
         # Temporary to place system info into info window  ##################
-        self.info['text'] = f"object detected: {self.cam.is_detected}"
+        self.info['text'] = f"object detected: {self.cam.num_objects}"
         #####################################################################
         if not ExitControl.gen:
             self.close()
-        self.root.after(1000, self.life_check)
+        self.root.after(50, self.life_check)  # Change back to 1000 after testing
 
     def escape(self, event):
         self.close()
@@ -218,7 +218,7 @@ class GUI(MainClass):
 def cam_starter(robot_type):
     cam = Camera.get_inst(
         robot_type,
-        cam_num=1,
+        cam_num=-1,
         # lens_type=LensType.DOUBLE,
         # record=True,
         # take_pic=True,
