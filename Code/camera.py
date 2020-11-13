@@ -767,8 +767,31 @@ class Camera:
         self.settings[self.profile][Conf.CS_NEIGH] = position
 
     def set_brightness(self, position):
-        position = int(position)
-        print(position)
+        if self.is_pi_cam:
+            self.cam.brightness = int(position)
+        else:
+            self.logger.warning(
+                "Brightness adjustment attempted on pi cam but not currently "
+                f"using Pi Cam. cam_num={self.cam_num}"
+            )
+
+    def set_contrast(self, position):
+        if self.is_pi_cam:
+            self.cam.contrast = int(position)
+        else:
+            self.logger.warning(
+                "Contrast adjustment attempted on pi cam but not currently "
+                f"using Pi Cam. cam_num={self.cam_num}"
+            )
+
+    def set_iso(self, position):
+        if self.is_pi_cam:
+            self.cam.iso = int(position)
+        else:
+            self.logger.warning(
+                "ISO adjustment attempted on pi cam but not currently "
+                f"using Pi Cam. cam_num={self.cam_num}"
+            )
 
     def put_text(self, text, x, y, *, frame=None, color=Conf.CV_TEXT_COLOR):
         with self.lock:
