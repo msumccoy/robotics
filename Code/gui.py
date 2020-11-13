@@ -22,7 +22,10 @@ from variables import ExitControl
 class MainClass:
     def __init__(self):
         self.root = tk.Tk()
+        self.secondary_window = tk.Toplevel(self.root)
         self.root.title(Conf.CV_WINDOW)  # Set window title
+        self.secondary_window.title("Testing system info")  # For posting testing info
+        self.secondary_window.geometry("500x500")
 
         font_style = tkFont.Font(family="Lucida Grande", size=20)
         self.mem_label = tk.Label(self.root, font=font_style)
@@ -93,6 +96,8 @@ class MainClass:
         self.main_loop_label.grid(row=10, column=2, sticky="e")
         self.btn_quit.grid(row=10, column=1, sticky="w")
         ######################################################################
+        self.info = tk.Label(self.secondary_window)
+        self.info.pack()
 
 
 class GUI(MainClass):
@@ -183,6 +188,9 @@ class GUI(MainClass):
         self.root.after(50, self.update_image)
 
     def life_check(self):
+        # Temporary to place system info into info window  ##################
+        self.info['text'] = f"object detected: {self.cam.is_detected}"
+        #####################################################################
         if not ExitControl.gen:
             self.close()
         self.root.after(1000, self.life_check)
