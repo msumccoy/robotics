@@ -54,11 +54,11 @@ class MainClass:
             orient=tk.HORIZONTAL, length=230
         )
         self.rpi_contrast_slider = tk.Scale(
-            self.tab_cam, label="RPi Cam Contrast Slider", from_=1, to=100,
+            self.tab_cam, label="RPi Cam Contrast Slider", from_=-100, to=100,
             orient=tk.HORIZONTAL, length=230
         )
         self.rpi_iso_slider = tk.Scale(
-            self.tab_cam, label="RPi Cam ISO Slider", from_=1, to=100,
+            self.tab_cam, label="RPi Cam ISO Slider", from_=0, to=1600,
             orient=tk.HORIZONTAL, length=230
         )
 
@@ -121,6 +121,8 @@ class GUI(MainClass):
         self.scale_slider.configure(command=self.cam.set_scale)
         self.neigh_slider.configure(command=self.cam.set_neigh)
         self.rpi_brightness_slider.configure(command=self.cam.set_brightness)
+        self.rpi_contrast_slider.configure(command=self.cam.set_contrast)
+        self.rpi_iso_slider.configure(command=self.cam.set_iso)
 
         # Set shortcuts and commands for robot control buttons
         self.btn_forward.configure(
@@ -144,7 +146,9 @@ class GUI(MainClass):
         self.neigh_slider.set(self.cam.settings[self.cam.profile][Conf.CS_NEIGH])
         # Disable pi cam controls if not using pi cam
         if self.cam.is_pi_cam:
-            print(self.cam.brightness)
+            self.rpi_brightness_slider.set(self.cam.cam.brightness)
+            self.rpi_contrast_slider.set(self.cam.cam.contrast)
+            self.rpi_iso_slider.set(self.cam.cam.iso)
         else:
             self.rpi_brightness_slider.grid_remove()
             self.rpi_contrast_slider.grid_remove()
@@ -214,7 +218,7 @@ class GUI(MainClass):
 def cam_starter(robot_type):
     cam = Camera.get_inst(
         robot_type,
-        # cam_num=2,
+        cam_num=1,
         # lens_type=LensType.DOUBLE,
         # record=True,
         # take_pic=True,
