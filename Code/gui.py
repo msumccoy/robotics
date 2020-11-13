@@ -59,23 +59,13 @@ class MainClass:
             orient=tk.HORIZONTAL, length=230
         )
 
-        self.btn_forward = tk.Button(
-            self.tab_robot, text="Forward", height=80, width=80
-        )
-        self.btn_back = tk.Button(
-            self.tab_robot, text="Backward", height=80, width=80
-        )
-        self.btn_left = tk.Button(
-            self.tab_robot, text="Turn Left", height=80, width=80
-        )
-        self.btn_right = tk.Button(
-            self.tab_robot, text="Turn Right", height=80, width=80
-        )
-        self.btn_stop = tk.Button(
-            self.tab_robot, text="Stop", height=50, width=80
-        )
+        self.btn_forward = tk.Button(self.tab_robot, text="Forward")
+        self.btn_back = tk.Button(self.tab_robot, text="Backward")
+        self.btn_left = tk.Button(self.tab_robot, text="Turn Left")
+        self.btn_right = tk.Button(self.tab_robot, text="Turn Right")
+        self.btn_stop = tk.Button(self.tab_robot, text="Stop")
 
-        # Set up placement of elements in tabbed window ######################################
+        # Set up placement of elements in tabbed window ######################
         # Slider tab
         self.scale_slider.grid(row=1, column=1)
         self.neigh_slider.grid(row=2, column=1)
@@ -89,11 +79,11 @@ class MainClass:
             self.tab_cam.grid_rowconfigure(row, minsize=Conf.G_SLIDE_HEIGHT)
 
         # Robot Control tab
-        self.btn_forward.place(x=80, y=0)
-        self.btn_back.place(x=80, y=130)
-        self.btn_left.place(x=0, y=70)
-        self.btn_right.place(x=160, y=70)
-        self.btn_stop.place(x=80, y=80)
+        self.btn_forward.place(x=80, y=0, height=80, width=80)
+        self.btn_back.place(x=80, y=130, height=80, width=80)
+        self.btn_left.place(x=0, y=70, height=80, width=80)
+        self.btn_right.place(x=160, y=70, height=80, width=80)
+        self.btn_stop.place(x=80, y=80, height=50, width=80)
         ######################################################################
 
         # Set up placement for elements in main window #######################
@@ -141,17 +131,17 @@ class GUI(MainClass):
             command=lambda: self.robot_btn(Conf.CMD_RIGHT)
         )
         self.btn_stop.configure(
-            command=lambda: self.robot_btn(Conf.CMD_KICK)
+            command=lambda: self.robot_btn(Conf.CMD_STOP)
         )
 
         val = self.cam.settings[self.cam.profile][Conf.CS_SCALE] / 0.1 - 1.005  # Calculation is WRONG!!!
         self.scale_slider.set(val)
         self.neigh_slider.set(self.cam.settings[self.cam.profile][Conf.CS_NEIGH])
         # Disable pi cam controls if not using pi cam
-        if self.cam.is_pi_cam:
-            self.rpi_brightness_slider.configure(state=tk.DISABLED)  # vs. tk.NORMAL
-            self.rpi_contrast_slider.configure(state=tk.DISABLED)
-            self.rpi_iso_slider.configure(state=tk.DISABLED)
+        if not self.cam.is_pi_cam:
+            self.rpi_brightness_slider.grid_remove()
+            self.rpi_contrast_slider.grid_remove()
+            self.rpi_iso_slider.grid_remove()
 
         self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
 
@@ -167,17 +157,17 @@ class GUI(MainClass):
         print(f"Action was {action}")
 
     def check_main_loop_time(self):
-        self.main_loop_label['text'] = pretty_time(self.cam.main_loop_dur, False)
+        mem_use = self.process.memory_info().rss / 1024
+        self.mem_label['text'] = mem_use
+        self.main_loop_label['text'] = f"{pretty_time(self.cam.main_loop_dur, False)}"
         if self.cam.main_loop_dur > self.THRESHOLD:
             self.main_loop_label['fg'] = "red"
         else:
             self.main_loop_label['fg'] = "black"
-        print(pretty_time(self.cam.main_loop_dur, False))
+        # print(f"{pretty_time(self.cam.main_loop_dur, False)}, {self.i}")
         self.root.after(100, self.check_main_loop_time)
 
     def update_image(self):
-        mem_use = self.process.memory_info().rss / 1024
-        self.mem_label['text'] = mem_use
         self.cam.main_loop_support()
         with self.cam.lock:
             frame_tk = self.cam.frame_full
@@ -188,7 +178,7 @@ class GUI(MainClass):
         img = ImageTk.PhotoImage(image=Image.fromarray(img))
         self.frame.config(image=img)
         self.frame.photo_ref = img
-        self.root.after(1, self.update_image)
+        self.root.after(50, self.update_image)
 
     def life_check(self):
         if not ExitControl.gen:
