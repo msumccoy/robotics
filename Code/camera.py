@@ -752,7 +752,7 @@ class Camera:
             if dur < Conf.FREQUENCY_PIC:
                 return
 
-        cv2.imwrite(f"{Conf.PIC_ROOT}{self.pic_num}.jpg", self.frame_pure)
+        cv2.imwrite(f"{Conf.PIC_ROOT}{self.pic_num}.jpg", self.frame)
         self.logger.debug(
             f"capture_picture: Photo taken with name {self.pic_num}.jpg"
         )
