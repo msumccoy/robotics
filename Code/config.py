@@ -422,24 +422,9 @@ class Conf:
     CMD_RIGHT = "right"
     CMD_RIGHT1 = "r"
     CMD_KICK = "kick"
+    CMD_KICK1 = "k"
     CMD_DANCE = "dance"
     CMD_DANCE1 = "d"
-
-    # Commands for OpenCV window control
-    R_CMD_EXIT = ord("e")
-    R_CMD_STOP = ord("s")
-    R_CMD_AUTO_ON = ord("a")
-    R_CMD_AUTO_OFF = ord("o")
-    R_CMD_CONTINUOUS_FORWARD = 82
-    R_CMD_FORWARD = ord("f")
-    R_CMD_BACKWARD = ord("b")
-    R_CMD_BACKWARD2 = 84
-    R_CMD_LEFT = ord("l")
-    R_CMD_LEFT1 = 81
-    R_CMD_RIGHT = ord("r")
-    R_CMD_RIGHT1 = 83
-    R_CMD_CLOSE = ord("c")
-    R_CMD_KICK = ord("k")
 
     # Misc Constants
     CONST_MIDDLE = "Middle"

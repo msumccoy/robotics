@@ -86,7 +86,14 @@ class Robot:
 
     def send_command(self, motion_cmd, auto=False):
         if self.ser is None:
-            self.logger.debug("send_command: no robot to connect to")
+            self.logger.debug(
+                "send_command: no robot to connect to."
+                f"motion_cmd={motion_cmd}"
+            )
+            print(  # delete #################################################
+                "send_command: no robot to connect to."  #####################
+                f"motion_cmd={motion_cmd}"  ##################################
+            )  ###############################################################
             return False
         # Need to make sure robot is aware that command is being sent before
         # sending command
@@ -128,7 +135,7 @@ class Robot:
                 motion_cmd = self.get_hex_cmd(7)
             elif self.robot_type == RobotType.SPIDER:
                 motion_cmd = self.get_hex_cmd(16)
-        elif motion_cmd == Conf.CMD_KICK:
+        elif motion_cmd == Conf.CMD_KICK or motion_cmd == Conf.CMD_KICK1:
             if self.robot_type == RobotType.HUMAN:
                 motion_cmd = self.get_hex_cmd(25)
             elif self.robot_type == RobotType.SPIDER:
@@ -248,6 +255,7 @@ class Robot:
                     self.send_command(command)
                 else:
                     self.logger.info(f"{command} is an unknown motion number")
+
     ##########################################################################
 
     def close(self):
