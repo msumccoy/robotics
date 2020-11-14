@@ -82,7 +82,6 @@ class Camera:
                 self.width = 640
                 self.cam = PiCamera()
                 self.cam.resolution = (self.width, self.height)
-                self.cam.framerate = 32
                 self.get_frame()
                 self.is_pi_cam = True
             except PiCameraError:
@@ -105,7 +104,6 @@ class Camera:
                     self.height = 480
                     self.width = 640
                     self.cam.resolution = (self.width, self.height)
-                    self.cam.framerate = 32
                     self.get_frame()
                     self.is_pi_cam = True
                 except PiCameraError:
@@ -193,6 +191,8 @@ class Camera:
         self.update_instance_settings()
         self.main_loop_dur = 0
 
+        self.get_frame_time = 0  # delete  ###################################
+
         self.logger.info(
             f"Cam init ran in {pretty_time(self.start_time)}"
         )
@@ -249,10 +249,6 @@ class Camera:
                 f"Main loop time = {pretty_time(self.main_loop_dur, False)}",
                 note_x, note_y
             ]
-
-            k = cv2.waitKey(50)
-            if k == 27:
-                ExitControl.gen = False
 
             self.main_loop_dur = time.time() - loop_start
             total_dur = time.time() - self.start_time
@@ -502,6 +498,7 @@ class Camera:
     ##########################################################################
 
     def get_frame(self):
+        start = time.time()  # delete  #######################################
         with self.lock:
             if self.cam_num < 0:
                 rawCapture = PiRGBArray(
@@ -516,6 +513,7 @@ class Camera:
                 self.ret, self.frame_pure = self.cam.read()
             if self.lens_type == LensType.DOUBLE:
                 self.get_dual_image()
+        self.get_frame_time = time.time() - start  # delete  #################
 
     def detect_object(self):
         gray_frame = cv2.cvtColor(self.frame_pure, cv2.COLOR_BGR2GRAY)
