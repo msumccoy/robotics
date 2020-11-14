@@ -14,6 +14,7 @@ import numpy as np
 import log_set_up
 from config import Conf
 from camera import Camera
+from enums import RobotType
 from misc import pretty_time
 from robot_control import Robot
 from variables import ExitControl
@@ -69,6 +70,8 @@ class MainClass:
         self.btn_stop = tk.Button(self.tab_robot, text="Stop")
         self.btn_kick = tk.Button(self.tab_robot, text="Kick")
         self.btn_dance = tk.Button(self.tab_robot, text="Dance")
+        self.txt_cmd_input = tk.Entry(self.tab_robot)
+        self.btn_cmd_enter = tk.Button(self.tab_robot, text="Enter")
 
         # Set up placement of elements in tabbed window ######################
         # Slider tab
@@ -91,6 +94,8 @@ class MainClass:
         self.btn_stop.place(x=90, y=80, height=50, width=80)
         self.btn_kick.place(x=10, y=230, height=40, width=240)
         self.btn_dance.place(x=10, y=280, height=40, width=240)
+        self.txt_cmd_input.place(x=10, y=330, height=30, width=160)
+        self.btn_cmd_enter.place(x=170, y=330, height=30, width=80)
         ######################################################################
 
         # Set up placement for elements in main window #######################
@@ -133,6 +138,7 @@ class GUI(MainClass):
         self.root.bind('<K>', self.shortcut_btn)
         self.root.bind('<d>', self.shortcut_btn)
         self.root.bind('<D>', self.shortcut_btn)
+        self.root.bind('<Return>', self.enter_cmd)
         self.scale_slider.bind(
             "<Button-4>", lambda opt: self.on_mouse_wheel("scale_up")
         )
@@ -175,6 +181,7 @@ class GUI(MainClass):
         self.btn_dance.configure(
             command=lambda: self.robot_btn(Conf.CMD_DANCE)
         )
+        self.btn_cmd_enter.config(command=lambda: self.enter_cmd(""))
 
         val = (self.cam.settings[self.cam.profile][Conf.CS_SCALE] - 1.005) / 0.1
         self.scale_slider.set(val)
@@ -209,6 +216,11 @@ class GUI(MainClass):
             self.rpi_iso_slider.grid_remove()
 
         self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
+        if robot_type == RobotType.HUMAN:
+            self.full_dict = Conf.HUMANOID_FULL
+            self.short_dict = Conf.HUMANOID_MOTION
+        elif robot_type == RobotType.SPIDER:
+            self.full_dict = self.short_dict = Conf.SPIDER_FULL
 
     def start(self):
         self.root.after(10, self.update_image)
@@ -220,6 +232,16 @@ class GUI(MainClass):
 
     def robot_btn(self, action):
         self.robot.send_command(action)
+
+    def enter_cmd(self, event):
+        val = self.txt_cmd_input.get()
+        try:
+            val = int(val)
+            if val in self.short_dict:
+                self.robot.send_command(val)
+        except ValueError:
+            pass
+        self.txt_cmd_input.delete(0, tk.END)
 
     def shortcut_btn(self, event):
         print(event)  # delete ###############################################
