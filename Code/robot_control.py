@@ -76,13 +76,10 @@ class Robot:
             )
         except serial.serialutil.SerialException:
             self.ser = None
-            ExitControl.robot = False
-            self.is_connected = False
             self.logger.exception(
                 "Robot control failed. Cannot connect to robot!!!!!!!!!!!!!!!"
             )
         time.sleep(3)
-        self.is_connected = True
         self.send_command(-1)
         self.logger.info(f"Robot init ran in {pretty_time(self.start)}")
 
@@ -153,7 +150,6 @@ class Robot:
                 self.sub_send_command(motion_cmd)
                 self.sub_send_command(Conf.HEX_RESUME)
                 self.ser.flush()
-                self.is_connected = True
             except serial.SerialException as e:
                 try:
                     self.logger.exception(f"Serial exception hit: {e}")
@@ -165,7 +161,7 @@ class Robot:
                     self.logger.exception(
                         "Robot Unable to connect. Please check configuration"
                     )
-                    self.is_connected = False
+                self.ser = None
         return True
 
     def sub_send_command(self, hex_cmd, cache_wait=0.05):
