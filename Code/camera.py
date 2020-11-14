@@ -25,6 +25,12 @@ from variables import ExitControl
 
 
 class Camera:
+    # TODO: set up calibration to work with gui instead of OpenCV
+    #   * Currently default values are set for focus, object width ect.
+    #   -> Ensure main function will operate dynamically that is ensure it will
+    #      accept changes to parameters while it is running
+    #   -> Set up method in GUI class to adjust calibration to avoid having
+    #      to do the calibration in OpenCV
     _inst = {}
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     logger = logging.getLogger(Conf.LOG_CAM_NAME)
@@ -549,6 +555,11 @@ class Camera:
             self.obj_dist[ObjDist.LAST_SEEN] = 0.0
 
     def reset_profile(self, profile):
+        # TODO: Remove left and right focal length options
+        # TODO: Add option for if it is a rpi cam
+        #   -> save camera Brightness
+        #   -> save camera Contrast
+        #   -> save camera ISO
         self.settings[profile] = {}
         self.settings[profile][Conf.CS_NEIGH] = 3
         self.settings[profile][Conf.CS_SCALE] = 1.305

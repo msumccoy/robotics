@@ -20,6 +20,8 @@ from variables import ExitControl
 
 
 class Robot:
+    # TODO: Go in Heart2Heart and see what feed back can be obtained from the
+    #  robot
     _inst = {}
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     logger = logging.getLogger(Conf.LOG_ROBOT_NAME)
