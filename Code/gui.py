@@ -67,6 +67,8 @@ class MainClass:
         self.btn_left = tk.Button(self.tab_robot, text="Turn Left")
         self.btn_right = tk.Button(self.tab_robot, text="Turn Right")
         self.btn_stop = tk.Button(self.tab_robot, text="Stop")
+        self.btn_kick = tk.Button(self.tab_robot, text="Kick")
+        self.btn_dance = tk.Button(self.tab_robot, text="Dance")
 
         # Set up placement of elements in tabbed window ######################
         # Slider tab
@@ -82,11 +84,13 @@ class MainClass:
             self.tab_cam.grid_rowconfigure(row, minsize=Conf.G_SLIDE_HEIGHT)
 
         # Robot Control tab
-        self.btn_forward.place(x=80, y=0, height=80, width=80)
-        self.btn_back.place(x=80, y=130, height=80, width=80)
-        self.btn_left.place(x=0, y=70, height=80, width=80)
-        self.btn_right.place(x=160, y=70, height=80, width=80)
-        self.btn_stop.place(x=80, y=80, height=50, width=80)
+        self.btn_forward.place(x=90, y=0, height=80, width=80)
+        self.btn_back.place(x=90, y=130, height=80, width=80)
+        self.btn_left.place(x=10, y=70, height=80, width=80)
+        self.btn_right.place(x=170, y=70, height=80, width=80)
+        self.btn_stop.place(x=90, y=80, height=50, width=80)
+        self.btn_kick.place(x=10, y=230, height=40, width=240)
+        self.btn_dance.place(x=10, y=280, height=40, width=240)
         ######################################################################
 
         # Set up placement for elements in main window #######################
@@ -114,8 +118,21 @@ class GUI(MainClass):
         self.cam = Camera.get_inst(robot_type)
         self.robot = Robot.get_inst(robot_type)
         self.process = psutil.Process(os.getpid())
-        self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
         self.btn_quit.configure(command=self.close)
+
+        # Set bindings
+        self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
+        self.root.bind('<Up>', self.shortcut_btn)
+        self.root.bind('<Down>', self.shortcut_btn)
+        self.root.bind('<Left>', self.shortcut_btn)
+        self.root.bind('<Right>', self.shortcut_btn)
+        self.root.bind('<S>', self.shortcut_btn)
+        self.root.bind('<s>', self.shortcut_btn)
+        self.root.bind('<space>', self.shortcut_btn)
+        self.root.bind('<k>', self.shortcut_btn)
+        self.root.bind('<K>', self.shortcut_btn)
+        self.root.bind('<d>', self.shortcut_btn)
+        self.root.bind('<D>', self.shortcut_btn)
 
         # Set functions executed on movement of slider
         self.scale_slider.configure(command=self.cam.set_scale)
@@ -139,6 +156,12 @@ class GUI(MainClass):
         )
         self.btn_stop.configure(
             command=lambda: self.robot_btn(Conf.CMD_STOP)
+        )
+        self.btn_kick.configure(
+            command=lambda: self.robot_btn(Conf.CMD_KICK)
+        )
+        self.btn_dance.configure(
+            command=lambda: self.robot_btn(Conf.CMD_DANCE)
         )
 
         val = (self.cam.settings[self.cam.profile][Conf.CS_SCALE] - 1.005) / 0.1
@@ -165,7 +188,27 @@ class GUI(MainClass):
             ExitControl.gen = False
 
     def robot_btn(self, action):
-        print(f"Action was {action}")
+        self.robot.send_command(action)
+
+    def shortcut_btn(self, event):
+        print(event)  # delete ###############################################
+        if event.keysym == "Up":
+            self.btn_forward.invoke()
+        elif event.keysym == "Down":
+            self.btn_back.invoke()
+        elif event.keysym == "Left":
+            self.btn_left.invoke()
+        elif event.keysym == "Right":
+            self.btn_right.invoke()
+        elif (
+                event.keysym == "s" or event.keysym == "S"
+                or event.keysym == "space"
+        ):
+            self.btn_stop.invoke()
+        elif event.keysym == "k" or event.keysym == "K":
+            self.btn_kick.invoke()
+        elif event.keysym == "d" or event.keysym == "D":
+            self.btn_dance.invoke()
 
     def check_main_loop_time(self):
         mem_use = self.process.memory_info().rss / 1024
