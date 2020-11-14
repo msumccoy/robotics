@@ -100,7 +100,7 @@ class MainClass:
         self.main_loop_label.grid(row=10, column=2, sticky="e")
         self.btn_quit.grid(row=10, column=1, sticky="w")
         ######################################################################
-        self.info = tk.Label(self.secondary_window)
+        self.info = tk.Label(self.secondary_window, font=font_style)
         self.info.pack()
 
 
@@ -133,6 +133,18 @@ class GUI(MainClass):
         self.root.bind('<K>', self.shortcut_btn)
         self.root.bind('<d>', self.shortcut_btn)
         self.root.bind('<D>', self.shortcut_btn)
+        self.scale_slider.bind(
+            "<Button-4>", lambda opt: self.on_mouse_wheel("scale_up")
+        )
+        self.scale_slider.bind(
+            "<Button-5>", lambda opt: self.on_mouse_wheel("scale_down")
+        )
+        self.neigh_slider.bind(
+            "<Button-4>", lambda opt: self.on_mouse_wheel("neigh_up")
+        )
+        self.neigh_slider.bind(
+            "<Button-5>", lambda opt: self.on_mouse_wheel("neigh_down")
+        )
 
         # Set functions executed on movement of slider
         self.scale_slider.configure(command=self.cam.set_scale)
@@ -172,6 +184,25 @@ class GUI(MainClass):
             self.rpi_brightness_slider.set(self.cam.cam.brightness)
             self.rpi_contrast_slider.set(self.cam.cam.contrast)
             self.rpi_iso_slider.set(self.cam.cam.iso)
+
+            self.rpi_brightness_slider.bind(
+                "<Button-4>", lambda opt: self.on_mouse_wheel("bright_up")
+            )
+            self.rpi_brightness_slider.bind(
+                "<Button-5>", lambda opt: self.on_mouse_wheel("bright_down")
+            )
+            self.rpi_contrast_slider.bind(
+                "<Button-4>", lambda opt: self.on_mouse_wheel("contrast_up")
+            )
+            self.rpi_contrast_slider.bind(
+                "<Button-5>", lambda opt: self.on_mouse_wheel("contrast_down")
+            )
+            self.rpi_iso_slider.bind(
+                "<Button-4>", lambda opt: self.on_mouse_wheel("iso_up")
+            )
+            self.rpi_iso_slider.bind(
+                "<Button-5>", lambda opt: self.on_mouse_wheel("iso_down")
+            )
         else:
             self.rpi_brightness_slider.grid_remove()
             self.rpi_contrast_slider.grid_remove()
@@ -180,7 +211,7 @@ class GUI(MainClass):
         self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
 
     def start(self):
-        self.root.after(1, self.update_image)
+        self.root.after(10, self.update_image)
         self.root.after(100, self.life_check)
         self.root.after(100, self.check_main_loop_time)
         self.root.mainloop()
@@ -210,16 +241,48 @@ class GUI(MainClass):
         elif event.keysym == "d" or event.keysym == "D":
             self.btn_dance.invoke()
 
+    def on_mouse_wheel(self, option):
+        if option == "scale_up":
+            val = self.scale_slider.get()
+            self.scale_slider.set(val + 1)
+        elif option == "scale_down":
+            val = self.scale_slider.get()
+            self.scale_slider.set(val - 1)
+        elif option == "neigh_up":
+            val = self.neigh_slider.get()
+            self.neigh_slider.set(val + 1)
+        elif option == "neigh_down":
+            val = self.neigh_slider.get()
+            self.neigh_slider.set(val - 1)
+        elif option == "bright_up":
+            val = self.rpi_brightness_slider.get()
+            self.rpi_brightness_slider.set(val + 1)
+        elif option == "bright_down":
+            val = self.rpi_brightness_slider.get()
+            self.rpi_brightness_slider.set(val - 1)
+        elif option == "contrast_up":
+            val = self.rpi_contrast_slider.get()
+            self.rpi_contrast_slider.set(val + 1)
+        elif option == "contrast_down":
+            val = self.rpi_contrast_slider.get()
+            self.rpi_contrast_slider.set(val - 1)
+        elif option == "iso_up":
+            val = self.rpi_iso_slider.get()
+            self.rpi_iso_slider.set(val + 100)
+        elif option == "iso_down":
+            val = self.rpi_iso_slider.get()
+            self.rpi_iso_slider.set(val - 100)
+
     def check_main_loop_time(self):
-        mem_use = self.process.memory_info().rss / 1024
-        self.mem_label['text'] = mem_use
+        mem_use = self.process.memory_info().rss / 1048576
+        self.mem_label['text'] = f"{mem_use:.2f}mb"
         self.main_loop_label['text'] = f"{pretty_time(self.cam.main_loop_dur, False)}"
         if self.cam.main_loop_dur > self.THRESHOLD:
             self.main_loop_label['fg'] = "red"
         else:
             self.main_loop_label['fg'] = "black"
         # print(f"{pretty_time(self.cam.main_loop_dur, False)}, {self.i}")
-        self.root.after(100, self.check_main_loop_time)
+        self.root.after(50, self.check_main_loop_time)
 
     def update_image(self):
         self.cam.main_loop_support()
@@ -236,7 +299,11 @@ class GUI(MainClass):
 
     def life_check(self):
         # Temporary to place system info into info window  ##################
-        self.info['text'] = f"object detected: {self.cam.num_objects}"
+        self.info['text'] = (
+            f"object detected: {self.cam.num_objects}\n"
+            f"{pretty_time(self.cam.main_loop_dur, False)}\n"
+            f"{pretty_time(self.cam.get_frame_time, False)}\n"
+        )
         #####################################################################
         if not ExitControl.gen:
             self.close()
