@@ -5,6 +5,7 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
+from _tkinter import TclError
 import time
 import cv2
 import psutil
@@ -23,13 +24,17 @@ from variables import ExitControl
 class MainClass:
     def __init__(self):
         self.root = tk.Tk()
-        self.secondary_window = tk.Toplevel(self.root)
         self.root.title(Conf.CV_WINDOW)  # Set window title
-        self.secondary_window.title("Testing system info")  # For posting testing info
-        self.secondary_window.geometry("500x500")
 
-        font_style = tkFont.Font(family="Lucida Grande", size=20)
-        self.mem_label = tk.Label(self.root, font=font_style)
+        self.secondary_window = tk.Toplevel(self.root)
+        self.secondary_window.title("Testing system info")  # For posting testing info
+        self.secondary_window.geometry("250x250")
+
+        self.dict_window = tk.Toplevel(self.root)
+        self.dict_window.destroy()
+
+        self.font_style = tkFont.Font(family="Lucida Grande", size=20)
+        self.mem_label = tk.Label(self.root, font=self.font_style)
         self.btn_quit = tk.Button(self.root, text="quit")
         self.main_loop_label = tk.Label(self.root)
         self.frame = tk.Label(self.root)
@@ -72,6 +77,9 @@ class MainClass:
         self.btn_dance = tk.Button(self.tab_robot, text="Dance")
         self.txt_cmd_input = tk.Entry(self.tab_robot)
         self.btn_cmd_enter = tk.Button(self.tab_robot, text="Enter")
+        self.btn_open_dict = tk.Button(
+            self.tab_robot, text="Open Command Options"
+        )
 
         # Set up placement of elements in tabbed window ######################
         # Slider tab
@@ -96,6 +104,7 @@ class MainClass:
         self.btn_dance.place(x=10, y=280, height=40, width=240)
         self.txt_cmd_input.place(x=10, y=330, height=30, width=160)
         self.btn_cmd_enter.place(x=170, y=330, height=30, width=80)
+        self.btn_open_dict.place(x=10, y=370, height= 30, width=240)
         ######################################################################
 
         # Set up placement for elements in main window #######################
@@ -105,7 +114,7 @@ class MainClass:
         self.main_loop_label.grid(row=10, column=2, sticky="e")
         self.btn_quit.grid(row=10, column=1, sticky="w")
         ######################################################################
-        self.info = tk.Label(self.secondary_window, font=font_style)
+        self.info = tk.Label(self.secondary_window, font=self.font_style)
         self.info.pack()
 
 
@@ -181,7 +190,8 @@ class GUI(MainClass):
         self.btn_dance.configure(
             command=lambda: self.robot_btn(Conf.CMD_DANCE)
         )
-        self.btn_cmd_enter.config(command=lambda: self.enter_cmd(""))
+        self.btn_cmd_enter.configure(command=lambda: self.enter_cmd(""))
+        self.btn_open_dict.configure(command=self.open_dict)
 
         val = (self.cam.settings[self.cam.profile][Conf.CS_SCALE] - 1.005) / 0.1
         self.scale_slider.set(val)
@@ -221,6 +231,19 @@ class GUI(MainClass):
             self.short_dict = Conf.HUMANOID_MOTION
         elif robot_type == RobotType.SPIDER:
             self.full_dict = self.short_dict = Conf.SPIDER_FULL
+
+    def open_dict(self):
+        try:
+            self.dict_window.state()
+        except TclError:
+            self.dict_window = tk.Toplevel(self.root)
+            self.dict_window.title("Motion Commands")
+            self.dict_window.minsize(250, 250)
+            info = tk.Label(self.dict_window)
+            info.grid(row=1, column=1)
+            for key in self.full_dict:
+                info['text'] += f"{key}:{self.short_dict[key][0]}\n"
+            print(self.info)
 
     def start(self):
         self.root.after(10, self.update_image)
