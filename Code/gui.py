@@ -80,6 +80,9 @@ class MainClass:
         self.btn_open_dict = tk.Button(
             self.tab_robot, text="Open Command Options"
         )
+        self.check_auto_robot = ttk.Checkbutton(
+            self.tab_robot, text="Auto Robot"
+        )
 
         # Set up placement of elements in tabbed window ######################
         # Slider tab
@@ -105,6 +108,7 @@ class MainClass:
         self.txt_cmd_input.place(x=10, y=330, height=30, width=160)
         self.btn_cmd_enter.place(x=170, y=330, height=30, width=80)
         self.btn_open_dict.place(x=10, y=370, height= 30, width=240)
+        self.check_auto_robot.place(x=10, y=410)
         ######################################################################
 
         # Set up placement for elements in main window #######################
@@ -225,6 +229,7 @@ class GUI(MainClass):
             self.rpi_contrast_slider.grid_remove()
             self.rpi_iso_slider.grid_remove()
 
+        self.check_auto_robot.state(['selected'])
         self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
         if robot_type == RobotType.HUMAN:
             self.full_dict = Conf.HUMANOID_FULL
@@ -280,6 +285,7 @@ class GUI(MainClass):
                 event.keysym == "s" or event.keysym == "S"
                 or event.keysym == "space"
         ):
+            self.robot.active_auto_control = False
             self.btn_stop.invoke()
         elif event.keysym == "k" or event.keysym == "K":
             self.btn_kick.invoke()
@@ -349,6 +355,7 @@ class GUI(MainClass):
             f"{pretty_time(self.cam.main_loop_dur, False)}\n"
             f"{pretty_time(self.cam.get_frame_time, False)}\n"
         )
+        print(self.check_auto_robot.state())
         #####################################################################
         if not ExitControl.gen:
             self.close()
@@ -391,6 +398,11 @@ def independent_test():
     cam_thread.start()
     ui = GUI(robot_type)
     ui.start()
+
+
+def display_layout():
+    gui = MainClass()
+    gui.root.mainloop()
 
 
 if __name__ == "__main__":
