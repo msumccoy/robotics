@@ -71,7 +71,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
@@ -544,6 +544,19 @@
       </property>
       <property name="text">
        <string>Open Command Options</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="check_auto_robot">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>410</y>
+        <width>91</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Auto Robot</string>
       </property>
      </widget>
     </widget>
