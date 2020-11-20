@@ -37,17 +37,17 @@ class Camera:
 
     @staticmethod
     def get_inst(
-            cam_name, cam_num=0, lens_type=LensType.SINGLE,
-            record=False, take_pic=False, disp_img=False
+            cam_name, cam_num=-1, lens_type=LensType.SINGLE,
+            record=False, take_pic=False
     ):
         with Conf.LOCK_CLASS:
             if cam_name not in Camera._inst:
                 Camera._inst[cam_name] = Camera(
-                    cam_name, cam_num, lens_type, record, take_pic, disp_img
+                    cam_name, cam_num, lens_type, record, take_pic
                 )
         return Camera._inst[cam_name]
 
-    def __init__(self, robot, cam_num, lens_type, record, take_pic, disp_img):
+    def __init__(self, robot, cam_num, lens_type, record, take_pic):
         self.main_logger.info(f"Camera: started on version {Conf.VERSION}")
         self.logger.info(
             f"Cam started on version {Conf.VERSION}:\n"
@@ -56,9 +56,7 @@ class Camera:
             f"- lens_type: {lens_type}\n"
             f"- record: {record}\n"
             f"- take_pic: {take_pic}\n"
-            f"- Display image: {disp_img}"
         )
-        disp_img = False  # Must cancel because can't use cv2.imshow with pyqt
         self.start_time = time.time()
         self.lock = Conf.LOCK_CAM
         self.lock_detect = threading.Lock()
@@ -76,22 +74,24 @@ class Camera:
             )
             raise ValueError(f"'{robot}' is not a valid robot type")
 
-        self.disp_img = disp_img
         self.robot_type = robot
         self.robot = None
         self.cam_num = cam_num
         self.lens_type = lens_type
         self.frame_pure = None
         if cam_num < 0:
-            try:
-                self.height = 480
-                self.width = 640
-                self.cam = PiCamera()
-                self.cam.resolution = (self.width, self.height)
-                self.get_frame()
-                self.is_pi_cam = True
-            except PiCameraError:
-                self.logger.exception("Tried to start pi cam but failed")
+            if is_rpi:
+                try:
+                    self.height = 480
+                    self.width = 640
+                    self.cam = PiCamera()
+                    self.cam.resolution = (self.width, self.height)
+                    self.get_frame()
+                    self.is_pi_cam = True
+                except PiCameraError:
+                    self.logger.exception("Tried to start pi cam but failed")
+            else:
+                self.ret = False
         else:
             try:
                 self.cam = cv2.VideoCapture(cam_num)
@@ -101,7 +101,10 @@ class Camera:
             except AttributeError:
                 pass
         if not self.ret:
-            self.cam_num = -2
+            if is_rpi:
+                self.cam_num = -2
+            else:
+                self.cam_num = -1
         while not self.ret:
             self.cam_num += 1
             if is_rpi and self.cam_num < 0:
@@ -151,15 +154,17 @@ class Camera:
 
         with open(Conf.CAM_SETTINGS_FILE) as file:
             self.settings = json.load(file)
-        if lens_type == LensType.SINGLE:
+        if self.is_pi_cam:
             self.profile = Conf.CS_DEFAULT
+        elif lens_type == LensType.SINGLE:
+            self.profile = Conf.CS_DEFAULT1
         elif lens_type == LensType.DOUBLE:
             self.profile = Conf.CS_DEFAULT2
-        if self.profile not in self.settings:
-            self.do_setup_profile = True
-            self.reset_profile(self.profile)
+        if self.profile in self.settings:
+            self.is_profile_setup = True
         else:
-            self.do_setup_profile = False
+            self.is_profile_setup = False
+            self.reset_profile(self.profile)
         files = os.listdir(Conf.PIC_ROOT)
         if len(files) > 0:
             files = [int(f[:-4]) for f in files]
@@ -208,37 +213,22 @@ class Camera:
     ##########################################################################
     def start_recognition(self):
         self.logger.debug("start_recognition started")
-        if self.do_setup_profile:
+        if not self.is_profile_setup:
             self.logger.debug("start_recognition: profile has to be set up")
-            if self.disp_img:
-                self.setup_profile(self.profile)
-            else:
-                self.logger.exception(
-                    "start_recognition: WARNING USING "
-                    "DEFAULT VALUES FOR MEASUREMENT"
-                )
+            self.logger.exception(
+                "start_recognition: WARNING USING DEFAULT VALUES FOR "
+                "MEASUREMENT"
+            )
         total_dur = time.time() - self.start_time
         threshold = Conf.LOOP_DUR_THRESHOLD / 1000
-        while (
-                ExitControl.gen and ExitControl.cam and
+        if (
                 self.settings[self.profile][Conf.CS_LENS_TYPE]
                 != self.lens_type.value
         ):
-            if not self.disp_img:
-                self.main_logger.exception(
-                    "Camera: Lens type of camera and settings progile do not "
-                    "match but test env not active. Raising exception now."
-                )
-                self.logger.exception(
-                    "Lens type of camera and settings profile do not match "
-                    "but test env not active. Raising exception now."
-                )
-                raise Exception("ERROR: lens type error - start_recognition ")
-            self.logger.info(
+            self.logger.warning(
                 "Lens type of camera and settings profile do not match. "
                 "Please fix"
             )
-            self.calibrate()
         while ExitControl.gen and ExitControl.cam:
             loop_start = time.time()
             self.get_frame()
@@ -275,27 +265,35 @@ class Camera:
 
     def main_loop_support(self):
         start = time.time()
+        if (
+                self.settings[self.profile][Conf.CS_LENS_TYPE]
+                != self.lens_type.value
+        ):
+            self.put_text(
+                text="LensType miss match", x=10, y=10,
+                color=(0, 255, 0), scale=2
+            )
         self.note_frame = np.zeros(
             [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
         )
         self.frame = self.frame_pure.copy()
         self.put_text(
-            self.main_loop_time_info[0],
-            self.main_loop_time_info[1],
-            self.main_loop_time_info[2],
+            text=self.main_loop_time_info[0],
+            x=self.main_loop_time_info[1],
+            y=self.main_loop_time_info[2],
             frame=self.note_frame
         )
         self.put_text(
-            self.main_total_time_info[0],
-            self.main_total_time_info[1],
-            self.main_total_time_info[2],
+            text=self.main_total_time_info[0],
+            x=self.main_total_time_info[1],
+            y=self.main_total_time_info[2],
             frame=self.note_frame
         )
         note_x = Conf.CS_X_OFFSET
         note_y = Conf.CV_NOTE_HEIGHT - 3 * Conf.CS_Y_OFFSET
         self.put_text(
-            f"Support loop time = {pretty_time(start)}",
-            note_x, note_y, frame=self.note_frame
+            text=f"Support loop time = {pretty_time(start)}",
+            x=note_x, y=note_y, frame=self.note_frame
         )
         if self.num_objects == 1:
             for (x, y, w, h) in self.detected_objects:
@@ -565,11 +563,14 @@ class Camera:
         self.settings[profile][Conf.CS_SCALE] = 1.305
         self.settings[profile][Conf.CS_OBJ_WIDTH] = 2.56
         self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
-        self.settings[profile][Conf.CS_FOCAL_R] = 1
-        self.settings[profile][Conf.CS_FOCAL_L] = 1
         self.settings[profile][Conf.CS_FOCAL] = 1
+        if self.is_pi_cam:
+            self.settings[profile][Conf.CS_IS_PI_CAM] = True
+        else:
+            self.settings[profile][Conf.CS_IS_PI_CAM] = False
 
     def calibrate(self):
+        # TODO: Set up calibrate to work with GUI instead of opencv
         self.logger.debug("calibrate called")
         if not self.disp_img:
             self.logger.exception("Can only calibrate when display enabled")
@@ -581,19 +582,18 @@ class Camera:
                 f"current profile: {self.profile}\n"
                 "Enter:\n"
                 "  - 0 to exit\n"
-                "  - 1 to edit default\n"
+                "  - 1 to edit current profile\n"
                 "  - 2 to chose a different profile\n"
             ).strip()
             if response == "0":
                 continue_calibrate = False
             elif response == "1":
-                profile = Conf.CS_DEFAULT
                 print(
-                    f"The current parameters for {profile} are:\n"
+                    f"The current parameters for {self.profile} are:\n"
                     f"     Focal length --> "
-                    f"{self.settings[profile][Conf.CS_FOCAL]}\n"
+                    f"{self.settings[self.profile][Conf.CS_FOCAL]}\n"
                     f"     Object width --> "
-                    f"{self.settings[profile][Conf.CS_OBJ_WIDTH]}"
+                    f"{self.settings[self.profile][Conf.CS_OBJ_WIDTH]}"
                 )
                 self.setup_profile(Conf.CS_DEFAULT)
                 if (
@@ -648,6 +648,7 @@ class Camera:
         self.logger.debug(f"Calibrate exiting")
 
     def setup_profile(self, profile):
+        # TODO: Set up setup_profile to work with GUI instead of opencv
         self.logger.debug(f"setup_profile called for profile: {profile}")
         if not self.disp_img:
             self.logger.exception("Can only setup profile in testing mode")
@@ -800,7 +801,9 @@ class Camera:
                 f"using Pi Cam. cam_num={self.cam_num}"
             )
 
-    def put_text(self, text, x, y, *, frame=None, color=Conf.CV_TEXT_COLOR):
+    def put_text(
+            self, text, x, y, *, frame=None, color=Conf.CV_TEXT_COLOR, scale=1
+    ):
         with self.lock:
             if frame is None:
                 frame = self.frame
@@ -809,7 +812,7 @@ class Camera:
                 text,
                 (x, y),
                 Conf.CV_FONT,
-                Conf.CV_FONT_SCALE,
+                Conf.CV_FONT_SCALE * scale,
                 color,
                 Conf.CV_THICKNESS,
                 Conf.CV_LINE
@@ -844,7 +847,6 @@ def independent_test():
         lens_type=LensType.DOUBLE,
         # record=True,
         # take_pic=True,
-        disp_img=True
     )
     # cam.calibrate()
     cam.start_recognition()

@@ -24,7 +24,6 @@ def cam_starter(robot_type):
         # lens_type=LensType.DOUBLE,
         # record=True,
         # take_pic=True,
-        disp_img=True
     )
     try:
         cam.start_recognition()

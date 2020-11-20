@@ -373,11 +373,10 @@ class GUI(MainClass):
 def cam_starter(robot_type):
     cam = Camera.get_inst(
         robot_type,
-        cam_num=-1,
+        # cam_num=0,
         # lens_type=LensType.DOUBLE,
         # record=True,
         # take_pic=True,
-        # disp_img=True
     )
     try:
         cam.start_recognition()
