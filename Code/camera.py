@@ -61,19 +61,21 @@ class Camera:
         self.lock = Conf.LOCK_CAM
         self.lock_detect = threading.Lock()
         self.count = 0
-        self.is_connected = True
+        self.is_connected = False
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
             self.logger.exception(f"'{lens_type}' is not a valid lens type")
             self.main_logger.exception(
                 f"Camera: crashed -- '{lens_type}' is not a valid lens type"
             )
-            self.is_connected = False
+        else:
+            self.is_connected = True
         if robot != RobotType.HUMAN and robot != RobotType.SPIDER:
             self.logger.exception(f"'{robot}' is not a valid robot type")
             self.main_logger.exception(
                 f"Camera: crashed -- '{robot}' is not a valid robot type"
             )
-            self.is_connected = False
+        else:
+            self.is_connected = True
 
         self.robot_type = robot
         self.robot = None
@@ -81,6 +83,7 @@ class Camera:
         self.lens_type = lens_type
         self.frame_pure = None
         self.width = self.height = 6
+        self.is_pi_cam = False
         if cam_num < 0:
             if is_rpi:
                 try:
@@ -134,21 +137,22 @@ class Camera:
                 )
                 self.is_connected = False
                 ExitControl.cam = False
-                test("no viable cam")
-                test(f"self.is_connected -- {self.is_connected}")
         if self.cam_num != cam_num:
             self.logger.info(
                 f"Cam num changed from {cam_num} to {self.cam_num} because"
                 " original number did not have a camera associated with it"
             )
         if self.is_connected:
-            test(f"self.is_connected -- {self.is_connected}")
             self.midpoint = int(self.width / 2)
             if lens_type == LensType.DOUBLE:
                 self.midpoint = int(self.width / 4)
                 self.width = int(self.width / 2)
                 self.get_dual_image()
             self.frame = self.frame_pure.copy()
+            self.frame_full = np.vstack((self.frame, self.note_frame))
+        else:
+            self.frame = np.zeros([640, 640, 3], dtype=np.uint8)
+            self.frame_full = self.frame.copy()
 
         self.main_total_time_info = ["", 0, 0]
         self.main_loop_time_info = ["", 0, 0]
@@ -157,7 +161,6 @@ class Camera:
         self.note_frame = np.zeros(
             [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
         )
-        self.frame_full = np.vstack((self.frame, self.note_frame))
         self.write_note = True
 
         with open(Conf.CAM_SETTINGS_FILE) as file:
@@ -882,29 +885,6 @@ def independent_test():
     # cam.calibrate()
     cam.start_recognition()
     cam.close()
-
-
-def test(a=None):
-    print(ExitControl.gen)
-    print(ExitControl.gen)
-    print(ExitControl.gen)
-    print(ExitControl.gen)
-    print(ExitControl.gen)
-    print(ExitControl.gen)
-    print(ExitControl.cam)
-    print(ExitControl.cam)
-    print(ExitControl.cam)
-    print(ExitControl.cam)
-    print(ExitControl.cam)
-    print(ExitControl.cam)
-    print(ExitControl.cam)
-    print(a)
-    print(a)
-    print(a)
-    print(a)
-    print(a)
-    print(a)
-    print(a)
 
 
 if __name__ == "__main__":
