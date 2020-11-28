@@ -22,7 +22,7 @@ with open(config_file) as file:
 class Conf:
     # VERSION = major_change.minor_change
     VERSION = 2.0  # 2.1
-    PATH_ROOT = config["path"]  # Typically: /home/user/pi/
+    PATH_ROOT = config["path"]  # Typically: /home/pi/Documents/Code/
     ##########################################################################
     # Templates  #############################################################
     ##########################################################################

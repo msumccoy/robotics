@@ -61,24 +61,26 @@ class Camera:
         self.lock = Conf.LOCK_CAM
         self.lock_detect = threading.Lock()
         self.count = 0
+        self.is_connected = True
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
             self.logger.exception(f"'{lens_type}' is not a valid lens type")
             self.main_logger.exception(
                 f"Camera: crashed -- '{lens_type}' is not a valid lens type"
             )
-            raise ValueError(f"'{lens_type}' is not a valid lens type")
+            self.is_connected = False
         if robot != RobotType.HUMAN and robot != RobotType.SPIDER:
             self.logger.exception(f"'{robot}' is not a valid robot type")
             self.main_logger.exception(
                 f"Camera: crashed -- '{robot}' is not a valid robot type"
             )
-            raise ValueError(f"'{robot}' is not a valid robot type")
+            self.is_connected = False
 
         self.robot_type = robot
         self.robot = None
         self.cam_num = cam_num
         self.lens_type = lens_type
         self.frame_pure = None
+        self.width = self.height = 6
         if cam_num < 0:
             if is_rpi:
                 try:
@@ -105,7 +107,7 @@ class Camera:
                 self.cam_num = -2
             else:
                 self.cam_num = -1
-        while not self.ret:
+        while not self.ret and ExitControl.cam:
             self.cam_num += 1
             if is_rpi and self.cam_num < 0:
                 try:
@@ -130,25 +132,31 @@ class Camera:
                 self.main_logger.exception(
                     "Camera: crashed -- No viable camera found"
                 )
-                raise Exception("No viable camera found ")
+                self.is_connected = False
+                ExitControl.cam = False
+                test("no viable cam")
+                test(f"self.is_connected -- {self.is_connected}")
         if self.cam_num != cam_num:
             self.logger.info(
                 f"Cam num changed from {cam_num} to {self.cam_num} because"
                 " original number did not have a camera associated with it"
             )
+        if self.is_connected:
+            test(f"self.is_connected -- {self.is_connected}")
+            self.midpoint = int(self.width / 2)
+            if lens_type == LensType.DOUBLE:
+                self.midpoint = int(self.width / 4)
+                self.width = int(self.width / 2)
+                self.get_dual_image()
+            self.frame = self.frame_pure.copy()
+
         self.main_total_time_info = ["", 0, 0]
         self.main_loop_time_info = ["", 0, 0]
         self.focal_len = None
         self.obj_width = None
-        self.midpoint = int(self.width / 2)
-        if lens_type == LensType.DOUBLE:
-            self.midpoint = int(self.width / 4)
-            self.width = int(self.width / 2)
-            self.get_dual_image()
         self.note_frame = np.zeros(
             [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
         )
-        self.frame = self.frame_pure.copy()
         self.frame_full = np.vstack((self.frame, self.note_frame))
         self.write_note = True
 
@@ -212,6 +220,12 @@ class Camera:
     # Main detection function. ###############################################
     ##########################################################################
     def start_recognition(self):
+        if not self.is_connected:
+            self.logger.debug(
+                "Camera recognition could not be started as camera is not "
+                "connected"
+            )
+            return
         self.logger.debug("start_recognition started")
         if not self.is_profile_setup:
             self.logger.debug("start_recognition: profile has to be set up")
@@ -264,6 +278,12 @@ class Camera:
                 )
 
     def main_loop_support(self):
+        if not self.is_connected:
+            self.logger.debug(
+                "Camera main loop support could not be started as camera is "
+                "not connected"
+            )
+            return
         start = time.time()
         if (
                 self.settings[self.profile][Conf.CS_LENS_TYPE]
@@ -404,6 +424,12 @@ class Camera:
     def control_robot(self):
         # All relevant command numbers can be found in config.Conf
         # HUMANOID_FULL and SPIDER_FULL
+        if not self.is_connected:
+            self.logger.debug(
+                "Robot control could not be started as camera is not "
+                "connected"
+            )
+            return
         from robot_control import Robot
         self.logger.debug("control_robot: Started")
         self.robot = Robot.get_inst(self.robot_type)
@@ -502,6 +528,11 @@ class Camera:
     ##########################################################################
 
     def get_frame(self):
+        if not self.is_connected:
+            self.logger.debug(
+                "Camera could not get frame as camera is not connected"
+            )
+            return
         start = time.time()  # delete  #######################################
         with self.lock:
             if self.cam_num < 0:
@@ -851,6 +882,29 @@ def independent_test():
     # cam.calibrate()
     cam.start_recognition()
     cam.close()
+
+
+def test(a=None):
+    print(ExitControl.gen)
+    print(ExitControl.gen)
+    print(ExitControl.gen)
+    print(ExitControl.gen)
+    print(ExitControl.gen)
+    print(ExitControl.gen)
+    print(ExitControl.cam)
+    print(ExitControl.cam)
+    print(ExitControl.cam)
+    print(ExitControl.cam)
+    print(ExitControl.cam)
+    print(ExitControl.cam)
+    print(ExitControl.cam)
+    print(a)
+    print(a)
+    print(a)
+    print(a)
+    print(a)
+    print(a)
+    print(a)
 
 
 if __name__ == "__main__":
