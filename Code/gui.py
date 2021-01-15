@@ -248,7 +248,7 @@ class GUI(MainClass):
             info.grid(row=1, column=1)
             for key in self.full_dict:
                 info['text'] += f"{key}:{self.short_dict[key][0]}\n"
-            print(self.info)
+            print(self.info['text'])
 
     def start(self):
         self.root.after(10, self.update_image)
@@ -272,7 +272,6 @@ class GUI(MainClass):
         self.txt_cmd_input.delete(0, tk.END)
 
     def shortcut_btn(self, event):
-        print(event)  # delete ###############################################
         if event.keysym == "Up":
             self.btn_forward.invoke()
         elif event.keysym == "Down":
@@ -355,7 +354,6 @@ class GUI(MainClass):
             f"{pretty_time(self.cam.main_loop_dur, False)}\n"
             f"{pretty_time(self.cam.get_frame_time, False)}\n"
         )
-        print(self.check_auto_robot.state())
         #####################################################################
         if not ExitControl.gen:
             self.close()

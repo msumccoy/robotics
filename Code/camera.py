@@ -125,6 +125,7 @@ class Camera:
             else:
                 try:
                     self.cam = cv2.VideoCapture(self.cam_num)
+                    self.logger.debug(f"trying cv2 cam({self.cam_num}) now")
                     self.ret, self.frame_pure = self.cam.read()
                     self.height, self.width, _ = self.frame_pure.shape
                     self.is_pi_cam = False
@@ -142,6 +143,9 @@ class Camera:
                 f"Cam num changed from {cam_num} to {self.cam_num} because"
                 " original number did not have a camera associated with it"
             )
+        self.note_frame = np.zeros(
+            [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
+        )
         if self.is_connected:
             self.midpoint = int(self.width / 2)
             if lens_type == LensType.DOUBLE:
@@ -158,9 +162,6 @@ class Camera:
         self.main_loop_time_info = ["", 0, 0]
         self.focal_len = None
         self.obj_width = None
-        self.note_frame = np.zeros(
-            [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
-        )
         self.write_note = True
 
         with open(Conf.CAM_SETTINGS_FILE) as file:
