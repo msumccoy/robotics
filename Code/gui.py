@@ -46,6 +46,9 @@ class MainClass:
         self.tab_main.add(self.tab_cam, text="Camera Controls")
         self.tab_main.add(self.tab_robot, text="Robot Controls")
 
+        # Set up tkinter variables
+        self.is_robot_auto = tk.IntVar()
+
         # Set up controls in tabs
         self.scale_slider = tk.Scale(
             self.tab_cam, label="Scale Slider", from_=1, to=100,
@@ -80,8 +83,8 @@ class MainClass:
         self.btn_open_dict = tk.Button(
             self.tab_robot, text="Open Command Options"
         )
-        self.check_auto_robot = ttk.Checkbutton(
-            self.tab_robot, text="Auto Robot"
+        self.check_auto_robot = tk.Checkbutton(
+            self.tab_robot, text="Auto Robot", variable=self.is_robot_auto
         )
 
         # Set up placement of elements in tabbed window ######################
@@ -229,13 +232,17 @@ class GUI(MainClass):
             self.rpi_contrast_slider.grid_remove()
             self.rpi_iso_slider.grid_remove()
 
-        self.check_auto_robot.state(['selected'])
+        # self.check_auto_robot.state(['selected'])
+        self.check_auto_robot.deselect()
         self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
         if robot_type == RobotType.HUMAN:
             self.full_dict = Conf.HUMANOID_FULL
             self.short_dict = Conf.HUMANOID_MOTION
         elif robot_type == RobotType.SPIDER:
             self.full_dict = self.short_dict = Conf.SPIDER_FULL
+        for i in range(10):  # del ###################################################
+            print(f"inside robot control init: {self.robot.active_auto_control}")  # del ###################################################
+            print(f"inside robot control init: {self.is_robot_auto.get()}")  # del ###################################################
 
     def open_dict(self):
         try:
