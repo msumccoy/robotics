@@ -81,14 +81,25 @@ class Robot:
             )
         time.sleep(3)
         self.send_command(-1)
+        self.debug_info = ""
         self.logger.info(f"Robot init ran in {pretty_time(self.start)}")
 
     def send_command(self, motion_cmd, auto=False):
+        self.debug_info = f"send_command: motion_cmd = {motion_cmd}\n"  ######
         if self.ser is None:
+            if auto and not self.active_auto_control:
+                self.logger.debug(
+                    "Auto command sent but auto control off and no connection"
+                    f". motion_cmd = {motion_cmd}"
+                )
+                return False
             self.logger.debug(
-                "send_command: no robot to connect to."
-                f"motion_cmd={motion_cmd}"
+                "send_command: no robot to connect to. "
+                f"motion_cmd = {motion_cmd}"
             )
+            self.debug_info += (  ############################################
+                f"no robot to connect to. \n"  ###############################
+            )  ###############################################################
             print(  # delete #################################################
                 "send_command: no robot to connect to."  #####################
                 f"motion_cmd={motion_cmd}"  ##################################
@@ -97,10 +108,9 @@ class Robot:
         # Need to make sure robot is aware that command is being sent before
         # sending command
         self.logger.debug(f"send_command called: command -- {motion_cmd}")
-        if auto:
-            if not self.active_auto_control:
-                self.logger.debug("Auto command sent but auto control off")
-                return False
+        if auto and not self.active_auto_control:
+            self.logger.debug("Auto command sent but auto control off")
+            return False
         if (
                 motion_cmd == Conf.CMD_STOP or motion_cmd == Conf.CMD_STOP1
                 or type(motion_cmd) == int and motion_cmd < 0

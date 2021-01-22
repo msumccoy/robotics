@@ -199,6 +199,7 @@ class GUI(MainClass):
         )
         self.btn_cmd_enter.configure(command=lambda: self.enter_cmd(""))
         self.btn_open_dict.configure(command=self.open_dict)
+        self.check_auto_robot.configure(command=self.toggle_robot_auto)
 
         val = (self.cam.settings[self.cam.profile][Conf.CS_SCALE] - 1.005) / 0.1
         self.scale_slider.set(val)
@@ -233,16 +234,22 @@ class GUI(MainClass):
             self.rpi_iso_slider.grid_remove()
 
         # self.check_auto_robot.state(['selected'])
-        self.check_auto_robot.deselect()
+        if self.robot.active_auto_control:
+            self.check_auto_robot.select()
+        else:
+            self.check_auto_robot.deselect()
         self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
         if robot_type == RobotType.HUMAN:
             self.full_dict = Conf.HUMANOID_FULL
             self.short_dict = Conf.HUMANOID_MOTION
         elif robot_type == RobotType.SPIDER:
             self.full_dict = self.short_dict = Conf.SPIDER_FULL
-        for i in range(10):  # del ###################################################
-            print(f"inside robot control init: {self.robot.active_auto_control}")  # del ###################################################
-            print(f"inside robot control init: {self.is_robot_auto.get()}")  # del ###################################################
+
+    def toggle_robot_auto(self):
+        if self.is_robot_auto.get():
+            self.robot.active_auto_control = True
+        else:
+            self.robot.active_auto_control = False
 
     def open_dict(self):
         try:
@@ -360,6 +367,8 @@ class GUI(MainClass):
             f"object detected: {self.cam.num_objects}\n"
             f"{pretty_time(self.cam.main_loop_dur, False)}\n"
             f"{pretty_time(self.cam.get_frame_time, False)}\n"
+            f"{self.robot.debug_info}\n"
+            f"{self.robot.active_auto_control}\n"
         )
         #####################################################################
         if not ExitControl.gen:
