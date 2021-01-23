@@ -358,7 +358,7 @@ class Conf:
     # Log settings  ##########################################################
     ##########################################################################
     default_log_level_file = logging.DEBUG
-    default_log_level_terminal = logging.INFO
+    default_log_level_terminal = logging.ERROR  #logging.INFO
     LOG_ROOT = PATH_ROOT + "logs/"
     if not os.path.exists(LOG_ROOT):
         os.mkdir(LOG_ROOT)

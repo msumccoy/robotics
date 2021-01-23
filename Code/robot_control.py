@@ -3,14 +3,14 @@ Kuwin Wyke
 Midwestern State University
 """
 import logging
-import threading
+import os
 import time
-
-import cv2
-import numpy as np
-
 import serial
 import termios
+is_rpi = False
+if "raspberrypi" in os.uname():
+    is_rpi = True
+    from adafruit_servokit import ServoKit
 
 import log_set_up
 from config import Conf
@@ -79,6 +79,14 @@ class Robot:
             self.logger.exception(
                 "Robot control failed. Cannot connect to robot!!!!!!!!!!!!!!!"
             )
+        # 90 degrees is the center position
+        self.servo_pos0 = self.servo_pos1 = 90
+        if is_rpi:
+            self.servos = ServoKit(channels=16)
+            self.servos.servo[0].angle = self.servo_pos0  # Left and Right
+            self.servos.servo[1].angle = self.servo_pos1  # Up and Down
+        else:
+            self.servos = None
         time.sleep(3)
         self.send_command(-1)
         self.debug_info = ""

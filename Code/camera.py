@@ -84,6 +84,7 @@ class Camera:
         self.frame_pure = None
         self.width = self.height = 6
         self.is_pi_cam = False
+        self.ret = False
         if cam_num < 0:
             if is_rpi:
                 try:
@@ -93,10 +94,9 @@ class Camera:
                     self.cam.resolution = (self.width, self.height)
                     self.get_frame()
                     self.is_pi_cam = True
+                    self.ret = True
                 except PiCameraError:
                     self.logger.exception("Tried to start pi cam but failed")
-            else:
-                self.ret = False
         else:
             try:
                 self.cam = cv2.VideoCapture(cam_num)
@@ -120,6 +120,7 @@ class Camera:
                     self.cam.resolution = (self.width, self.height)
                     self.get_frame()
                     self.is_pi_cam = True
+                    self.ret = True
                 except PiCameraError:
                     pass
             else:
