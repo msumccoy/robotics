@@ -43,13 +43,16 @@ class MainClass:
         self.tab_main = ttk.Notebook(self.root, width=271, height=471)
         self.tab_cam = ttk.Frame(self.tab_main)
         self.tab_robot = ttk.Frame(self.tab_main)
+        self.tab_robot_head = ttk.Frame(self.tab_main)
         self.tab_main.add(self.tab_cam, text="Camera Controls")
         self.tab_main.add(self.tab_robot, text="Robot Controls")
+        self.tab_main.add(self.tab_robot_head, text="Robot Head Controls")
 
         # Set up tkinter variables
         self.is_robot_auto = tk.IntVar()
 
-        # Set up controls in tabs
+        # Set up controls in tabs  ###########################################
+        # Camera tab
         self.scale_slider = tk.Scale(
             self.tab_cam, label="Scale Slider", from_=1, to=100,
             orient=tk.HORIZONTAL, length=230
@@ -71,6 +74,7 @@ class MainClass:
             orient=tk.HORIZONTAL, length=230
         )
 
+        # Robot control tab
         self.btn_forward = tk.Button(self.tab_robot, text="Forward")
         self.btn_back = tk.Button(self.tab_robot, text="Backward")
         self.btn_left = tk.Button(self.tab_robot, text="Turn Left")
@@ -86,6 +90,26 @@ class MainClass:
         self.check_auto_robot = tk.Checkbutton(
             self.tab_robot, text="Auto Robot", variable=self.is_robot_auto
         )
+
+        # Robot head tab
+        self.btn_head_up = tk.Button(
+            self.tab_robot_head, text="Head Up"
+        )
+        self.btn_head_down = tk.Button(
+            self.tab_robot_head, text="Head Down"
+        )
+        self.btn_head_left = tk.Button(
+            self.tab_robot_head, text="Head Left"
+        )
+        self.btn_head_right = tk.Button(
+            self.tab_robot_head, text="Head Right"
+        )
+        self.txt_head_speed = tk.Entry(self.tab_robot_head)
+        self.btn_head_speed = tk.Button(self.tab_robot_head, text="Speed")
+        self.txt_head_set_U_D = tk.Entry(self.tab_robot_head)
+        self.btn_head_set_U_D = tk.Button(self.tab_robot_head, text="U D Set")
+        self.txt_head_set_L_R = tk.Entry(self.tab_robot_head)
+        self.btn_head_set_L_R = tk.Button(self.tab_robot_head, text="L R Set")
 
         # Set up placement of elements in tabbed window ######################
         # Slider tab
@@ -112,6 +136,18 @@ class MainClass:
         self.btn_cmd_enter.place(x=170, y=330, height=30, width=80)
         self.btn_open_dict.place(x=10, y=370, height= 30, width=240)
         self.check_auto_robot.place(x=10, y=410)
+
+        # Robot head tab
+        self.btn_head_up.place(x=90, y=0, height=80, width=80)
+        self.btn_head_down.place(x=90, y=130, height=80, width=80)
+        self.btn_head_left.place(x=10, y=70, height=80, width=80)
+        self.btn_head_right.place(x=170, y=70, height=80, width=80)
+        self.txt_head_speed.place(x=10, y=330, height=30, width=160)
+        self.btn_head_speed.place(x=170, y=330, height=30, width=80)
+        self.txt_head_set_U_D.place(x=10, y=370, height=30, width=160)
+        self.btn_head_set_U_D.place(x=170, y=370, height=30, width=80)
+        self.txt_head_set_L_R.place(x=10, y=400, height=30, width=160)
+        self.btn_head_set_L_R.place(x=170, y=400, height=30, width=80)
         ######################################################################
 
         # Set up placement for elements in main window #######################
@@ -154,7 +190,7 @@ class GUI(MainClass):
         self.root.bind('<K>', self.shortcut_btn)
         self.root.bind('<d>', self.shortcut_btn)
         self.root.bind('<D>', self.shortcut_btn)
-        self.root.bind('<Return>', self.enter_cmd)
+        self.root.bind('<Return>', self.enter_box)
         self.scale_slider.bind(
             "<Button-4>", lambda opt: self.on_mouse_wheel("scale_up")
         )
@@ -168,6 +204,7 @@ class GUI(MainClass):
             "<Button-5>", lambda opt: self.on_mouse_wheel("neigh_down")
         )
 
+        # Set up tab buttons and widgets  ####################################
         # Set functions executed on movement of slider
         self.scale_slider.configure(command=self.cam.set_scale)
         self.neigh_slider.configure(command=self.cam.set_neigh)
@@ -197,9 +234,35 @@ class GUI(MainClass):
         self.btn_dance.configure(
             command=lambda: self.robot_btn(Conf.CMD_DANCE)
         )
-        self.btn_cmd_enter.configure(command=lambda: self.enter_cmd(""))
+        self.btn_cmd_enter.configure(
+            command=lambda: self.enter_box(Conf.CONST_ROBOT_HEAD)
+        )
         self.btn_open_dict.configure(command=self.open_dict)
         self.check_auto_robot.configure(command=self.toggle_robot_auto)
+
+        # Shortcuts for robot head
+        self.btn_head_up.configure(
+            command=lambda: self.robot_head_btn(Conf.CMD_RH_UP)
+        )
+        self.btn_head_down.configure(
+            command=lambda: self.robot_head_btn(Conf.CMD_RH_DOWN)
+        )
+        self.btn_head_left.configure(
+            command=lambda: self.robot_head_btn(Conf.CMD_RH_LEFT)
+        )
+        self.btn_head_right.configure(
+            command=lambda: self.robot_head_btn(Conf.CMD_RH_RIGHT)
+        )
+        self.btn_head_speed.configure(
+            command=lambda: self.enter_box(Conf.CONST_ROBOT_HEAD)
+        )
+        self.btn_head_set_U_D.configure(
+            command=lambda: self.enter_box(Conf.CONST_ROBOT_HEAD_SET_U_D)
+        )
+        self.btn_head_set_L_R.configure(
+            command=lambda: self.enter_box(Conf.CONST_ROBOT_HEAD_SET_L_R)
+        )
+        ######################################################################
 
         val = (self.cam.settings[self.cam.profile][Conf.CS_SCALE] - 1.005) / 0.1
         self.scale_slider.set(val)
@@ -275,15 +338,59 @@ class GUI(MainClass):
     def robot_btn(self, action):
         self.robot.send_command(action)
 
-    def enter_cmd(self, event):
-        val = self.txt_cmd_input.get()
-        try:
-            val = int(val)
-            if val in self.short_dict:
-                self.robot.send_command(val)
-        except ValueError:
-            pass
-        self.txt_cmd_input.delete(0, tk.END)
+    def robot_head_btn(self, action):
+        self.robot.send_head_command(action)
+
+    def enter_box(self, box_type):
+        if box_type == Conf.CONST_ROBOT_CONTROL:
+            val = self.txt_cmd_input.get()
+            try:
+                val = int(val)
+                if val in self.short_dict:
+                    self.robot.send_command(val)
+            except ValueError:
+                pass
+            self.txt_cmd_input.delete(0, tk.END)
+        elif box_type == Conf.CONST_ROBOT_HEAD:
+            val = self.txt_head_speed.get()
+            try:
+                val = int(val)
+                if 0 < val < 180:
+                    self.robot.head_delta_theta = val
+                    self.logger.debug(
+                        f"enter_box: robot head_delta_theta set to {val}"
+                    )
+                else:
+                    self.logger.debug(
+                        f"enter_box: robot head_delta_theta NOT set to {val}!"
+                    )
+            except ValueError:
+                self.logger.debug(
+                    "enter_box: txt_head_speed must be an integer"
+                )
+            self.txt_head_speed.delete(0, tk.END)
+        elif box_type == Conf.CONST_ROBOT_HEAD_SET_U_D:
+            val = self.txt_head_set_U_D.get()
+            try:
+                val = int(val)
+                self.robot.servo_pos1 = val
+                self.robot.set_head()
+            except ValueError:
+                self.logger.debug(
+                    "enter_box: txt_head_set_U_D must be an integer"
+                )
+            self.txt_head_set_U_D.delete(0, tk.END)
+        elif box_type == Conf.CONST_ROBOT_HEAD_SET_L_R:
+            val = self.txt_head_set_L_R.get()
+            try:
+                val = int(val)
+                self.robot.servo_pos0 = val
+                self.robot.set_head()
+            except ValueError:
+                self.logger.debug(
+                    "enter_box: txt_head_set_L_R must be an integer"
+                )
+            self.txt_head_set_L_R.delete(0, tk.END)
 
     def shortcut_btn(self, event):
         if event.keysym == "Up":

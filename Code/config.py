@@ -425,6 +425,14 @@ class Conf:
     CMD_KICK1 = "k"
     CMD_DANCE = "dance"
     CMD_DANCE1 = "d"
+    CMD_RH_UP = "head up"
+    CMD_RH_DOWN = "head down"
+    CMD_RH_LEFT = "head left"
+    CMD_RH_RIGHT = "head right"
 
     # Misc Constants
     CONST_MIDDLE = "Middle"
+    CONST_ROBOT_CONTROL = "robot control"
+    CONST_ROBOT_HEAD = "robot head"
+    CONST_ROBOT_HEAD_SET_U_D = "robot head set, up and down"
+    CONST_ROBOT_HEAD_SET_L_R = "robot head set, left and right"

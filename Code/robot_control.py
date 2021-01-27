@@ -81,6 +81,7 @@ class Robot:
             )
         # 90 degrees is the center position
         self.servo_pos0 = self.servo_pos1 = 90
+        self.head_delta_theta = 5
         if is_rpi:
             self.servos = ServoKit(channels=16)
             self.servos.servo[0].angle = self.servo_pos0  # Left and Right
@@ -208,6 +209,41 @@ class Robot:
         else:
             self.logger.info(f"Motion number {motion_num} not allowed")
             return Conf.HEX_STOP
+
+    def send_head_command(self, motion_cmd, auto=False):
+        if is_rpi:
+            if auto and not self.active_auto_control:
+                self.logger.debug(
+                    "send_head_command: auto head control attempted but"
+                    " active_auto_control off"
+                )
+                return False
+            if motion_cmd == Conf.CMD_RH_UP:
+                self.servo_pos1 += self.head_delta_theta
+            if motion_cmd == Conf.CMD_RH_DOWN:
+                self.servo_pos1 -= self.head_delta_theta
+            if motion_cmd == Conf.CMD_RH_LEFT:
+                self.servo_pos0 += self.head_delta_theta
+            if motion_cmd == Conf.CMD_RH_RIGHT:
+                self.servo_pos0 -= self.head_delta_theta
+            self.set_head()
+        else:
+            self.logger.info(
+                "Cannot control head servos as this program is not being "
+                "executed on a raspberry pi"
+            )
+
+    def set_head(self):
+        if self.servo_pos0 < 0:
+            self.servo_pos0 = 0
+        elif self.servo_pos0 > 180:
+            self.servo_pos0 = 180
+        if self.servo_pos1 < 0:
+            self.servo_pos1 = 0
+        elif self.servo_pos1 > 180:
+            self.servo_pos1 = 180
+        self.servos.servo[0].angle = self.servo_pos0  # Left and Right
+        self.servos.servo[1].angle = self.servo_pos1  # Up and Down
 
     ##########################################################################
     # Manual control for robot ###############################################
