@@ -32,6 +32,19 @@ def cam_starter(robot_type):
 
 
 def main():
+    # TODO: Create
+    # TODO: separate each section to run independently
+    #   - Robot
+    #       - Control interface for auto should start
+    #       - CLI control should start
+    #   - Camera
+    #       - send camera feed to a pipe if requested
+    #       - Send commands to robot if possible
+    #   - GUI
+    #       - Should run in main process while other two segments run in a
+    #         secondary process
+    #       - Should communicate with the camera via pipes
+    #       - Should communicate with the robot via pipes
     start = time.time()
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     main_logger.info(f"Main function starting on version {Conf.VERSION}")
