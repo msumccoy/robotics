@@ -71,7 +71,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
@@ -483,6 +483,81 @@
         <string>Up</string>
        </property>
       </widget>
+     </widget>
+     <widget class="QPushButton" name="btn_kick">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>230</y>
+        <width>241</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Kick</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btn_dance">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>280</y>
+        <width>241</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Dance</string>
+      </property>
+     </widget>
+     <widget class="QPlainTextEdit" name="txt_cmd_input">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>330</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btn_cmd_enter">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>330</y>
+        <width>80</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Enter</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btn_open_dict">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>370</y>
+        <width>240</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Open Command Options</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="check_auto_robot">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>410</y>
+        <width>91</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Auto Robot</string>
+      </property>
      </widget>
     </widget>
    </widget>

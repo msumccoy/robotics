@@ -14,6 +14,7 @@ import cv2
 import serial
 
 config_file = "/home/pi/file.json"  # This is system specific
+# config_file = "/home/kuwin/file2.json"  # This is system specific
 with open(config_file) as file:
     config = json.load(file)
 
@@ -21,7 +22,7 @@ with open(config_file) as file:
 class Conf:
     # VERSION = major_change.minor_change
     VERSION = 2.0  # 2.1
-    PATH_ROOT = config["path"]  # Typically: /home/user/pi/
+    PATH_ROOT = config["path"]  # Typically: /home/pi/Documents/Code/
     ##########################################################################
     # Templates  #############################################################
     ##########################################################################
@@ -44,6 +45,19 @@ class Conf:
 
     PORT_TIME_OUT = 20  # How long before we give up on trying to connect
     MAX_SEARCH_DUR = 60
+
+    # Robot constants
+    RBT_MAX_HEAD_LEFT = 180
+    RBT_MIN_HEAD_RIGHT = 0
+    RBT_MAX_HEAD_BACK = 100
+    RBT_MIN_HEAD_FORWARD = 0
+
+    ROBOT_CONTROL = "robot control"
+    ROBOT_HEAD = "robot head"
+    ROBOT_HEAD_SET_U_D = "robot head set, up and down"
+    ROBOT_HEAD_SET_L_R = "robot head set, left and right"
+
+    SEARCH_REST = .5
 
     # Movement control dictionaries  #########################################
     HUMANOID_FULL = {  # Full dictionary with all motions in Heart2Heart
@@ -323,10 +337,10 @@ class Conf:
 
     # CS = camera settings
     CS_DEFAULT = "default"
+    CS_DEFAULT1 = "default_non_pi_cam"
     CS_DEFAULT2 = "default_dual"
+    CS_IS_PI_CAM = "is_pi_cam"
     CS_FOCAL = "focal_len"
-    CS_FOCAL_L = "focal_len_left"
-    CS_FOCAL_R = "focal_len_right"
     CS_LENS_TYPE = "lens_type"
     CS_OBJ_WIDTH = "object_width"
     CS_SCALE = "scale"
@@ -347,10 +361,17 @@ class Conf:
     KICK_RANGE = 3
 
     ##########################################################################
+    # GUI settings  ##########################################################
+    ##########################################################################
+    G_FRAME_HEIGHT = 491
+    G_FRAME_WIDTH = 441
+    G_SLIDE_HEIGHT = 70
+
+    ##########################################################################
     # Log settings  ##########################################################
     ##########################################################################
     default_log_level_file = logging.DEBUG
-    default_log_level_terminal = logging.INFO
+    default_log_level_terminal = logging.ERROR  #logging.INFO
     LOG_ROOT = PATH_ROOT + "logs/"
     if not os.path.exists(LOG_ROOT):
         os.mkdir(LOG_ROOT)
@@ -414,24 +435,13 @@ class Conf:
     CMD_RIGHT = "right"
     CMD_RIGHT1 = "r"
     CMD_KICK = "kick"
+    CMD_KICK1 = "k"
     CMD_DANCE = "dance"
     CMD_DANCE1 = "d"
-
-    # Commands for OpenCV window control
-    R_CMD_EXIT = ord("e")
-    R_CMD_STOP = ord("s")
-    R_CMD_AUTO_ON = ord("a")
-    R_CMD_AUTO_OFF = ord("o")
-    R_CMD_CONTINUOUS_FORWARD = 82
-    R_CMD_FORWARD = ord("f")
-    R_CMD_BACKWARD = ord("b")
-    R_CMD_BACKWARD2 = 84
-    R_CMD_LEFT = ord("l")
-    R_CMD_LEFT1 = 81
-    R_CMD_RIGHT = ord("r")
-    R_CMD_RIGHT1 = 83
-    R_CMD_CLOSE = ord("c")
-    R_CMD_KICK = ord("k")
+    CMD_RH_UP = "head up"
+    CMD_RH_DOWN = "head down"
+    CMD_RH_LEFT = "head left"
+    CMD_RH_RIGHT = "head right"
 
     # Misc Constants
     CONST_MIDDLE = "Middle"

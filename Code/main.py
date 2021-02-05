@@ -24,7 +24,6 @@ def cam_starter(robot_type):
         # lens_type=LensType.DOUBLE,
         # record=True,
         # take_pic=True,
-        disp_img=True
     )
     try:
         cam.start_recognition()
@@ -36,7 +35,8 @@ def main():
     start = time.time()
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     main_logger.info(f"Main function starting on version {Conf.VERSION}")
-    robot_type = RobotType.SPIDER
+    robot_type = RobotType.HUMAN
+    # robot_type = RobotType.SPIDER
 
     cam_thread = threading.Thread(target=cam_starter, args=(robot_type,))
     cam_thread.start()
@@ -45,7 +45,7 @@ def main():
     auto_robot_thread = threading.Thread(target=cam.control_robot)
     auto_robot_thread.start()
 
-    robot = Robot.get_inst(robot_type)
+    robot = Robot.get_inst(robot_type, False)
     manual_robot_thread = threading.Thread(
         target=robot.manual_control, daemon=True
     )
