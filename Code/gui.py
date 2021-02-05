@@ -373,7 +373,7 @@ class GUI(MainClass):
             val = self.txt_head_set_U_D.get()
             try:
                 val = int(val)
-                self.robot.servo_pos1 = val
+                self.robot.servo_posUD = val
                 self.robot.set_head()
             except ValueError:
                 self.logger.debug(
@@ -384,7 +384,7 @@ class GUI(MainClass):
             val = self.txt_head_set_L_R.get()
             try:
                 val = int(val)
-                self.robot.servo_pos0 = val
+                self.robot.servo_posLR = val
                 self.robot.set_head()
             except ValueError:
                 self.logger.debug(

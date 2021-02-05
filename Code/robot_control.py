@@ -80,12 +80,12 @@ class Robot:
                 "Robot control failed. Cannot connect to robot!!!!!!!!!!!!!!!"
             )
         # 90 degrees is the center position
-        self.servo_pos0 = self.servo_pos1 = 90
+        self.servo_posLR = self.servo_posUD = 90
         self.head_delta_theta = 5
         if is_rpi:
             self.servos = ServoKit(channels=16)
-            self.servos.servo[0].angle = self.servo_pos0  # Left and Right
-            self.servos.servo[1].angle = self.servo_pos1  # Up and Down
+            self.servos.servo[0].angle = self.servo_posLR  # Left and Right
+            self.servos.servo[1].angle = self.servo_posUD  # Up and Down
         else:
             self.servos = None
         time.sleep(3)
@@ -219,13 +219,13 @@ class Robot:
                 )
                 return False
             if motion_cmd == Conf.CMD_RH_UP:
-                self.servo_pos1 += self.head_delta_theta
+                self.servo_posUD += self.head_delta_theta
             if motion_cmd == Conf.CMD_RH_DOWN:
-                self.servo_pos1 -= self.head_delta_theta
+                self.servo_posUD -= self.head_delta_theta
             if motion_cmd == Conf.CMD_RH_LEFT:
-                self.servo_pos0 += self.head_delta_theta
+                self.servo_posLR += self.head_delta_theta
             if motion_cmd == Conf.CMD_RH_RIGHT:
-                self.servo_pos0 -= self.head_delta_theta
+                self.servo_posLR -= self.head_delta_theta
             self.set_head()
         else:
             self.logger.info(
@@ -234,16 +234,18 @@ class Robot:
             )
 
     def set_head(self):
-        if self.servo_pos0 < 0:
-            self.servo_pos0 = 0
-        elif self.servo_pos0 > 180:
-            self.servo_pos0 = 180
-        if self.servo_pos1 < 0:
-            self.servo_pos1 = 0
-        elif self.servo_pos1 > 180:
-            self.servo_pos1 = 180
-        self.servos.servo[0].angle = self.servo_pos0  # Left and Right
-        self.servos.servo[1].angle = self.servo_pos1  # Up and Down
+        if self.servo_posLR < Conf.RBT_MIN_HEAD_RIGHT:
+            self.servo_posLR = Conf.RBT_MIN_HEAD_RIGHT
+        elif self.servo_posLR > Conf.RBT_MAX_HEAD_LEFT:
+            self.servo_posLR = Conf.RBT_MAX_HEAD_LEFT
+
+        if self.servo_posUD < Conf.RBT_MIN_HEAD_FORWARD:
+            self.servo_posUD = Conf.RBT_MIN_HEAD_FORWARD
+        elif self.servo_posUD > Conf.RBT_MAX_HEAD_BACK:
+            self.servo_posUD = Conf.RBT_MAX_HEAD_BACK
+
+        self.servos.servo[0].angle = self.servo_posLR  # Left and Right
+        self.servos.servo[1].angle = self.servo_posUD  # Up and Down
 
     ##########################################################################
     # Manual control for robot ###############################################

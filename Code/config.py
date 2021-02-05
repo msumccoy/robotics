@@ -46,6 +46,12 @@ class Conf:
     PORT_TIME_OUT = 20  # How long before we give up on trying to connect
     MAX_SEARCH_DUR = 60
 
+    # Robot constants
+    RBT_MAX_HEAD_LEFT = 180
+    RBT_MIN_HEAD_RIGHT = 0
+    RBT_MAX_HEAD_BACK = 180
+    RBT_MIN_HEAD_FORWARD = 0
+
     # Movement control dictionaries  #########################################
     HUMANOID_FULL = {  # Full dictionary with all motions in Heart2Heart
         0: ["Bow -- not working!!!", 1],
