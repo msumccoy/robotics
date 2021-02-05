@@ -93,16 +93,16 @@ class MainClass:
 
         # Robot head tab
         self.btn_head_up = tk.Button(
-            self.tab_robot_head, text="Head Up"
+            self.tab_robot_head, text=Conf.CMD_RH_UP
         )
         self.btn_head_down = tk.Button(
-            self.tab_robot_head, text="Head Down"
+            self.tab_robot_head, text=Conf.CMD_RH_DOWN
         )
         self.btn_head_left = tk.Button(
-            self.tab_robot_head, text="Head Left"
+            self.tab_robot_head, text=Conf.CMD_RH_LEFT
         )
         self.btn_head_right = tk.Button(
-            self.tab_robot_head, text="Head Right"
+            self.tab_robot_head, text=Conf.CMD_RH_RIGHT
         )
         self.txt_head_speed = tk.Entry(self.tab_robot_head)
         self.btn_head_speed = tk.Button(self.tab_robot_head, text="Speed")
@@ -235,7 +235,7 @@ class GUI(MainClass):
             command=lambda: self.robot_btn(Conf.CMD_DANCE)
         )
         self.btn_cmd_enter.configure(
-            command=lambda: self.enter_box(Conf.CONST_ROBOT_HEAD)
+            command=lambda: self.enter_box(Conf.ROBOT_HEAD)
         )
         self.btn_open_dict.configure(command=self.open_dict)
         self.check_auto_robot.configure(command=self.toggle_robot_auto)
@@ -254,13 +254,13 @@ class GUI(MainClass):
             command=lambda: self.robot_head_btn(Conf.CMD_RH_RIGHT)
         )
         self.btn_head_speed.configure(
-            command=lambda: self.enter_box(Conf.CONST_ROBOT_HEAD)
+            command=lambda: self.enter_box(Conf.ROBOT_HEAD)
         )
         self.btn_head_set_U_D.configure(
-            command=lambda: self.enter_box(Conf.CONST_ROBOT_HEAD_SET_U_D)
+            command=lambda: self.enter_box(Conf.ROBOT_HEAD_SET_U_D)
         )
         self.btn_head_set_L_R.configure(
-            command=lambda: self.enter_box(Conf.CONST_ROBOT_HEAD_SET_L_R)
+            command=lambda: self.enter_box(Conf.ROBOT_HEAD_SET_L_R)
         )
         ######################################################################
 
@@ -342,7 +342,7 @@ class GUI(MainClass):
         self.robot.send_head_command(action)
 
     def enter_box(self, box_type):
-        if box_type == Conf.CONST_ROBOT_CONTROL:
+        if box_type == Conf.ROBOT_CONTROL:
             val = self.txt_cmd_input.get()
             try:
                 val = int(val)
@@ -351,7 +351,7 @@ class GUI(MainClass):
             except ValueError:
                 pass
             self.txt_cmd_input.delete(0, tk.END)
-        elif box_type == Conf.CONST_ROBOT_HEAD:
+        elif box_type == Conf.ROBOT_HEAD:
             val = self.txt_head_speed.get()
             try:
                 val = int(val)
@@ -369,7 +369,7 @@ class GUI(MainClass):
                     "enter_box: txt_head_speed must be an integer"
                 )
             self.txt_head_speed.delete(0, tk.END)
-        elif box_type == Conf.CONST_ROBOT_HEAD_SET_U_D:
+        elif box_type == Conf.ROBOT_HEAD_SET_U_D:
             val = self.txt_head_set_U_D.get()
             try:
                 val = int(val)
@@ -380,7 +380,7 @@ class GUI(MainClass):
                     "enter_box: txt_head_set_U_D must be an integer"
                 )
             self.txt_head_set_U_D.delete(0, tk.END)
-        elif box_type == Conf.CONST_ROBOT_HEAD_SET_L_R:
+        elif box_type == Conf.ROBOT_HEAD_SET_L_R:
             val = self.txt_head_set_L_R.get()
             try:
                 val = int(val)
@@ -476,6 +476,7 @@ class GUI(MainClass):
             f"{pretty_time(self.cam.get_frame_time, False)}\n"
             f"{self.robot.debug_info}\n"
             f"{self.robot.active_auto_control}\n"
+            f"{self.robot.servo_posUD}\n"
         )
         #####################################################################
         if not ExitControl.gen:

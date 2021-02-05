@@ -521,6 +521,7 @@ class Camera:
                             self.command, auto=True
                         )
                         cmd_sent_time = time.time()
+                    self.rbt_head_search()
                 else:
                     self.logger.warning(
                         "Object not found in "
@@ -530,6 +531,16 @@ class Camera:
             if success and dur > orig_wait_time:
                 self.logger.info(f"control_robot: Command sent: {cmd_sent}")
             time.sleep(2)
+
+    def rbt_head_search(self):
+        self.robot.send_head_command(
+            Conf.ROBOT_HEAD_SET_U_D, pos=Conf.RBT_MIN_HEAD_FORWARD, auto=True
+        )
+        while not self.obj_dist[ObjDist.IS_FOUND]:
+            self.robot.send_head_command(Conf.CMD_RH_UP, auto=True)
+            time.sleep(Conf.SEARCH_REST)
+            if self.robot.servo_posUD >= Conf.RBT_MAX_HEAD_BACK:
+                break
     ##########################################################################
 
     def get_frame(self):

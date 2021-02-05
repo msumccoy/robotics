@@ -49,8 +49,15 @@ class Conf:
     # Robot constants
     RBT_MAX_HEAD_LEFT = 180
     RBT_MIN_HEAD_RIGHT = 0
-    RBT_MAX_HEAD_BACK = 180
+    RBT_MAX_HEAD_BACK = 100
     RBT_MIN_HEAD_FORWARD = 0
+
+    ROBOT_CONTROL = "robot control"
+    ROBOT_HEAD = "robot head"
+    ROBOT_HEAD_SET_U_D = "robot head set, up and down"
+    ROBOT_HEAD_SET_L_R = "robot head set, left and right"
+
+    SEARCH_REST = .5
 
     # Movement control dictionaries  #########################################
     HUMANOID_FULL = {  # Full dictionary with all motions in Heart2Heart
@@ -438,7 +445,3 @@ class Conf:
 
     # Misc Constants
     CONST_MIDDLE = "Middle"
-    CONST_ROBOT_CONTROL = "robot control"
-    CONST_ROBOT_HEAD = "robot head"
-    CONST_ROBOT_HEAD_SET_U_D = "robot head set, up and down"
-    CONST_ROBOT_HEAD_SET_L_R = "robot head set, left and right"

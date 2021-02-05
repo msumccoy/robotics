@@ -27,13 +27,13 @@ class Robot:
     logger = logging.getLogger(Conf.LOG_ROBOT_NAME)
 
     @staticmethod
-    def get_inst(robot_type):
+    def get_inst(robot_type, enable_auto=True):
         with Conf.LOCK_GEN:
             if robot_type not in Robot._inst:
-                Robot._inst[robot_type] = Robot(robot_type)
+                Robot._inst[robot_type] = Robot(robot_type, enable_auto)
         return Robot._inst[robot_type]
 
-    def __init__(self, robot_type):
+    def __init__(self, robot_type, enable_auto):
         self.main_logger.info(f"Robot: started on version {Conf.VERSION}")
         self.logger.info(
             f"Robot started on version {Conf.VERSION}:\n"
@@ -62,7 +62,7 @@ class Robot:
                 f"{robot_type} is not a valid option for robot type"
             )
         self.robot_type = robot_type
-        self.active_auto_control = True
+        self.active_auto_control = enable_auto
         self.full_control = False
 
         # Create serial port object for connection to the robot
@@ -210,7 +210,7 @@ class Robot:
             self.logger.info(f"Motion number {motion_num} not allowed")
             return Conf.HEX_STOP
 
-    def send_head_command(self, motion_cmd, auto=False):
+    def send_head_command(self, motion_cmd, pos=None, auto=False):
         if is_rpi:
             if auto and not self.active_auto_control:
                 self.logger.debug(
@@ -220,12 +220,17 @@ class Robot:
                 return False
             if motion_cmd == Conf.CMD_RH_UP:
                 self.servo_posUD += self.head_delta_theta
-            if motion_cmd == Conf.CMD_RH_DOWN:
+            elif motion_cmd == Conf.CMD_RH_DOWN:
                 self.servo_posUD -= self.head_delta_theta
-            if motion_cmd == Conf.CMD_RH_LEFT:
+            elif motion_cmd == Conf.CMD_RH_LEFT:
                 self.servo_posLR += self.head_delta_theta
-            if motion_cmd == Conf.CMD_RH_RIGHT:
+            elif motion_cmd == Conf.CMD_RH_RIGHT:
                 self.servo_posLR -= self.head_delta_theta
+            elif motion_cmd == Conf.ROBOT_HEAD_SET_U_D and pos is not None:
+                self.servo_posUD = pos
+            elif motion_cmd == Conf.ROBOT_HEAD_SET_L_R and pos is not None:
+                self.servo_posLR = pos
+                pass
             self.set_head()
         else:
             self.logger.info(

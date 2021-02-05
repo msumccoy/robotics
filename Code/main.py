@@ -45,7 +45,7 @@ def main():
     auto_robot_thread = threading.Thread(target=cam.control_robot)
     auto_robot_thread.start()
 
-    robot = Robot.get_inst(robot_type)
+    robot = Robot.get_inst(robot_type, False)
     manual_robot_thread = threading.Thread(
         target=robot.manual_control, daemon=True
     )
