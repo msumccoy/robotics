@@ -25,23 +25,29 @@ from variables import ExitControl
 
 
 class Camera:
+    # TODO: set up calibration to work with gui instead of OpenCV
+    #   * Currently default values are set for focus, object width ect.
+    #   -> Ensure main function will operate dynamically that is ensure it will
+    #      accept changes to parameters while it is running
+    #   -> Set up method in GUI class to adjust calibration to avoid having
+    #      to do the calibration in OpenCV
     _inst = {}
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     logger = logging.getLogger(Conf.LOG_CAM_NAME)
 
     @staticmethod
     def get_inst(
-            cam_name, cam_num=0, lens_type=LensType.SINGLE,
-            record=False, take_pic=False, disp_img=False
+            cam_name, cam_num=-1, lens_type=LensType.SINGLE,
+            record=False, take_pic=False
     ):
         with Conf.LOCK_CLASS:
             if cam_name not in Camera._inst:
                 Camera._inst[cam_name] = Camera(
-                    cam_name, cam_num, lens_type, record, take_pic, disp_img
+                    cam_name, cam_num, lens_type, record, take_pic
                 )
         return Camera._inst[cam_name]
 
-    def __init__(self, robot, cam_num, lens_type, record, take_pic, disp_img):
+    def __init__(self, robot, cam_num, lens_type, record, take_pic):
         self.main_logger.info(f"Camera: started on version {Conf.VERSION}")
         self.logger.info(
             f"Cam started on version {Conf.VERSION}:\n"
@@ -50,100 +56,128 @@ class Camera:
             f"- lens_type: {lens_type}\n"
             f"- record: {record}\n"
             f"- take_pic: {take_pic}\n"
-            f"- Display image: {disp_img}"
         )
         self.start_time = time.time()
         self.lock = Conf.LOCK_CAM
+        self.lock_detect = threading.Lock()
         self.count = 0
+        self.is_connected = False
         if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
             self.logger.exception(f"'{lens_type}' is not a valid lens type")
             self.main_logger.exception(
                 f"Camera: crashed -- '{lens_type}' is not a valid lens type"
             )
-            raise ValueError(f"'{lens_type}' is not a valid lens type")
+        else:
+            self.is_connected = True
         if robot != RobotType.HUMAN and robot != RobotType.SPIDER:
             self.logger.exception(f"'{robot}' is not a valid robot type")
             self.main_logger.exception(
                 f"Camera: crashed -- '{robot}' is not a valid robot type"
             )
-            raise ValueError(f"'{robot}' is not a valid robot type")
+        else:
+            self.is_connected = True
 
-        self.disp_img = disp_img
         self.robot_type = robot
         self.robot = None
         self.cam_num = cam_num
         self.lens_type = lens_type
         self.frame_pure = None
+        self.width = self.height = 6
+        self.is_pi_cam = False
+        self.ret = False
         if cam_num < 0:
-            try:
-                self.height = 480
-                self.width = 640
-                self.cam = PiCamera()
-                self.cam.resolution = (self.width, self.height)
-                self.cam.framerate = 32
-                self.get_frame()
-            except PiCameraError:
-                self.logger.exception("Tried to start pi cam but failed")
+            if is_rpi:
+                try:
+                    self.height = 480
+                    self.width = 640
+                    self.cam = PiCamera()
+                    self.cam.resolution = (self.width, self.height)
+                    self.get_frame()
+                    self.is_pi_cam = True
+                    self.ret = True
+                except PiCameraError:
+                    self.logger.exception("Tried to start pi cam but failed")
         else:
-            self.cam = cv2.VideoCapture(cam_num)
-            self.ret, self.frame_pure = self.cam.read()
-            self.height, self.width, _ = self.frame_pure.shape
+            try:
+                self.cam = cv2.VideoCapture(cam_num)
+                self.ret, self.frame_pure = self.cam.read()
+                self.height, self.width, _ = self.frame_pure.shape
+                self.is_pi_cam = False
+            except AttributeError:
+                pass
         if not self.ret:
-            self.cam_num = -1
-        while not self.ret:
+            if is_rpi:
+                self.cam_num = -2
+            else:
+                self.cam_num = -1
+        while not self.ret and ExitControl.cam:
+            self.cam_num += 1
             if is_rpi and self.cam_num < 0:
                 try:
                     self.cam = PiCamera()
                     self.height = 480
                     self.width = 640
                     self.cam.resolution = (self.width, self.height)
-                    self.cam.framerate = 32
                     self.get_frame()
+                    self.is_pi_cam = True
+                    self.ret = True
                 except PiCameraError:
                     pass
             else:
-                self.cam = cv2.VideoCapture(self.cam_num)
-                self.ret, self.frame_pure = self.cam.read()
-                self.height, self.width, _ = self.frame_pure.shape
-            self.cam_num += 1
+                try:
+                    self.cam = cv2.VideoCapture(self.cam_num)
+                    self.logger.debug(f"trying cv2 cam({self.cam_num}) now")
+                    self.ret, self.frame_pure = self.cam.read()
+                    self.height, self.width, _ = self.frame_pure.shape
+                    self.is_pi_cam = False
+                except AttributeError:
+                    pass
             if self.cam_num > 5:
                 self.logger.exception("No viable camera found")
                 self.main_logger.exception(
                     "Camera: crashed -- No viable camera found"
                 )
-                raise Exception("No viable camera found ")
+                self.is_connected = False
+                ExitControl.cam = False
         if self.cam_num != cam_num:
             self.logger.info(
                 f"Cam num changed from {cam_num} to {self.cam_num} because"
                 " original number did not have a camera associated with it"
             )
-        self.focal_len = None
-        self.focal_len_l = None
-        self.focal_len_r = None
-        self.obj_width = None
-        self.midpoint = int(self.width / 2)
-        if lens_type == LensType.DOUBLE:
-            self.midpoint = int(self.width / 4)
-            self.width = int(self.width / 2)
-            self.get_dual_image()
         self.note_frame = np.zeros(
             [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
         )
-        self.frame = self.frame_pure.copy()
-        self.frame_full = np.vstack((self.frame, self.note_frame))
+        if self.is_connected:
+            self.midpoint = int(self.width / 2)
+            if lens_type == LensType.DOUBLE:
+                self.midpoint = int(self.width / 4)
+                self.width = int(self.width / 2)
+                self.get_dual_image()
+            self.frame = self.frame_pure.copy()
+            self.frame_full = np.vstack((self.frame, self.note_frame))
+        else:
+            self.frame = np.zeros([640, 640, 3], dtype=np.uint8)
+            self.frame_full = self.frame.copy()
+
+        self.main_total_time_info = ["", 0, 0]
+        self.main_loop_time_info = ["", 0, 0]
+        self.focal_len = None
+        self.obj_width = None
         self.write_note = True
 
         with open(Conf.CAM_SETTINGS_FILE) as file:
             self.settings = json.load(file)
-        if lens_type == LensType.SINGLE:
+        if self.is_pi_cam:
             self.profile = Conf.CS_DEFAULT
+        elif lens_type == LensType.SINGLE:
+            self.profile = Conf.CS_DEFAULT1
         elif lens_type == LensType.DOUBLE:
             self.profile = Conf.CS_DEFAULT2
-        if self.profile not in self.settings:
-            self.do_setup_profile = True
-            self.reset_profile(self.profile)
+        if self.profile in self.settings:
+            self.is_profile_setup = True
         else:
-            self.do_setup_profile = False
+            self.is_profile_setup = False
+            self.reset_profile(self.profile)
         files = os.listdir(Conf.PIC_ROOT)
         if len(files) > 0:
             files = [int(f[:-4]) for f in files]
@@ -170,7 +204,6 @@ class Camera:
         self.obj_dist = {}
         self.reset_distances(True)
         self.last_non_search = time.time()
-        self.note_dict = {}
 
         self.command = None
         self.num_objects = 0
@@ -179,35 +212,10 @@ class Camera:
         self.detected_objects = None
         self.detected_left = None
         self.detected_right = None
-        self.is_detected_equal = True
-        self.is_detected = False
-        if disp_img:
-            track_bar = Conf.CV_WINDOW
-            track_bar_scale = 4
-            track_bar_neigh = 4
-            if self.profile in self.settings:
-                if Conf.CS_SCALE in self.settings[self.profile]:
-                    track_bar_scale = (
-                            (
-                                self.settings[self.profile][Conf.CS_SCALE]
-                                - 1.005
-                            )
-                            / 0.1
-                    )
-                    track_bar_scale = int(f"{track_bar_scale: .0f}")
-                if Conf.CS_NEIGH in self.settings[self.profile]:
-                    track_bar_neigh = (
-                        self.settings[self.profile][Conf.CS_NEIGH]
-                    )
-            cv2.namedWindow(Conf.CV_WINDOW)
-            cv2.namedWindow(track_bar)
-            cv2.createTrackbar(
-                "scale", track_bar, track_bar_scale, 89, self.set_scale
-            )
-            cv2.createTrackbar(
-                "min Neigh", track_bar, track_bar_neigh, 50, self.set_neigh
-            )
         self.update_instance_settings()
+        self.main_loop_dur = 0
+
+        self.get_frame_time = 0  # delete  ###################################
 
         self.logger.info(
             f"Cam init ran in {pretty_time(self.start_time)}"
@@ -217,201 +225,202 @@ class Camera:
     # Main detection function. ###############################################
     ##########################################################################
     def start_recognition(self):
+        if not self.is_connected:
+            self.logger.debug(
+                "Camera recognition could not be started as camera is not "
+                "connected"
+            )
+            return
         self.logger.debug("start_recognition started")
-        if self.do_setup_profile:
+        if not self.is_profile_setup:
             self.logger.debug("start_recognition: profile has to be set up")
-            if self.disp_img:
-                self.setup_profile(self.profile)
-            else:
-                self.logger.exception(
-                    "start_recognition: WARNING USING "
-                    "DEFAULT VALUES FOR MEASUREMENT"
-                )
-        loop_dur = 0
+            self.logger.exception(
+                "start_recognition: WARNING USING DEFAULT VALUES FOR "
+                "MEASUREMENT"
+            )
         total_dur = time.time() - self.start_time
         threshold = Conf.LOOP_DUR_THRESHOLD / 1000
-        while (
-                ExitControl.gen and ExitControl.cam and
+        if (
                 self.settings[self.profile][Conf.CS_LENS_TYPE]
                 != self.lens_type.value
         ):
-            if not self.disp_img:
-                self.main_logger.exception(
-                    "Camera: Lens type of camera and settings progile do not "
-                    "match but test env not active. Raising exception now."
-                )
-                self.logger.exception(
-                    "Lens type of camera and settings profile do not match "
-                    "but test env not active. Raising exception now."
-                )
-                raise Exception("ERROR: lens type error - start_recognition ")
-            self.logger.info(
+            self.logger.warning(
                 "Lens type of camera and settings profile do not match. "
                 "Please fix"
             )
-            self.calibrate()
-        if self.disp_img:
-            support = threading.Thread(target=self.main_loop_support)
-            support.start()
         while ExitControl.gen and ExitControl.cam:
             loop_start = time.time()
             self.get_frame()
-            self.detect_object()
+            with self.lock_detect:
+                self.detect_object()
             note_x = Conf.CS_X_OFFSET
             note_y = Conf.CV_NOTE_HEIGHT - Conf.CS_Y_OFFSET
-            self.note_dict[DurTypes.MAIN_DUR] = [
-                pretty_time(total_dur, False), note_x, note_y
+            self.main_total_time_info = [
+                f"Main loop total time = {pretty_time(total_dur, False)}",
+                note_x, note_y
             ]
             note_y -= Conf.CS_Y_OFFSET
-            self.note_dict[DurTypes.MAIN_LOOP] = [
-                pretty_time(loop_dur, False), note_x, note_y
+            self.main_loop_time_info = [
+                f"Main loop time = {pretty_time(self.main_loop_dur, False)}",
+                note_x, note_y
             ]
 
-            if self.record:
-                note_x = self.width - (Conf.CS_X_OFFSET * 10)
-                note_y = Conf.CV_NOTE_HEIGHT - Conf.CS_Y_OFFSET
-                text = "Recording"
-                self.put_text(text, note_x, note_y)
-                dur = time.time() - self.last_vid_write
-                if dur > self.vid_write_frequency:
-                    self.video_writer.write(self.frame_full)
-                    self.logger.debug(
-                        "start_recognition: Writing to video file"
-                    )
-            if self.take_pic:
-                self.capture_picture(limit=True)
-            if self.disp_img:
-                self.show_frames()
-            k = cv2.waitKey(50)
-            if k == 27:
-                ExitControl.gen = False
-
-            loop_dur = time.time() - loop_start
+            self.main_loop_dur = time.time() - loop_start
             total_dur = time.time() - self.start_time
-            if loop_dur < threshold:
+            if self.main_loop_dur < threshold:
                 self.logger.debug(
-                    f"Recognition loop ran in {pretty_time(loop_dur, False)}"
+                    f"Recognition loop ran in {pretty_time(self.main_loop_dur, False)}"
                 )
                 self.logger.debug(
                     f"Total runtime {pretty_time(total_dur, False)}"
                 )
             else:
-                self.logger.warning(
-                    f"Recognition loop ran in {pretty_time(loop_dur, False)}"
+                self.logger.debug(
+                    f"Recognition loop ran in {pretty_time(self.main_loop_dur, False)}"
                     f"\n----------------------------- "
                     f"This is greater than the threshold of "
                     f"{Conf.LOOP_DUR_THRESHOLD}ms"
                 )
 
     def main_loop_support(self):
-        start_time = time.time()
-        time.sleep(.1)
-        while ExitControl.gen and ExitControl.cam:
-            loop_start_time = time.time()
-            self.frame = self.frame_pure.copy()
-            if self.num_objects == 1:
+        if not self.is_connected:
+            self.logger.debug(
+                "Camera main loop support could not be started as camera is "
+                "not connected"
+            )
+            return
+        start = time.time()
+        if (
+                self.settings[self.profile][Conf.CS_LENS_TYPE]
+                != self.lens_type.value
+        ):
+            self.put_text(
+                text="LensType miss match", x=10, y=10,
+                color=(0, 255, 0), scale=2
+            )
+        self.note_frame = np.zeros(
+            [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
+        )
+        self.frame = self.frame_pure.copy()
+        self.put_text(
+            text=self.main_loop_time_info[0],
+            x=self.main_loop_time_info[1],
+            y=self.main_loop_time_info[2],
+            frame=self.note_frame
+        )
+        self.put_text(
+            text=self.main_total_time_info[0],
+            x=self.main_total_time_info[1],
+            y=self.main_total_time_info[2],
+            frame=self.note_frame
+        )
+        note_x = Conf.CS_X_OFFSET
+        note_y = Conf.CV_NOTE_HEIGHT - 3 * Conf.CS_Y_OFFSET
+        self.put_text(
+            text=f"Support loop time = {pretty_time(start)}",
+            x=note_x, y=note_y, frame=self.note_frame
+        )
+        if self.num_objects == 1:
+            for (x, y, w, h) in self.detected_objects:
+                x1 = x + w
+                y1 = y + h
+                with self.lock:
+                    cv2.rectangle(
+                        self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                    )
+            for (x, y, w, h) in self.detected_objects:
+                dist = (self.focal_len * self.obj_width) / w
+                check = self.obj_dist[ObjDist.AVG] - dist
+                if -Conf.DIST_DISCREPANCY < check < Conf.DIST_DISCREPANCY:
+                    self.obj_dist[ObjDist.LIST].insert(0, dist)
+                    self.obj_dist[ObjDist.SUM] += dist
+                    self.obj_dist[ObjDist.COUNT] += 1
+                    if (
+                            self.obj_dist[ObjDist.COUNT]
+                            > Conf.MEM_DIST_LIST_LEN
+                    ):
+                        num = self.obj_dist[ObjDist.LIST].pop()
+                        self.obj_dist[ObjDist.SUM] -= num
+                        self.obj_dist[ObjDist.COUNT] -= 1
+                    self.obj_dist[ObjDist.AVG] = (
+                            self.obj_dist[ObjDist.SUM]
+                            / self.obj_dist[ObjDist.COUNT]
+                    )
+                    self.obj_dist[ObjDist.LAST_SEEN] = (
+                        time.time()
+                    )
+                    self.obj_dist[ObjDist.IS_FOUND] = True
+                    note_x = x
+                    note_y = y - int(Conf.CS_Y_OFFSET / 2)
+                    text = f"Distance: {self.obj_dist[ObjDist.AVG]:.2f}"
+                    self.put_text(text, note_x, note_y)
+                    center_point = x + (w / 2)
+                    left_limit = self.midpoint - Conf.CS_MID_TOLERANCE
+                    right_limit = self.midpoint + Conf.CS_MID_TOLERANCE
+                    if center_point < left_limit:
+                        pos = Conf.CMD_LEFT
+                    elif center_point > right_limit:
+                        pos = Conf.CMD_RIGHT
+                    else:
+                        pos = Conf.CONST_MIDDLE
+                    self.obj_dist[ObjDist.LOCATION] = pos
+                    note_y = y + h + Conf.CS_Y_OFFSET
+                    text = f"Location: {self.obj_dist[ObjDist.LOCATION]}"
+                    self.put_text(text, note_x, note_y)
+                else:
+                    self.logger.debug(
+                        f"main_loop_support: "
+                        f"Major deviation in calculated.\n"
+                        f"avg: "
+                        f"{self.obj_dist[ObjDist.AVG]} vs dist: {dist}"
+                    )
+        else:
+            if self.detected_objects is not None:
                 for (x, y, w, h) in self.detected_objects:
                     x1 = x + w
                     y1 = y + h
                     with self.lock:
                         cv2.rectangle(
-                            self.frame, (x, y), (x1, y1), Conf.CV_LINE_COLOR
+                            self.frame, (x, y), (x1, y1),
+                            Conf.CV_LINE_COLOR2
                         )
-                for (x, y, w, h) in self.detected_objects:
-                    dist = (self.focal_len * self.obj_width) / w
-                    check = self.obj_dist[ObjDist.AVG] - dist
-                    if -Conf.DIST_DISCREPANCY < check < Conf.DIST_DISCREPANCY:
-                        self.obj_dist[ObjDist.LIST].insert(0, dist)
-                        self.obj_dist[ObjDist.SUM] += dist
-                        self.obj_dist[ObjDist.COUNT] += 1
-                        if (
-                                self.obj_dist[ObjDist.COUNT]
-                                > Conf.MEM_DIST_LIST_LEN
-                        ):
-                            num = self.obj_dist[ObjDist.LIST].pop()
-                            self.obj_dist[ObjDist.SUM] -= num
-                            self.obj_dist[ObjDist.COUNT] -= 1
-                        self.obj_dist[ObjDist.AVG] = (
-                                self.obj_dist[ObjDist.SUM]
-                                / self.obj_dist[ObjDist.COUNT]
-                        )
-                        self.obj_dist[ObjDist.LAST_SEEN] = (
-                            time.time()
-                        )
-                        self.obj_dist[ObjDist.IS_FOUND] = True
-                        note_x = x
-                        note_y = y - int(Conf.CS_Y_OFFSET / 2)
-                        text = f"Distance: {self.obj_dist[ObjDist.AVG]:.2f}"
-                        self.put_text(text, note_x, note_y)
-                        center_point = x + (w / 2)
-                        left_limit = self.midpoint - Conf.CS_MID_TOLERANCE
-                        right_limit = self.midpoint + Conf.CS_MID_TOLERANCE
-                        if center_point < left_limit:
-                            pos = Conf.CMD_LEFT
-                        elif center_point > right_limit:
-                            pos = Conf.CMD_RIGHT
-                        else:
-                            pos = Conf.CONST_MIDDLE
-                        self.obj_dist[ObjDist.LOCATION] = pos
-                        note_y = y + h + Conf.CS_Y_OFFSET
-                        text = f"Location: {self.obj_dist[ObjDist.LOCATION]}"
-                        self.put_text(text, note_x, note_y)
-                    else:
-                        self.logger.debug(
-                            f"main_loop_support: "
-                            f"Major deviation in calculated.\n"
-                            f"avg: "
-                            f"{self.obj_dist[ObjDist.AVG]} vs dist: {dist}"
-                        )
-            else:
-                if self.detected_objects is not None:
-                    for (x, y, w, h) in self.detected_objects:
-                        x1 = x + w
-                        y1 = y + h
-                        with self.lock:
-                            cv2.rectangle(
-                                self.frame, (x, y), (x1, y1),
-                                Conf.CV_LINE_COLOR2
-                            )
+            self.logger.debug(
+                f"main_loop_support:Several objects detected. "
+                f"Num: {self.num_objects}"
+            )
+        note_x = Conf.CS_X_OFFSET
+        note_y = Conf.CS_Y_OFFSET
+        text = time.strftime(Conf.FORMAT_DATE)
+        self.put_text(text, note_x, note_y, frame=self.note_frame)
+        if self.obj_dist[ObjDist.IS_FOUND]:
+            note_y += Conf.CS_Y_OFFSET
+            text = (
+                f"Distance "
+                f"{self.obj_dist[ObjDist.AVG]:.2f}"
+            )
+            self.put_text(text, note_x, note_y, frame=self.note_frame)
+            note_y += Conf.CS_Y_OFFSET
+            text = (
+                "Relative location in vision: "
+                f"{self.obj_dist[ObjDist.LOCATION]}"
+            )
+            self.put_text(text, note_x, note_y, frame=self.note_frame)
+        else:
+            self.logger.debug("main_loop_support: Object not found")
+        if self.record:
+            note_x = self.width - (Conf.CS_X_OFFSET * 10)
+            note_y = Conf.CV_NOTE_HEIGHT - Conf.CS_Y_OFFSET
+            text = "Recording"
+            self.put_text(text, note_x, note_y, frame=self.note_frame)
+            dur = time.time() - self.last_vid_write
+            if dur > self.vid_write_frequency:
+                self.video_writer.write(self.frame_full)
                 self.logger.debug(
-                    f"main_loop_support:Several objects detected. "
-                    f"Num: {self.num_objects}"
+                    "start_recognition: Writing to video file"
                 )
-            note_x = Conf.CS_X_OFFSET
-            note_y = Conf.CV_NOTE_HEIGHT - 3 * Conf.CS_Y_OFFSET
-            self.note_dict[DurTypes.MAIN_SUP_DUR] = [
-                pretty_time(start_time), note_x, note_y
-            ]
-            note_y -= Conf.CS_Y_OFFSET
-            self.note_dict[DurTypes.MAIN_SUP_LOOP] = [
-                pretty_time(loop_start_time), note_x, note_y
-            ]
-            if self.write_note:
-                note_x = Conf.CS_X_OFFSET
-                note_y = Conf.CS_Y_OFFSET
-                text = time.strftime(Conf.FORMAT_DATE)
-                self.put_text(text, note_x, note_y, frame=self.note_frame)
-
-                if self.obj_dist[ObjDist.IS_FOUND]:
-                    note_y += Conf.CS_Y_OFFSET
-                    text = (
-                        f"Distance "
-                        f"{self.obj_dist[ObjDist.AVG]:.2f}"
-                    )
-                    self.put_text(text, note_x, note_y, frame=self.note_frame)
-                    note_y += Conf.CS_Y_OFFSET
-                    text = (
-                        "Relative location in vision: "
-                        f"{self.obj_dist[ObjDist.LOCATION]}"
-                    )
-                    self.put_text(text, note_x, note_y, frame=self.note_frame)
-                else:
-                    self.logger.debug("main_loop_support: Object not found")
-
-                for key, [value, x, y] in self.note_dict.items():
-                    text = f"{key}: {value}"
-                    self.put_text(text, x, y, frame=self.note_frame)
-                self.write_note = False
+        if self.take_pic:
+            self.capture_picture(limit=True)
+        self.frame_full = np.vstack((self.frame, self.note_frame))
     ##########################################################################
 
     ##########################################################################
@@ -420,6 +429,12 @@ class Camera:
     def control_robot(self):
         # All relevant command numbers can be found in config.Conf
         # HUMANOID_FULL and SPIDER_FULL
+        if not self.is_connected:
+            self.logger.debug(
+                "Robot control could not be started as camera is not "
+                "connected"
+            )
+            return
         from robot_control import Robot
         self.logger.debug("control_robot: Started")
         self.robot = Robot.get_inst(self.robot_type)
@@ -506,6 +521,7 @@ class Camera:
                             self.command, auto=True
                         )
                         cmd_sent_time = time.time()
+                    self.rbt_head_search()
                 else:
                     self.logger.warning(
                         "Object not found in "
@@ -515,14 +531,25 @@ class Camera:
             if success and dur > orig_wait_time:
                 self.logger.info(f"control_robot: Command sent: {cmd_sent}")
             time.sleep(2)
+
+    def rbt_head_search(self):
+        self.robot.send_head_command(
+            Conf.ROBOT_HEAD_SET_U_D, pos=Conf.RBT_MIN_HEAD_FORWARD, auto=True
+        )
+        while not self.obj_dist[ObjDist.IS_FOUND]:
+            self.robot.send_head_command(Conf.CMD_RH_UP, auto=True)
+            time.sleep(Conf.SEARCH_REST)
+            if self.robot.servo_posUD >= Conf.RBT_MAX_HEAD_BACK:
+                break
     ##########################################################################
 
-    def show_frames(self):
-        with self.lock:
-            self.frame_full = np.vstack((self.frame, self.note_frame))
-            cv2.imshow(Conf.CV_WINDOW, self.frame_full)
-
     def get_frame(self):
+        if not self.is_connected:
+            self.logger.debug(
+                "Camera could not get frame as camera is not connected"
+            )
+            return
+        start = time.time()  # delete  #######################################
         with self.lock:
             if self.cam_num < 0:
                 rawCapture = PiRGBArray(
@@ -537,10 +564,7 @@ class Camera:
                 self.ret, self.frame_pure = self.cam.read()
             if self.lens_type == LensType.DOUBLE:
                 self.get_dual_image()
-            self.note_frame = np.zeros(
-                [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
-            )
-            self.write_note = True
+        self.get_frame_time = time.time() - start  # delete  #################
 
     def detect_object(self):
         gray_frame = cv2.cvtColor(self.frame_pure, cv2.COLOR_BGR2GRAY)
@@ -576,16 +600,24 @@ class Camera:
             self.obj_dist[ObjDist.LAST_SEEN] = 0.0
 
     def reset_profile(self, profile):
+        # TODO: Remove left and right focal length options
+        # TODO: Add option for if it is a rpi cam
+        #   -> save camera Brightness
+        #   -> save camera Contrast
+        #   -> save camera ISO
         self.settings[profile] = {}
         self.settings[profile][Conf.CS_NEIGH] = 3
         self.settings[profile][Conf.CS_SCALE] = 1.305
         self.settings[profile][Conf.CS_OBJ_WIDTH] = 2.56
         self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
-        self.settings[profile][Conf.CS_FOCAL_R] = 1
-        self.settings[profile][Conf.CS_FOCAL_L] = 1
         self.settings[profile][Conf.CS_FOCAL] = 1
+        if self.is_pi_cam:
+            self.settings[profile][Conf.CS_IS_PI_CAM] = True
+        else:
+            self.settings[profile][Conf.CS_IS_PI_CAM] = False
 
     def calibrate(self):
+        # TODO: Set up calibrate to work with GUI instead of opencv
         self.logger.debug("calibrate called")
         if not self.disp_img:
             self.logger.exception("Can only calibrate when display enabled")
@@ -597,19 +629,18 @@ class Camera:
                 f"current profile: {self.profile}\n"
                 "Enter:\n"
                 "  - 0 to exit\n"
-                "  - 1 to edit default\n"
+                "  - 1 to edit current profile\n"
                 "  - 2 to chose a different profile\n"
             ).strip()
             if response == "0":
                 continue_calibrate = False
             elif response == "1":
-                profile = Conf.CS_DEFAULT
                 print(
-                    f"The current parameters for {profile} are:\n"
+                    f"The current parameters for {self.profile} are:\n"
                     f"     Focal length --> "
-                    f"{self.settings[profile][Conf.CS_FOCAL]}\n"
+                    f"{self.settings[self.profile][Conf.CS_FOCAL]}\n"
                     f"     Object width --> "
-                    f"{self.settings[profile][Conf.CS_OBJ_WIDTH]}"
+                    f"{self.settings[self.profile][Conf.CS_OBJ_WIDTH]}"
                 )
                 self.setup_profile(Conf.CS_DEFAULT)
                 if (
@@ -664,6 +695,7 @@ class Camera:
         self.logger.debug(f"Calibrate exiting")
 
     def setup_profile(self, profile):
+        # TODO: Set up setup_profile to work with GUI instead of opencv
         self.logger.debug(f"setup_profile called for profile: {profile}")
         if not self.disp_img:
             self.logger.exception("Can only setup profile in testing mode")
@@ -731,7 +763,7 @@ class Camera:
                         (x1, y1),
                         Conf.CV_LINE_COLOR
                     )
-                self.show_frames()
+                # self.show_frames()
                 k = cv2.waitKey(1) & 0xFF
                 if k == 27:
                     self.logger.debug("setup_profile: Exiting camera")
@@ -768,7 +800,7 @@ class Camera:
             if dur < Conf.FREQUENCY_PIC:
                 return
 
-        cv2.imwrite(f"{Conf.PIC_ROOT}{self.pic_num}.jpg", self.frame_pure)
+        cv2.imwrite(f"{Conf.PIC_ROOT}{self.pic_num}.jpg", self.frame)
         self.logger.debug(
             f"capture_picture: Photo taken with name {self.pic_num}.jpg"
         )
@@ -781,12 +813,44 @@ class Camera:
         self.obj_width = self.settings[self.profile][Conf.CS_OBJ_WIDTH]
 
     def set_scale(self, position):
-        self.settings[self.profile][Conf.CS_SCALE] = 0.1 * position + 1.005
+        position = int(position)
+        with self.lock_detect:
+            self.settings[self.profile][Conf.CS_SCALE] = 0.1 * position + 1.005
 
     def set_neigh(self, position):
+        position = int(position)
         self.settings[self.profile][Conf.CS_NEIGH] = position
 
-    def put_text(self, text, x, y, *, frame=None, color=Conf.CV_TEXT_COLOR):
+    def set_brightness(self, position):
+        if self.is_pi_cam:
+            self.cam.brightness = int(position)
+        else:
+            self.logger.warning(
+                "Brightness adjustment attempted on pi cam but not currently "
+                f"using Pi Cam. cam_num={self.cam_num}"
+            )
+
+    def set_contrast(self, position):
+        if self.is_pi_cam:
+            self.cam.contrast = int(position)
+        else:
+            self.logger.warning(
+                "Contrast adjustment attempted on pi cam but not currently "
+                f"using Pi Cam. cam_num={self.cam_num}"
+            )
+
+    def set_iso(self, position):
+        if self.is_pi_cam:
+            self.cam.iso = int(position)
+        else:
+            self.logger.warning(
+                "ISO adjustment attempted on pi cam but not currently "
+                f"using Pi Cam. cam_num={self.cam_num}"
+            )
+
+    def put_text(
+            self, text, x, y, *, frame=None, color=Conf.CV_TEXT_COLOR, scale=1
+    ):
         with self.lock:
             if frame is None:
                 frame = self.frame
@@ -795,7 +859,7 @@ class Camera:
                 text,
                 (x, y),
                 Conf.CV_FONT,
-                Conf.CV_FONT_SCALE,
+                Conf.CV_FONT_SCALE * scale,
                 color,
                 Conf.CV_THICKNESS,
                 Conf.CV_LINE
@@ -830,7 +894,6 @@ def independent_test():
         lens_type=LensType.DOUBLE,
         # record=True,
         # take_pic=True,
-        disp_img=True
     )
     # cam.calibrate()
     cam.start_recognition()
