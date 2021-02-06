@@ -16,3 +16,13 @@ environment.
 # TODO: get all three separate processes to communicate via pipes
 
 
+from config import Conf
+from variables import Alert
+
+
+def main():
+    print(Alert.ramdisk)
+
+
+if __name__ == '__main__':
+    main()
