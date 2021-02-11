@@ -21,7 +21,13 @@ from variables import Alert
 
 
 def main():
-    print(Alert.ramdisk)
+    if Alert.ramdisk:
+        # create and start processes
+        print("Start all processes")
+    else:
+        print(
+            "only start robot control (auto initially disabled)(cli control)"
+        )
 
 
 if __name__ == '__main__':
