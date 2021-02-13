@@ -22,5 +22,5 @@ class Conf:
     ENCODING = "utf-8"
 
 
-    # Constants  #############################################################
-
+    # Communication constants Constants  #####################################
+    COM_TEST = "test request"
