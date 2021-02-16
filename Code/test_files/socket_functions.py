@@ -8,6 +8,7 @@ def read_transmission(current_socket):
     """
     :param current_socket: network socket to use
     :return: list with number of segments then each segment type and data
+            [num segments, [data_type0, data0], [data_type1, data1],...]
 
     This function is used to read transmission between sockets.
     It used by both the ping monitor and web server
@@ -33,7 +34,7 @@ def read_transmission(current_socket):
                 print(f'read_transmission: Reading error --> {str(e)}')
                 return False
         except Exception as e:
-            print(f"read_transmission: unexpected error:   {e}")
+            print(f"read_transmission: unexpected error -->   {e}")
             return False
 
 

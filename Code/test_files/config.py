@@ -23,4 +23,5 @@ class Conf:
 
 
     # Communication constants Constants  #####################################
-    COM_TEST = "test request"
+    COM_TEST = 0
+    NUM_SEGMENTS = 0
