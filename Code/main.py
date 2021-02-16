@@ -35,17 +35,13 @@ def main():
     # TODO: Create
     # TODO: separate each section to run independently
     #   - Robot
-    #       - Control interface for auto should start
-    #       - CLI control should start
+    #       - CLI interface should be in the main thread
     #   - Camera
-    #       - send camera feed to a pipe if requested
-    #       - Send commands to robot if possible
+    #       - Recognition  should be in sub thread
     #   - GUI
-    #       - Should run in main process while other two segments run in a
-    #         secondary process
-    #       - Should communicate with the camera via pipes
-    #       - Should communicate with the robot via pipes
-    start = time.time()
+    #       - Should run in secondary daemon process while robot and camera
+    #         run in main process
+    #       - Will connect via socket
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     main_logger.info(f"Main function starting on version {Conf.VERSION}")
     robot_type = RobotType.HUMAN
