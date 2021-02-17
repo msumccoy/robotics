@@ -672,7 +672,7 @@ class Camera:
                     return
                 elif k != -1 and k != 255 and len(self.detected_objects):
                     do_calibration = False
-            # Calibrate focal length  #######################################
+            # Calibrate focal length  ########################################
             # Formula: F = (P x  D) / W
             print(
                 "\n"
