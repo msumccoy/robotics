@@ -419,8 +419,6 @@ class Conf:
     CMD_STOP = "stop"
     CMD_STOP1 = "s"
     CMD_DICTIONARY = "dict"
-    CMD_CALIBRATE = "calibrate"
-    CMD_CALIBRATE_STOP = "calibrate stop"
     CMD_AUTO_ON = "auto"
     CMD_AUTO_OFF = "auto off"
     CMD_FORWARD = "forward"
@@ -448,6 +446,28 @@ class Conf:
     CMD_SET_HEAD_LR = "set_lr"
     CMD_VARS = "dump"
     CMD_VARS1 = "dump1"
+    CMD_VARS2 = "dump2"
 
+    # OpenCV window commands
+    CMD_CV_EXIT = ord("e")
+    CMD_CV_EXIT1 = ord("E")
+    CMD_CV_STOP = ord("s")
+    CMD_CV_STOP1 = ord("S")
+    CMD_CV_DANCE = ord("d")
+    CMD_CV_KICK = ord("k")
+    CMD_CV_FORWARD = ord("f")
+    CMD_CV_BACKWARD = ord("b")
+    CMD_CV_LEFT = ord("l")
+    CMD_CV_RIGHT = ord("r")
+    CMD_CV_HEAD_UP = ord("U")
+    CMD_CV_HEAD_DOWN = ord("D")
+    CMD_CV_HEAD_LEFT = ord("L")
+    CMD_CV_HEAD_RIGHT = ord("R")
+    CMD_CV_HEAD_DELTA_P = ord("+")
+    CMD_CV_HEAD_DELTA_M = ord("-")
+    CMD_CV_DUMP_CAM = ord("1")
+    CMD_CV_DUMP_ROBOT = ord("2")
+    CMD_CV_DUMP_CMD = ord("3")
+    ##########################################################################
     # Misc Constants
     CONST_MIDDLE = "Middle"

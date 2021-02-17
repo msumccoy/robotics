@@ -92,11 +92,10 @@ class Robot:
             self.servos = None
         time.sleep(3)
         self.send_command(-1)
-        self.debug_info = ""
+        self.cam_request = ""  # Camera will monitor this property for request
         self.logger.info(f"Robot init ran in {pretty_time(self.start)}")
 
     def send_command(self, motion_cmd, auto=False):
-        self.debug_info = f"send_command: motion_cmd = {motion_cmd}\n"  ######
         if self.ser is None:
             if auto and not self.active_auto_control:
                 self.logger.debug(
@@ -108,13 +107,6 @@ class Robot:
                 "send_command: no robot to connect to. "
                 f"motion_cmd = {motion_cmd}"
             )
-            self.debug_info += (  ############################################
-                f"no robot to connect to. \n"  ###############################
-            )  ###############################################################
-            print(  # delete #################################################
-                "send_command: no robot to connect to."  #####################
-                f"motion_cmd={motion_cmd}"  ##################################
-            )  ###############################################################
             return False
         # Need to make sure robot is aware that command is being sent before
         # sending command
@@ -296,28 +288,12 @@ class Robot:
             elif command == Conf.CMD_DICTIONARY:
                 for key in dictionary:
                     print(f"cmd_num: {key} --> {dictionary[key]}")
-            elif command == Conf.CMD_CALIBRATE:
-                # TODO: complete after camera class is done
-                pass  # Initiate camera calibration
-                # if Camera.inst is None:
-                #     print(
-                #         "manual_control: Camera calibration requested but "
-                #         "camera is not initiated"
-                #     )
-                #     self.logger.debug(
-                #         "Camera calibration attempted but no camera is "
-                #         "initiated"
-                #     )
-                # else:
-                #     pass
-                #     # Initiate calibration some how
-            elif command == Conf.CMD_CALIBRATE_STOP:
-                # TODO: complete after camera class is done
-                pass
             elif command == Conf.CMD_VARS:
                 self.dump_status()
             elif command == Conf.CMD_VARS1:
                 self.dump_conf()
+            elif command == Conf.CMD_VARS2:
+                self.cam_request = command
             ##################################################################
             # Action commands  ###############################################
             ##################################################################

@@ -221,6 +221,10 @@ class Camera:
         self.left_limit = self.midpoint - Conf.CS_MID_TOLERANCE
         self.right_limit = self.midpoint + Conf.CS_MID_TOLERANCE
 
+        # This property will be used to pass actions from main recognition
+        # loop to robot control loop
+        self.action_request = ""
+
         self.logger.info(
             f"Cam init ran in {pretty_time(self.start_time)}"
         )
@@ -375,9 +379,41 @@ class Camera:
                 self.frame_full = np.vstack((self.frame, self.note_frame))
                 cv2.imshow(Conf.CV_WINDOW, self.frame_full)
                 k = cv2.waitKey(1)
-                if k != -1 and k != 255:
+                if k == 27 or k == Conf.CMD_CV_EXIT or k == Conf.CMD_CV_EXIT1:
                     ExitControl.cam = ExitControl.gen = False
                     cv2.destroyAllWindows()
+                elif k == Conf.CMD_CV_STOP or k == Conf.CMD_CV_STOP1:
+                    self.action_request = Conf.CMD_STOP
+                elif k == Conf.CMD_CV_DANCE:
+                    self.action_request = Conf.CMD_DANCE
+                elif k == Conf.CMD_CV_KICK:
+                    self.action_request = Conf.CMD_KICK
+                elif k == Conf.CMD_CV_FORWARD:
+                    self.action_request = Conf.CMD_FORWARD
+                elif k == Conf.CMD_CV_BACKWARD:
+                    self.action_request = Conf.CMD_BACKWARD
+                elif k == Conf.CMD_CV_LEFT:
+                    self.action_request = Conf.CMD_LEFT
+                elif k == Conf.CMD_CV_RIGHT:
+                    self.action_request = Conf.CMD_RIGHT
+                elif k == Conf.CMD_CV_HEAD_UP:
+                    self.action_request = Conf.CMD_RH_UP
+                elif k == Conf.CMD_CV_HEAD_DOWN:
+                    self.action_request = Conf.CMD_RH_DOWN
+                elif k == Conf.CMD_CV_HEAD_LEFT:
+                    self.action_request = Conf.CMD_RH_LEFT
+                elif k == Conf.CMD_CV_HEAD_RIGHT:
+                    self.action_request = Conf.CMD_RH_RIGHT
+                elif k == Conf.CMD_CV_HEAD_DELTA_P:
+                    self.action_request = Conf.CMD_CV_HEAD_DELTA_P
+                elif k == Conf.CMD_CV_HEAD_DELTA_M:
+                    self.action_request = Conf.CMD_CV_HEAD_DELTA_M
+                elif k == Conf.CMD_CV_DUMP_CAM:
+                    self.action_request = Conf.CMD_VARS2
+                elif k == Conf.CMD_CV_DUMP_ROBOT:
+                    self.action_request = Conf.CMD_VARS
+                elif k == Conf.CMD_CV_DUMP_CMD:
+                    self.action_request = Conf.CMD_VARS1
             ##################################################################
             self.main_loop_dur = time.time() - loop_start
             total_dur = time.time() - self.start_time
@@ -505,7 +541,41 @@ class Camera:
                     )
             if success and dur > orig_wait_time:
                 self.logger.info(f"control_robot: Command sent: {cmd_sent}")
-            time.sleep(2)
+
+            if (
+                    self.action_request == Conf.CMD_CV_HEAD_UP or
+                    self.action_request == Conf.CMD_CV_HEAD_DOWN or
+                    self.action_request == Conf.CMD_CV_HEAD_LEFT or
+                    self.action_request == Conf.CMD_CV_HEAD_RIGHT
+            ):
+                self.robot.send_head_command(self.action_request)
+            elif self.action_request == Conf.CMD_CV_HEAD_DELTA_P:
+                self.robot.head_delta_theta += 5
+            elif self.action_request == Conf.CMD_CV_HEAD_DELTA_M:
+                self.robot.head_delta_theta -= 5
+            elif self.action_request == Conf.CMD_VARS:
+                self.robot.dump_status()
+            elif self.action_request == Conf.CMD_VARS1:
+                self.robot.dump_conf()
+            elif self.action_request == Conf.CMD_VARS2:
+                self.dump_status()
+            elif self.action_request != "" :
+                self.robot.send_command(self.action_request)
+
+            if self.robot.cam_request == Conf.CMD_VARS2:
+                self.dump_status()
+            elif self.action_request != "":
+                temp = (
+                    "control_robot: current action_request before erasing "
+                    f"--> {self.action_request}"
+                )
+                print(temp)
+                self.action_request = ""
+
+            if self.robot.cam_request != "":
+                self.robot.cam_request = ""
+
+            time.sleep(1)
 
     def rbt_head_search(self):
         self.robot.send_head_command(
@@ -790,6 +860,16 @@ class Camera:
                 Conf.CV_THICKNESS,
                 Conf.CV_LINE
             )
+
+    def dump_status(self):
+        # This method is used to get the current status of all the
+        # properties of the camera
+        print(f"current properties:")
+        properties = vars(self)
+        for key in properties:
+            print(f"property: {key} --> {properties[key]}")
+            if type(properties[key]) is list or type(properties[key]) is dict:
+                print()
 
     def close(self):
         self.main_logger.info(
