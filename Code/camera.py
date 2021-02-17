@@ -583,7 +583,6 @@ class Camera:
             self.settings[profile][Conf.CS_IS_PI_CAM] = False
 
     def calibrate(self):
-        # TODO: Test calibrate
         self.logger.debug("calibrate called")
         options = {'y': "yes", 'n': "no"}
         continue_calibrate = True
@@ -648,7 +647,6 @@ class Camera:
         self.logger.debug(f"Calibrate exiting")
 
     def setup_profile(self, profile):
-        # TODO: Test  setup_profile
         self.logger.debug(f"setup_profile called for profile: {profile}")
         if profile not in self.settings:
             self.settings[profile] = {}
@@ -690,6 +688,7 @@ class Camera:
                         (x1, y1),
                         Conf.CV_LINE_COLOR
                     )
+                cv2.imshow(Conf.CV_WINDOW, self.frame)
                 k = cv2.waitKey(1) & 0xFF
                 if k == 27:
                     self.logger.debug("setup_profile: Exiting camera (esc)")
