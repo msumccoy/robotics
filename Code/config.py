@@ -400,7 +400,8 @@ class Conf:
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
     FORMAT_TERMINAL = "%(asctime)s: %(name)s: %(levelname)s: %(message)s"
     FORMAT_DATE = "%Y-%m-%d %H:%M:%S"
-    WRITE_FREQUENCY = 30
+    MAX_BYTES = 5120
+    BACKUP_COUNT = 4
 
     ##########################################################################
     # Locks  #################################################################

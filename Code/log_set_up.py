@@ -7,6 +7,7 @@ log any information. Consequently, this must module must be the first import
 at the start of the program
 """
 import logging
+from logging import handlers
 
 from config import Conf
 
@@ -18,7 +19,9 @@ formatter_terminal = logging.Formatter(Conf.FORMAT_TERMINAL, Conf.FORMAT_DATE)
 main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
 main_logger.setLevel(logging.DEBUG)
 
-main_file_handler = logging.FileHandler(Conf.LOG_MAIN_FILE)
+main_file_handler = handlers.RotatingFileHandler(
+    Conf.LOG_MAIN_FILE, maxBytes=Conf.MAX_BYTES, backupCount=Conf.BACKUP_COUNT
+)
 main_file_handler.setFormatter(formatter)
 main_file_handler.setLevel(Conf.LOG_MAIN_FILE_LEVEL)
 
@@ -33,7 +36,9 @@ main_logger.addHandler(main_stream_handler)
 cam_logger = logging.getLogger(Conf.LOG_CAM_NAME)
 cam_logger.setLevel(logging.DEBUG)
 
-cam_file_handler = logging.FileHandler(Conf.LOG_CAM_FILE)
+cam_file_handler = handlers.RotatingFileHandler(
+    Conf.LOG_CAM_FILE, maxBytes=Conf.MAX_BYTES, backupCount=Conf.BACKUP_COUNT
+)
 cam_file_handler.setFormatter(formatter)
 cam_file_handler.setLevel(Conf.LOG_CAM_FILE_LEVEL)
 
@@ -48,7 +53,9 @@ cam_logger.addHandler(cam_stream_handler)
 robot_logger = logging.getLogger(Conf.LOG_ROBOT_NAME)
 robot_logger.setLevel(logging.DEBUG)
 
-robot_file_handler = logging.FileHandler(Conf.LOG_ROBOT_FILE)
+robot_file_handler = handlers.RotatingFileHandler(
+    Conf.LOG_ROBOT_FILE, maxBytes=Conf.MAX_BYTES, backupCount=Conf.BACKUP_COUNT
+)
 robot_file_handler.setFormatter(formatter)
 robot_file_handler.setLevel(Conf.LOG_ROBOT_FILE_LEVEL)
 
@@ -63,7 +70,9 @@ robot_logger.addHandler(robot_stream_handler)
 robot_logger = logging.getLogger(Conf.LOG_GUI_NAME)
 robot_logger.setLevel(logging.DEBUG)
 
-robot_file_handler = logging.FileHandler(Conf.LOG_GUI_FILE)
+robot_file_handler = handlers.RotatingFileHandler(
+    Conf.LOG_GUI_FILE, maxBytes=Conf.MAX_BYTES, backupCount=Conf.BACKUP_COUNT
+)
 robot_file_handler.setFormatter(formatter)
 robot_file_handler.setLevel(Conf.LOG_GUI_FILE_LEVEL)
 
