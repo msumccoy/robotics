@@ -7,6 +7,9 @@ import os
 import time
 import serial
 import termios
+
+from camera import Camera
+
 is_rpi = False
 if "raspberrypi" in os.uname():
     is_rpi = True
@@ -21,7 +24,6 @@ from variables import ExitControl
 
 class Robot:
     # TODO: Go in Heart2Heart and see what feed back can be obtained from the
-    #  robot
     _inst = {}
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     logger = logging.getLogger(Conf.LOG_ROBOT_NAME)
@@ -218,13 +220,13 @@ class Robot:
                     " active_auto_control off"
                 )
                 return False
-            if motion_cmd == Conf.CMD_RH_UP:
+            if motion_cmd == Conf.CMD_RH_UP or motion_cmd == Conf.CMD_RH_UP1:
                 self.servo_posUD += self.head_delta_theta
-            elif motion_cmd == Conf.CMD_RH_DOWN:
+            elif motion_cmd == Conf.CMD_RH_DOWN or motion_cmd == Conf.CMD_RH_DOWN1:
                 self.servo_posUD -= self.head_delta_theta
-            elif motion_cmd == Conf.CMD_RH_LEFT:
+            elif motion_cmd == Conf.CMD_RH_LEFT or motion_cmd == Conf.CMD_RH_LEFT1:
                 self.servo_posLR += self.head_delta_theta
-            elif motion_cmd == Conf.CMD_RH_RIGHT:
+            elif motion_cmd == Conf.CMD_RH_RIGHT or motion_cmd == Conf.CMD_RH_RIGHT1:
                 self.servo_posLR -= self.head_delta_theta
             elif motion_cmd == Conf.ROBOT_HEAD_SET_U_D and pos is not None:
                 self.servo_posUD = pos
@@ -257,15 +259,26 @@ class Robot:
     ##########################################################################
     def manual_control(self):
         self.logger.debug("control started")
+        dictionary = self.short_dict
         while ExitControl.gen and ExitControl.robot:
             if self.full_control:
-                print("FULL CONTROL ACTIVE!!!!!!!!! BE CAREFUL!!!!!!!!")
-            command = input("Enter a Command or motion number: ")
+                print(
+                    "manual_control: "
+                    "FULL CONTROL ACTIVE!!!!!!!!! BE CAREFUL!!!!!!!!"
+                )
+            command = input(
+                "manual_control: Enter a Command or motion number\n"
+            )
             if command == Conf.CMD_FULL_CONTROL:
                 self.full_control = not self.full_control
                 self.logger.debug(
+                    f"manual_control: "
                     f"Full control Toggled: full_control={self.full_control}"
                 )
+                if self.full_control:
+                    dictionary = self.full_dict
+                else:
+                    dictionary = self.short_dict
             elif command == Conf.CMD_AUTO_ON:
                 self.active_auto_control = True
                 self.logger.debug("Enabling auto control")
@@ -274,8 +287,40 @@ class Robot:
                 self.logger.debug("Disabling auto control")
             elif command == Conf.CMD_EXIT or command == Conf.CMD_EXIT1:
                 ExitControl.gen = False
-                self.main_logger.info("Robot: control exiting program")
-                self.logger.info("Robot control exiting program")
+                self.main_logger.info(
+                    "Robot -- manual_control: control exiting program"
+                )
+                self.logger.info(
+                    "manual_control: Robot control exiting program"
+                )
+            elif command == Conf.CMD_DICTIONARY:
+                for key in dictionary:
+                    print(f"cmd_num: {key} --> {dictionary[key]}")
+            elif command == Conf.CMD_CALIBRATE:
+                # TODO: complete after camera class is done
+                pass  # Initiate camera calibration
+                # if Camera.inst is None:
+                #     print(
+                #         "manual_control: Camera calibration requested but "
+                #         "camera is not initiated"
+                #     )
+                #     self.logger.debug(
+                #         "Camera calibration attempted but no camera is "
+                #         "initiated"
+                #     )
+                # else:
+                #     pass
+                #     # Initiate calibration some how
+            elif command == Conf.CMD_CALIBRATE_STOP:
+                # TODO: complete after camera class is done
+                pass
+            elif command == Conf.CMD_VARS:
+                self.dump_status()
+            elif command == Conf.CMD_VARS1:
+                self.dump_conf()
+            ##################################################################
+            # Action commands  ###############################################
+            ##################################################################
             elif command == Conf.CMD_STOP or command == Conf.CMD_STOP1:
                 self.active_auto_control = False
                 self.send_command(Conf.CMD_STOP)
@@ -292,30 +337,84 @@ class Robot:
                 self.send_command(Conf.CMD_RIGHT)
             elif command == Conf.CMD_DANCE or command == Conf.CMD_DANCE1:
                 self.send_command(command)
-            elif command == Conf.CMD_KICK:
+            elif command == Conf.CMD_KICK or command == Conf.CMD_KICK1:
                 self.send_command(Conf.CMD_KICK)
+            elif command == Conf.CMD_RH_UP or command == Conf.CMD_RH_UP1:
+                self.send_head_command(command)
+            elif command == Conf.CMD_RH_DOWN or command == Conf.CMD_RH_DOWN1:
+                self.send_head_command(command)
+            elif command == Conf.CMD_RH_LEFT or command == Conf.CMD_RH_LEFT1:
+                self.send_head_command(command)
+            elif command == Conf.CMD_RH_RIGHT or command == Conf.CMD_RH_RIGHT1:
+                self.send_head_command(command)
+            elif command == Conf.CMD_SET_HEAD_DELTA:
+                num = input(
+                    "manual_control: Enter a new delta for head servo\n"
+                )
+                try:
+                    num = float(num)
+                    self.head_delta_theta = num
+                except ValueError:
+                    print(f"manual_control: '{num}' is not a valid delta")
+            elif command == Conf.CMD_SET_HEAD_UD:
+                num = input(
+                    "manual_control: Enter a new head pos for up down\n"
+                )
+                try:
+                    num = float(num)
+                    self.send_head_command(Conf.ROBOT_HEAD_SET_U_D, pos=num)
+                except ValueError:
+                    print(f"manual_control: '{num}' is not a valid delta")
+            elif command == Conf.CMD_SET_HEAD_LR:
+                num = input(
+                    "manual_control: Enter a new head pos for left right\n"
+                )
+                try:
+                    num = float(num)
+                    self.send_head_command(Conf.ROBOT_HEAD_SET_L_R, pos=num)
+                except ValueError:
+                    print(f"manual_control: '{num}' is not a valid pos")
+            ##################################################################
+            # Try to send command number  ####################################
+            ##################################################################
             else:
                 try:
                     command = int(command)
                 except ValueError:
-                    pass
-                if self.full_control:
-                    if command in self.full_dict:
-                        self.send_command(command)
-                    elif type(command) == int and command < 0:
-                        self.send_command(command)
-                    else:
-                        self.logger.info(
-                            f"{command} is an unknown motion number"
-                        )
-                elif command in self.short_dict:
+                    print(
+                        f"manual_control:"
+                        f" {command} is an unknown motion command (non int)"
+                    )
+                if command in dictionary:
                     self.send_command(command)
                 elif type(command) == int and command < 0:
                     self.send_command(command)
                 else:
-                    self.logger.info(f"{command} is an unknown motion number")
+                    print(
+                        f"manual_control: "
+                        f"{command} is an unknown motion number\n"
+                    )
 
     ##########################################################################
+
+    def dump_status(self):
+        # This method is used to get the current status of all the
+        # properties of the robot
+        print(f"current properties:")
+        properties = vars(self)
+        for key in properties:
+            print(f"property: {key} --> {properties[key]}")
+            if type(properties[key]) is list or type(properties[key]) is dict:
+                print()
+
+    @staticmethod
+    def dump_conf():
+        # This method is used to get all command options
+        print(f"current properties:")
+        properties = vars(Conf)
+        for key in properties:
+            if "CMD" in key:
+                print(f"property: {key} --> {properties[key]}")
 
     def close(self):
         self.main_logger.info(

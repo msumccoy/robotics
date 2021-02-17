@@ -17,20 +17,6 @@ from variables import ExitControl
 from gui import GUI
 
 
-def cam_starter(robot_type):
-    cam = Camera.get_inst(
-        robot_type,
-        # cam_num=2,
-        # lens_type=LensType.DOUBLE,
-        # record=True,
-        # take_pic=True,
-    )
-    try:
-        cam.start_recognition()
-    finally:
-        cam.close()
-
-
 def main():
     # TODO: Create
     # TODO: separate each section to run independently
@@ -42,30 +28,28 @@ def main():
     #       - Should run in secondary daemon process while robot and camera
     #         run in main process
     #       - Will connect via socket
+    start = time.time()
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     main_logger.info(f"Main function starting on version {Conf.VERSION}")
     robot_type = RobotType.HUMAN
     # robot_type = RobotType.SPIDER
 
-    cam_thread = threading.Thread(target=cam_starter, args=(robot_type,))
-    cam_thread.start()
+    # Set up all class instances #############################################
+    # Start setting robot to run independently (will add camera control next)
+    robot = Robot.get_inst(robot_type, enable_auto=False)
+    # cam = Camera.get_inst(
+    #     robot_type,
+    #     # cam_num=2,
+    #     # lens_type=LensType.DOUBLE,
+    #     # record=True,
+    #     # take_pic=True,
+    # )
+    ##########################################################################
 
-    cam = Camera.get_inst(robot_type)
-    auto_robot_thread = threading.Thread(target=cam.control_robot)
-    auto_robot_thread.start()
-
-    robot = Robot.get_inst(robot_type, False)
-    manual_robot_thread = threading.Thread(
-        target=robot.manual_control, daemon=True
-    )
-    manual_robot_thread.start()
-
-    gui = GUI(robot_type)
-    gui.start()
-
-    time.sleep(.5)
-    cam.close()
-    robot.close()
+    try:
+        robot.manual_control()
+    finally:
+        robot.close()
 
     main_logger.info(
         f"Program completed after running for {pretty_time(start)}\n"

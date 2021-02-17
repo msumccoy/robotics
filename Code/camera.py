@@ -883,6 +883,10 @@ class Camera:
         cv2.destroyAllWindows()
         ExitControl.cam = False
 
+    @property
+    def inst(self):
+        return self._inst
+
 
 def independent_test():
     ender = threading.Thread(target=manual_ender, daemon=True)
