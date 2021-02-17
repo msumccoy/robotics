@@ -11,10 +11,8 @@ import log_set_up  # This must Always be the first custom module imported
 from camera import Camera
 from robot_control import Robot
 from config import Conf
-from enums import RobotType, LensType
-from misc import pretty_time, manual_ender
-from variables import ExitControl
-from gui import GUI
+from enums import RobotType
+from misc import pretty_time
 
 
 def main():
@@ -39,12 +37,13 @@ def main():
     robot = Robot.get_inst(robot_type, enable_auto=False)
     cam = Camera.get_inst(
         robot_type,
-        # cam_num=2,
+        cam_num=2,
+        disp=True,
         # record=True,
         # take_pic=True,
     )
     ##########################################################################
-    cam_thread = threading.Thread(target=cam.start_recognition)
+    cam_thread = threading.Thread(target=cam.start_recognition, daemon=True)
     cam_thread.start()
 
     i = 0
@@ -58,6 +57,7 @@ def main():
         robot.manual_control()
     finally:
         robot.close()
+        cam.close()
 
     main_logger.info(
         f"Program completed after running for {pretty_time(start)}\n"

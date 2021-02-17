@@ -82,6 +82,7 @@ class Camera:
                     self.get_frame()
                     self.is_pi_cam = True
                     self.ret = True
+                    self.is_connected = True
                 except PiCameraError:
                     self.logger.exception("Tried to start pi cam but failed")
         else:
@@ -90,6 +91,7 @@ class Camera:
                 self.ret, self.frame = self.cam.read()
                 self.height, self.width, _ = self.frame.shape
                 self.is_pi_cam = False
+                self.is_connected = True
             except AttributeError:
                 pass
         if not self.ret:
@@ -108,6 +110,7 @@ class Camera:
                     self.get_frame()
                     self.is_pi_cam = True
                     self.ret = True
+                    self.is_connected = True
                 except PiCameraError:
                     pass
             else:
@@ -117,6 +120,7 @@ class Camera:
                     self.ret, self.frame = self.cam.read()
                     self.height, self.width, _ = self.frame.shape
                     self.is_pi_cam = False
+                    self.is_connected = True
                     self.logger.debug(f"success cv2 cam({self.cam_num}) now")
                 except AttributeError:
                     pass
@@ -211,6 +215,7 @@ class Camera:
         if not self.is_profile_setup:
             self.logger.debug("start_recognition: profile has to be set up")
             self.calibrate()
+            self.is_profile_setup = True
         auto_thread = threading.Thread(target=self.control_robot)
         auto_thread.start()
         total_dur = time.time() - self.start_time
@@ -346,7 +351,8 @@ class Camera:
                 cv2.imshow(Conf.CV_WINDOW, self.frame_full)
                 k = cv2.waitKey(1)
                 if k != -1 and k != 255:
-                    ExitControl.cam = False
+                    ExitControl.cam = ExitControl.gen = False
+                    cv2.destroyAllWindows()
             ##################################################################
             self.main_loop_dur = time.time() - loop_start
             total_dur = time.time() - self.start_time
