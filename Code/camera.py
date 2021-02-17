@@ -25,12 +25,10 @@ from variables import ExitControl
 
 
 class Camera:
-    # TODO: set up calibration to work with gui instead of OpenCV
+    # TODO: set up calibration in OpenCV
     #   * Currently default values are set for focus, object width ect.
-    #   -> Ensure main function will operate dynamically that is ensure it will
-    #      accept changes to parameters while it is running
-    #   -> Set up method in GUI class to adjust calibration to avoid having
-    #      to do the calibration in OpenCV
+    #   -> Redo main loop
+    #   -> Set up calibration
     _inst = {}
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     logger = logging.getLogger(Conf.LOG_CAM_NAME)
