@@ -44,6 +44,15 @@ def main():
         # take_pic=True,
     )
     ##########################################################################
+    cam_thread = threading.Thread(target=cam.start_recognition)
+    cam_thread.start()
+
+    i = 0
+    while not cam.is_profile_setup:
+        time.sleep(1)
+        i += 1
+        if i % 10 == 0:
+            print("Main thread waiting for camera to complete setup")
 
     try:
         robot.manual_control()

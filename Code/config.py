@@ -291,8 +291,6 @@ class Conf:
     # OpenCV settings  #######################################################
     ##########################################################################
     CV_WINDOW = "Image window"
-    CV_WINDOW_LEFT = "Image window left"
-    CV_WINDOW_RIGHT = "Image window right"
     CV_WINDOW_ROBOT = "Robot instructions window"
     CV_FONT = cv2.FONT_HERSHEY_PLAIN
     CV_FONT_SCALE = 1
