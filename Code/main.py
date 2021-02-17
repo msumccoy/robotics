@@ -15,11 +15,25 @@ from enums import RobotType
 from misc import pretty_time
 
 
+def start_camera(robot_type):
+    # Camera must start and operate in independent thread for OpenCV to
+    # control windows as only one thread can open and operate OpenCV windows
+    cam = Camera.get_inst(
+        robot_type,
+        cam_num=2,
+        disp=True,
+        # record=True,
+        # take_pic=True,
+    )
+    try:
+        cam.start_recognition()
+    finally:
+        cam.close()
+
+
 def main():
     # TODO: Create
     # TODO: separate each section to run independently
-    #   - Robot
-    #       - CLI interface should be in the main thread
     #   - Camera
     #       - Recognition  should be in sub thread
     #   - GUI
@@ -33,24 +47,20 @@ def main():
     # robot_type = RobotType.SPIDER
 
     # Set up all class instances #############################################
-    # Start setting robot to run independently (will add camera control next)
     robot = Robot.get_inst(robot_type, enable_auto=False)
-    cam = Camera.get_inst(
-        robot_type,
-        cam_num=2,
-        disp=True,
-        # record=True,
-        # take_pic=True,
+    cam_starter = threading.Thread(
+        target=start_camera, args=(robot_type,), daemon=True
     )
+    cam_starter.start()
+    time.sleep(.1)
+    cam = Camera.get_inst(robot_type)
     ##########################################################################
-    cam_thread = threading.Thread(target=cam.start_recognition, daemon=True)
-    cam_thread.start()
 
     i = 0
     while not cam.is_profile_setup:
         time.sleep(1)
         i += 1
-        if i % 10 == 0:
+        if i % 30 == 0:
             print("Main thread waiting for camera to complete setup")
 
     try:

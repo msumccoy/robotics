@@ -182,6 +182,31 @@ class Camera:
                 cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),
                 frame_rate, (width, height)
             )
+        track_bar = Conf.CV_WINDOW
+        track_bar_scale = 4
+        track_bar_neigh = 4
+        if self.profile in self.settings:
+            if Conf.CS_SCALE in self.settings[self.profile]:
+                track_bar_scale = (
+                        (
+                            self.settings[self.profile][Conf.CS_SCALE]
+                            - 1.005
+                        )
+                        / 0.1
+                )
+                track_bar_scale = int(f"{track_bar_scale: .0f}")
+            if Conf.CS_NEIGH in self.settings[self.profile]:
+                track_bar_neigh = (
+                    self.settings[self.profile][Conf.CS_NEIGH]
+                )
+        cv2.namedWindow(Conf.CV_WINDOW)
+        cv2.namedWindow(track_bar)
+        cv2.createTrackbar(
+            "scale", track_bar, track_bar_scale, 89, self.set_scale
+        )
+        cv2.createTrackbar(
+            "min Neigh", track_bar, track_bar_neigh, 50, self.set_neigh
+        )
 
         self.obj_dist = {}
         self.reset_distances(True)
@@ -667,7 +692,7 @@ class Camera:
                     )
                 k = cv2.waitKey(1) & 0xFF
                 if k == 27:
-                    self.logger.debug("setup_profile: Exiting camera")
+                    self.logger.debug("setup_profile: Exiting camera (esc)")
                     ExitControl.cam = False
                     return
                 elif k != -1 and k != 255 and len(self.detected_objects):
