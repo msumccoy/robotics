@@ -338,7 +338,6 @@ class Conf:
     # CS = camera settings
     CS_DEFAULT = "default"
     CS_DEFAULT1 = "default_non_pi_cam"
-    CS_DEFAULT2 = "default_dual"
     CS_IS_PI_CAM = "is_pi_cam"
     CS_FOCAL = "focal_len"
     CS_LENS_TYPE = "lens_type"

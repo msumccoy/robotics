@@ -34,24 +34,20 @@ class Camera:
     logger = logging.getLogger(Conf.LOG_CAM_NAME)
 
     @staticmethod
-    def get_inst(
-            cam_name, cam_num=-1, lens_type=LensType.SINGLE,
-            record=False, take_pic=False
-    ):
+    def get_inst(cam_name, cam_num=-1, record=False, take_pic=False):
         with Conf.LOCK_CLASS:
             if cam_name not in Camera._inst:
                 Camera._inst[cam_name] = Camera(
-                    cam_name, cam_num, lens_type, record, take_pic
+                    cam_name, cam_num, record, take_pic
                 )
         return Camera._inst[cam_name]
 
-    def __init__(self, robot, cam_num, lens_type, record, take_pic):
+    def __init__(self, robot, cam_num, record, take_pic):
         self.main_logger.info(f"Camera: started on version {Conf.VERSION}")
         self.logger.info(
             f"Cam started on version {Conf.VERSION}:\n"
             f"- robot: {robot}\n"
             f"- cam_num: {cam_num}\n"
-            f"- lens_type: {lens_type}\n"
             f"- record: {record}\n"
             f"- take_pic: {take_pic}\n"
         )
@@ -60,25 +56,16 @@ class Camera:
         self.lock_detect = threading.Lock()
         self.count = 0
         self.is_connected = False
-        if lens_type != LensType.SINGLE and lens_type != LensType.DOUBLE:
-            self.logger.exception(f"'{lens_type}' is not a valid lens type")
-            self.main_logger.exception(
-                f"Camera: crashed -- '{lens_type}' is not a valid lens type"
-            )
-        else:
-            self.is_connected = True
         if robot != RobotType.HUMAN and robot != RobotType.SPIDER:
             self.logger.exception(f"'{robot}' is not a valid robot type")
             self.main_logger.exception(
                 f"Camera: crashed -- '{robot}' is not a valid robot type"
             )
-        else:
-            self.is_connected = True
+            ExitControl.cam = False
 
         self.robot_type = robot
         self.robot = None
         self.cam_num = cam_num
-        self.lens_type = lens_type
         self.frame_pure = None
         self.width = self.height = 6
         self.is_pi_cam = False
@@ -128,6 +115,7 @@ class Camera:
                     self.ret, self.frame_pure = self.cam.read()
                     self.height, self.width, _ = self.frame_pure.shape
                     self.is_pi_cam = False
+                    self.logger.debug(f"success cv2 cam({self.cam_num}) now")
                 except AttributeError:
                     pass
             if self.cam_num > 5:
@@ -147,10 +135,6 @@ class Camera:
         )
         if self.is_connected:
             self.midpoint = int(self.width / 2)
-            if lens_type == LensType.DOUBLE:
-                self.midpoint = int(self.width / 4)
-                self.width = int(self.width / 2)
-                self.get_dual_image()
             self.frame = self.frame_pure.copy()
             self.frame_full = np.vstack((self.frame, self.note_frame))
         else:
@@ -167,10 +151,8 @@ class Camera:
             self.settings = json.load(file)
         if self.is_pi_cam:
             self.profile = Conf.CS_DEFAULT
-        elif lens_type == LensType.SINGLE:
+        else:
             self.profile = Conf.CS_DEFAULT1
-        elif lens_type == LensType.DOUBLE:
-            self.profile = Conf.CS_DEFAULT2
         if self.profile in self.settings:
             self.is_profile_setup = True
         else:
@@ -205,11 +187,7 @@ class Camera:
 
         self.command = None
         self.num_objects = 0
-        self.num_left = 0
-        self.num_right = 0
         self.detected_objects = None
-        self.detected_left = None
-        self.detected_right = None
         self.update_instance_settings()
         self.main_loop_dur = 0
 
@@ -223,6 +201,64 @@ class Camera:
     # Main detection function. ###############################################
     ##########################################################################
     def start_recognition(self):
+        if not self.is_connected:
+            self.logger.debug(
+                "Camera recognition could not be started as camera is not "
+                "connected"
+            )
+            return
+        self.logger.debug("start_recognition started")
+        if not self.is_profile_setup:
+            self.logger.debug("start_recognition: profile has to be set up")
+            self.logger.exception(
+                "start_recognition: WARNING USING DEFAULT VALUES FOR "
+                "MEASUREMENT"
+            )
+        total_dur = time.time() - self.start_time
+        threshold = Conf.LOOP_DUR_THRESHOLD / 1000
+        if (
+                self.settings[self.profile][Conf.CS_LENS_TYPE]
+                != self.lens_type.value
+        ):
+            self.logger.warning(
+                "Lens type of camera and settings profile do not match. "
+                "Please fix"
+            )
+        while ExitControl.gen and ExitControl.cam:
+            loop_start = time.time()
+            self.get_frame()
+            with self.lock_detect:
+                self.detect_object()
+            note_x = Conf.CS_X_OFFSET
+            note_y = Conf.CV_NOTE_HEIGHT - Conf.CS_Y_OFFSET
+            self.main_total_time_info = [
+                f"Main loop total time = {pretty_time(total_dur, False)}",
+                note_x, note_y
+            ]
+            note_y -= Conf.CS_Y_OFFSET
+            self.main_loop_time_info = [
+                f"Main loop time = {pretty_time(self.main_loop_dur, False)}",
+                note_x, note_y
+            ]
+
+            self.main_loop_dur = time.time() - loop_start
+            total_dur = time.time() - self.start_time
+            if self.main_loop_dur < threshold:
+                self.logger.debug(
+                    f"Recognition loop ran in {pretty_time(self.main_loop_dur, False)}"
+                )
+                self.logger.debug(
+                    f"Total runtime {pretty_time(total_dur, False)}"
+                )
+            else:
+                self.logger.debug(
+                    f"Recognition loop ran in {pretty_time(self.main_loop_dur, False)}"
+                    f"\n----------------------------- "
+                    f"This is greater than the threshold of "
+                    f"{Conf.LOOP_DUR_THRESHOLD}ms"
+                )
+
+    def old_start_recognition(self):  # Delete after revamping loop
         if not self.is_connected:
             self.logger.debug(
                 "Camera recognition could not be started as camera is not "
@@ -560,8 +596,6 @@ class Camera:
                 self.ret = True
             else:
                 self.ret, self.frame_pure = self.cam.read()
-            if self.lens_type == LensType.DOUBLE:
-                self.get_dual_image()
         self.get_frame_time = time.time() - start  # delete  #################
 
     def detect_object(self):
@@ -582,11 +616,6 @@ class Camera:
         if dur > Conf.MAX_LAST_SEEN:
             self.reset_distances()
 
-    def get_dual_image(self):
-        height = self.height
-        end = self.width * 2
-        self.frame_pure = self.frame_pure[0: height, self.width: end]
-
     def reset_distances(self, full_reset=False):
         self.obj_dist[ObjDist.AVG] = 0.0
         self.obj_dist[ObjDist.LOCATION] = "N/A"
@@ -598,7 +627,6 @@ class Camera:
             self.obj_dist[ObjDist.LAST_SEEN] = 0.0
 
     def reset_profile(self, profile):
-        # TODO: Remove left and right focal length options
         # TODO: Add option for if it is a rpi cam
         #   -> save camera Brightness
         #   -> save camera Contrast
@@ -607,7 +635,6 @@ class Camera:
         self.settings[profile][Conf.CS_NEIGH] = 3
         self.settings[profile][Conf.CS_SCALE] = 1.305
         self.settings[profile][Conf.CS_OBJ_WIDTH] = 2.56
-        self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
         self.settings[profile][Conf.CS_FOCAL] = 1
         if self.is_pi_cam:
             self.settings[profile][Conf.CS_IS_PI_CAM] = True
@@ -615,11 +642,7 @@ class Camera:
             self.settings[profile][Conf.CS_IS_PI_CAM] = False
 
     def calibrate(self):
-        # TODO: Set up calibrate to work with GUI instead of opencv
         self.logger.debug("calibrate called")
-        if not self.disp_img:
-            self.logger.exception("Can only calibrate when display enabled")
-            return
         options = {'y': "yes", 'n': "no"}
         continue_calibrate = True
         while ExitControl.gen and ExitControl.cam and continue_calibrate:
@@ -640,16 +663,7 @@ class Camera:
                     f"     Object width --> "
                     f"{self.settings[self.profile][Conf.CS_OBJ_WIDTH]}"
                 )
-                self.setup_profile(Conf.CS_DEFAULT)
-                if (
-                        self.profile != Conf.CS_DEFAULT
-                        or self.profile != Conf.CS_DEFAULT2
-                ):
-                    print("Would you like to change your profile to default?")
-                    response = get_specific_response(options)
-                    if response == 'y':
-                        profile = Conf.CS_DEFAULT
-                        self.update_instance_settings()
+                self.setup_profile(self.profile)
             elif response == "2":
                 for key in self.settings:
                     print(key)
@@ -688,44 +702,17 @@ class Camera:
                     response = get_specific_response(options)
                     if response == 'y':
                         self.profile = profile
-                        self.update_instance_settings()
         self.update_instance_settings()
         self.logger.debug(f"Calibrate exiting")
 
     def setup_profile(self, profile):
-        # TODO: Set up setup_profile to work with GUI instead of opencv
         self.logger.debug(f"setup_profile called for profile: {profile}")
-        if not self.disp_img:
-            self.logger.exception("Can only setup profile in testing mode")
-            return
-        options = {'y': "yes", 'n': "no"}
         if profile not in self.settings:
             self.settings[profile] = {}
-        if Conf.CS_LENS_TYPE in self.settings[profile]:
-            if (
-                    self.settings[profile][Conf.CS_LENS_TYPE]
-                    != self.lens_type.value
-            ):
-                print(
-                    f"The lens type of this profile is "
-                    f"{self.settings[profile][Conf.CS_LENS_TYPE]}. "
-                    f"Do you want to change it to {self.lens_type.value} "
-                    f"which is the lens type of this camera"
-                )
-                response = get_specific_response(options)
-                if response == 'y':
-                    self.settings[profile][Conf.CS_LENS_TYPE] = (
-                        self.lens_type.value
-                    )
-                else:
-                    print("Canceling set up")
-                    return
-        else:
-            self.settings[profile][Conf.CS_LENS_TYPE] = self.lens_type.value
         if Conf.CS_NEIGH not in self.settings[profile]:
             self.settings[profile][Conf.CS_NEIGH] = 4
         if Conf.CS_SCALE not in self.settings[profile]:
-            self.settings[profile][Conf.CS_SCALE] = 1.405
+            self.settings[profile][Conf.CS_SCALE] = 1.305
         self.settings[profile][Conf.CS_OBJ_WIDTH] = get_float(
             "Enter object real world width: "
         )
@@ -791,6 +778,7 @@ class Camera:
             self.settings[profile][Conf.CS_FOCAL] = get_float(
                 "Enter focal length: "
             )
+        self.update_instance_settings()
 
     def capture_picture(self, limit=False):
         if limit:
@@ -893,7 +881,6 @@ def independent_test():
     cam = Camera.get_inst(
         RobotType.SPIDER,
         cam_num=2,
-        lens_type=LensType.DOUBLE,
         # record=True,
         # take_pic=True,
     )

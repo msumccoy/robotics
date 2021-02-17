@@ -37,13 +37,12 @@ def main():
     # Set up all class instances #############################################
     # Start setting robot to run independently (will add camera control next)
     robot = Robot.get_inst(robot_type, enable_auto=False)
-    # cam = Camera.get_inst(
-    #     robot_type,
-    #     # cam_num=2,
-    #     # lens_type=LensType.DOUBLE,
-    #     # record=True,
-    #     # take_pic=True,
-    # )
+    cam = Camera.get_inst(
+        robot_type,
+        # cam_num=2,
+        # record=True,
+        # take_pic=True,
+    )
     ##########################################################################
 
     try:
