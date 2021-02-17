@@ -11,6 +11,8 @@ from logging import handlers
 
 from config import Conf
 
+# TODO: limit the number of logs of a certain type go to log file to prevent flooding
+# TODO: figure out how to handle creating log file for gui as it may not be on the same system
 
 formatter = logging.Formatter(Conf.FORMAT, Conf.FORMAT_DATE)
 formatter_terminal = logging.Formatter(Conf.FORMAT_TERMINAL, Conf.FORMAT_DATE)
