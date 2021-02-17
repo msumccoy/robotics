@@ -20,7 +20,7 @@ def start_camera(robot_type):
     # control windows as only one thread can open and operate OpenCV windows
     cam = Camera.get_inst(
         robot_type,
-        cam_num=2,
+        cam_num=-1,
         disp=True,
         # record=True,
         # take_pic=True,

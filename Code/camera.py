@@ -79,7 +79,14 @@ class Camera:
                     self.width = 640
                     self.cam = PiCamera()
                     self.cam.resolution = (self.width, self.height)
-                    self.get_frame()
+                    rawCapture = PiRGBArray(
+                        self.cam, size=(self.width, self.height)
+                    )
+                    self.cam.capture(
+                        rawCapture, format="bgr", use_video_port=True
+                    )
+                    self.frame = rawCapture.array
+                    self.ret = True
                     self.is_pi_cam = True
                     self.ret = True
                     self.is_connected = True
@@ -107,7 +114,14 @@ class Camera:
                     self.height = 480
                     self.width = 640
                     self.cam.resolution = (self.width, self.height)
-                    self.get_frame()
+                    rawCapture = PiRGBArray(
+                        self.cam, size=(self.width, self.height)
+                    )
+                    self.cam.capture(
+                        rawCapture, format="bgr", use_video_port=True
+                    )
+                    self.frame = rawCapture.array
+                    self.ret = True
                     self.is_pi_cam = True
                     self.ret = True
                     self.is_connected = True
@@ -542,46 +556,52 @@ class Camera:
             if success and dur > orig_wait_time:
                 self.logger.info(f"control_robot: Command sent: {cmd_sent}")
 
-            if (
-                    self.action_request == Conf.CMD_CV_HEAD_UP or
-                    self.action_request == Conf.CMD_CV_HEAD_DOWN or
-                    self.action_request == Conf.CMD_CV_HEAD_LEFT or
-                    self.action_request == Conf.CMD_CV_HEAD_RIGHT
-            ):
-                self.robot.send_head_command(self.action_request)
-            elif self.action_request == Conf.CMD_CV_HEAD_DELTA_P:
-                self.robot.head_delta_theta += 5
-            elif self.action_request == Conf.CMD_CV_HEAD_DELTA_M:
-                self.robot.head_delta_theta -= 5
-            elif self.action_request == Conf.CMD_VARS:
-                self.robot.dump_status()
-            elif self.action_request == Conf.CMD_VARS1:
-                self.robot.dump_conf()
-            elif self.action_request == Conf.CMD_VARS2:
-                self.dump_status()
-            elif self.action_request != "" :
-                self.robot.send_command(self.action_request)
+            if self.disp:
+                if (
+                        self.action_request == Conf.CMD_RH_UP or
+                        self.action_request == Conf.CMD_RH_DOWN or
+                        self.action_request == Conf.CMD_RH_LEFT or
+                        self.action_request == Conf.CMD_RH_RIGHT
+                ):
+                    self.robot.send_head_command(self.action_request)
+                elif self.action_request == Conf.CMD_CV_HEAD_DELTA_P:
+                    self.robot.head_delta_theta += 5
+                elif self.action_request == Conf.CMD_CV_HEAD_DELTA_M:
+                    self.robot.head_delta_theta -= 5
+                elif self.action_request == Conf.CMD_VARS:
+                    self.robot.dump_status()
+                elif self.action_request == Conf.CMD_VARS1:
+                    self.robot.dump_conf()
+                elif self.action_request == Conf.CMD_VARS2:
+                    self.dump_status()
+                elif self.action_request != "":
+                    self.robot.send_command(self.action_request)
 
-            if self.robot.cam_request == Conf.CMD_VARS2:
-                self.dump_status()
-            elif self.action_request != "":
-                temp = (
-                    "control_robot: current action_request before erasing "
-                    f"--> {self.action_request}"
-                )
-                print(temp)
-                self.action_request = ""
+                if self.robot.cam_request == Conf.CMD_VARS2:
+                    self.dump_status()
+                elif self.action_request != "":
+                    temp = (
+                        "control_robot: current action_request before erasing "
+                        f"--> {self.action_request}"
+                    )
+                    print(temp)
+                    self.action_request = ""
 
-            if self.robot.cam_request != "":
-                self.robot.cam_request = ""
-
-            time.sleep(1)
+                if self.robot.cam_request != "":
+                    self.robot.cam_request = ""
+                time.sleep(.2)
+            else:
+                time.sleep(1)
 
     def rbt_head_search(self):
         self.robot.send_head_command(
             Conf.ROBOT_HEAD_SET_U_D, pos=Conf.RBT_MIN_HEAD_FORWARD, auto=True
         )
-        while not self.obj_dist[ObjDist.IS_FOUND]:
+        while (
+                not self.obj_dist[ObjDist.IS_FOUND] and
+                self.robot.active_auto_control and
+                self.action_request == ""
+        ):
             self.robot.send_head_command(Conf.CMD_RH_UP, auto=True)
             time.sleep(Conf.SEARCH_REST)
             if self.robot.servo_posUD >= Conf.RBT_MAX_HEAD_BACK:
