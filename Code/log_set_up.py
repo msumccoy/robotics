@@ -12,7 +12,6 @@ from logging import handlers
 from config import Conf
 
 # TODO: limit the number of logs of a certain type go to log file to prevent flooding
-# TODO: figure out how to handle creating log file for gui as it may not be on the same system
 
 formatter = logging.Formatter(Conf.FORMAT, Conf.FORMAT_DATE)
 formatter_terminal = logging.Formatter(Conf.FORMAT_TERMINAL, Conf.FORMAT_DATE)
@@ -69,18 +68,4 @@ robot_logger.addHandler(robot_file_handler)
 robot_logger.addHandler(robot_stream_handler)
 
 # Set up gui logger  #########################################################
-robot_logger = logging.getLogger(Conf.LOG_GUI_NAME)
-robot_logger.setLevel(logging.DEBUG)
-
-robot_file_handler = handlers.RotatingFileHandler(
-    Conf.LOG_GUI_FILE, maxBytes=Conf.MAX_BYTES, backupCount=Conf.BACKUP_COUNT
-)
-robot_file_handler.setFormatter(formatter)
-robot_file_handler.setLevel(Conf.LOG_GUI_FILE_LEVEL)
-
-robot_stream_handler = logging.StreamHandler()
-robot_stream_handler.setFormatter(formatter_terminal)
-robot_stream_handler.setLevel(Conf.LOG_GUI_STREAM_LEVEL)
-
-robot_logger.addHandler(robot_file_handler)
-robot_logger.addHandler(robot_stream_handler)
+# GUI logger will be set up in gui.py

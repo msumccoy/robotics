@@ -33,9 +33,6 @@ def start_camera(robot_type):
 
 def main():
     # TODO: Create
-    # TODO: separate each section to run independently
-    #   - Camera
-    #       - Recognition  should be in sub thread
     #   - GUI
     #       - Should run in secondary daemon process while robot and camera
     #         run in main process

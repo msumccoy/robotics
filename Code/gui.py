@@ -1,4 +1,5 @@
 import logging
+from logging import handlers
 import os
 import sys
 import threading
@@ -10,15 +11,31 @@ import time
 import cv2
 import psutil
 from PIL import Image, ImageTk
-import numpy as np
 
-import log_set_up
 from config import Conf
-from camera import Camera
 from enums import RobotType
 from misc import pretty_time
-from robot_control import Robot
-from variables import ExitControl
+
+
+# Set up gui logger  #########################################################
+formatter = logging.Formatter(Conf.FORMAT, Conf.FORMAT_DATE)
+formatter_terminal = logging.Formatter(Conf.FORMAT_TERMINAL, Conf.FORMAT_DATE)
+
+robot_logger = logging.getLogger(Conf.LOG_GUI_NAME)
+robot_logger.setLevel(logging.DEBUG)
+
+robot_file_handler = handlers.RotatingFileHandler(
+    Conf.LOG_GUI_FILE, maxBytes=Conf.MAX_BYTES, backupCount=Conf.BACKUP_COUNT
+)
+robot_file_handler.setFormatter(formatter)
+robot_file_handler.setLevel(Conf.LOG_GUI_FILE_LEVEL)
+
+robot_stream_handler = logging.StreamHandler()
+robot_stream_handler.setFormatter(formatter_terminal)
+robot_stream_handler.setLevel(Conf.LOG_GUI_STREAM_LEVEL)
+
+robot_logger.addHandler(robot_file_handler)
+robot_logger.addHandler(robot_stream_handler)
 
 
 class MainClass:
@@ -172,8 +189,6 @@ class GUI(MainClass):
             f"GUI started on version {Conf.VERSION}:"
         )
         self.start_time = time.time()
-        self.cam = Camera.get_inst(robot_type)
-        self.robot = Robot.get_inst(robot_type)
         self.process = psutil.Process(os.getpid())
         self.btn_quit.configure(command=self.close)
 
@@ -206,11 +221,11 @@ class GUI(MainClass):
 
         # Set up tab buttons and widgets  ####################################
         # Set functions executed on movement of slider
-        self.scale_slider.configure(command=self.cam.set_scale)
-        self.neigh_slider.configure(command=self.cam.set_neigh)
-        self.rpi_brightness_slider.configure(command=self.cam.set_brightness)
-        self.rpi_contrast_slider.configure(command=self.cam.set_contrast)
-        self.rpi_iso_slider.configure(command=self.cam.set_iso)
+        # self.scale_slider.configure(command=self.cam.set_scale)
+        # self.neigh_slider.configure(command=self.cam.set_neigh)
+        # self.rpi_brightness_slider.configure(command=self.cam.set_brightness)
+        # self.rpi_contrast_slider.configure(command=self.cam.set_contrast)
+        # self.rpi_iso_slider.configure(command=self.cam.set_iso)
 
         # Set shortcuts and commands for robot control buttons
         self.btn_forward.configure(
@@ -332,8 +347,6 @@ class GUI(MainClass):
         self.root.after(100, self.life_check)
         self.root.after(100, self.check_main_loop_time)
         self.root.mainloop()
-        if ExitControl.gen:
-            ExitControl.gen = False
 
     def robot_btn(self, action):
         self.robot.send_command(action)

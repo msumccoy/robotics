@@ -20,7 +20,7 @@ if "raspberrypi" in os.uname():
 import log_set_up
 from misc import manual_ender, get_float, get_specific_response, pretty_time
 from config import Conf
-from enums import RobotType, LensType, ObjDist, DurTypes
+from enums import RobotType, ObjDist
 from variables import ExitControl, HeartBeats
 
 
