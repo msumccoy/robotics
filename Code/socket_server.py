@@ -1,4 +1,5 @@
 import logging
+import pickle
 import select
 import socket
 import time
@@ -56,13 +57,27 @@ class SocketServer:
                             f"socket_server: "
                             f"data_type {data_type}: data {data}"
                         )
-                        if data_type == Conf.TEST:
-                            print("Test type")  # debug  ################
+                        ######################################################
+                        # Different communication actions  ###################
+                        ######################################################
+                        if data_type == Conf.COM_TEST:
                             com_data = make_fixed_string(
                                     Conf.PRE_HEADER_LEN, 1
                                 )
-                            com_data += code_list(["testing"], Conf.TEST)
+                            com_data += code_list(["testing"], Conf.COM_TEST)
                             print(f"Server side printing: {data}")
+                            notified_socket.send(com_data)
+                        elif data_type == Conf.COM_IMG:
+                            com_data = make_fixed_string(
+                                    Conf.PRE_HEADER_LEN, 1
+                                )
+                            # TODO: Figure out how to cut frame into
+                            #  manageable pieces to send over socket
+                            frame = pickle.dumps(self.cam.frame)
+                            print('frame', frame)
+                            com_data += code_list(frame, Conf.COM_IMG)
+                            print(f"Server side printing data: {data}")
+                            print(f"Server side printing com_data: {com_data}")
                             notified_socket.send(com_data)
                         else:
                             raise TypeError(

@@ -198,7 +198,7 @@ class GUI(MainClass):
 
         # Set bindings
         self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
-        self.root.bind('<Up>', self.communicate)
+        self.root.bind('<Up>', self.test_communicate)
         # self.root.bind('<Up>', self.shortcut_btn)
         # self.root.bind('<Down>', self.shortcut_btn)
         # self.root.bind('<Left>', self.shortcut_btn)
@@ -327,15 +327,6 @@ class GUI(MainClass):
         #     self.short_dict = Conf.HUMANOID_MOTION
         # elif robot_type == RobotType.SPIDER:
         #     self.full_dict = self.short_dict = Conf.SPIDER_FULL
-
-    def communicate(self, a=None):
-        com_data = make_fixed_string(Conf.PRE_HEADER_LEN, 1)
-        com_data += code_list([f"testing from gui"], Conf.TEST)
-        self.client_socket.send(com_data)
-        com_response = read_transmission(self.client_socket)
-        for j in range(com_response[Conf.NUM_SEGMENTS]):
-            data_type, data = com_response[j+1]
-            print(f"socket_client: data_type --> {data_type}, data --> {data}")
 
     def toggle_robot_auto(self):
         if self.is_robot_auto.get():
@@ -504,10 +495,32 @@ class GUI(MainClass):
             self.close()
         self.root.after(50, self.life_check)  # Change back to 1000 after testing
 
+    ##########################################################################
+    # Communication functions  ###############################################
+    ##########################################################################
+    def get_image(self, empty=None):
+        com_data = make_fixed_string(Conf.PRE_HEADER_LEN, 1)
+        com_data += code_list([f"testing from gui"], Conf.COM_IMG)
+        self.client_socket.send(com_data)
+        com_response = read_transmission(self.client_socket)
+        print(com_response)
+
+    def test_communicate(self, a=None):
+        com_data = make_fixed_string(Conf.PRE_HEADER_LEN, 1)
+        com_data += code_list([f"testing from gui"], Conf.COM_TEST)
+        self.client_socket.send(com_data)
+        com_response = read_transmission(self.client_socket)
+        for j in range(com_response[Conf.NUM_SEGMENTS]):
+            data_type, data = com_response[j+1]
+            print(f"socket_client: data_type --> {data_type}, data --> {data}")
+
+    ##########################################################################
+
     def escape(self, event):
         self.close()
 
     def start(self):
+        self.root.after(5000, self.get_image)
         # self.root.after(10, self.update_image)
         # self.root.after(100, self.check_main_loop_time)
         self.root.mainloop()
