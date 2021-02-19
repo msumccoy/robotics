@@ -1,4 +1,5 @@
 import logging
+import socket
 from logging import handlers
 import os
 import sys
@@ -17,6 +18,8 @@ from misc import pretty_time
 
 
 # Set up gui logger  #########################################################
+from socket_functions import make_fixed_string, read_transmission, code_list
+
 formatter = logging.Formatter(Conf.FORMAT, Conf.FORMAT_DATE)
 formatter_terminal = logging.Formatter(Conf.FORMAT_TERMINAL, Conf.FORMAT_DATE)
 
@@ -189,8 +192,13 @@ class GUI(MainClass):
         self.process = psutil.Process(os.getpid())
         self.btn_quit.configure(command=self.close)
 
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_socket.connect((Conf.LOCAL_IP, Conf.PING_MONITOR_PORT))
+        self.client_socket.setblocking(False)
+
         # Set bindings
-        # self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
+        self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
+        self.root.bind('<Up>', self.communicate)
         # self.root.bind('<Up>', self.shortcut_btn)
         # self.root.bind('<Down>', self.shortcut_btn)
         # self.root.bind('<Left>', self.shortcut_btn)
@@ -319,6 +327,15 @@ class GUI(MainClass):
         #     self.short_dict = Conf.HUMANOID_MOTION
         # elif robot_type == RobotType.SPIDER:
         #     self.full_dict = self.short_dict = Conf.SPIDER_FULL
+
+    def communicate(self, a=None):
+        com_data = make_fixed_string(Conf.PRE_HEADER_LEN, 1)
+        com_data += code_list([f"testing from gui"], Conf.TEST)
+        self.client_socket.send(com_data)
+        com_response = read_transmission(self.client_socket)
+        for j in range(com_response[Conf.NUM_SEGMENTS]):
+            data_type, data = com_response[j+1]
+            print(f"socket_client: data_type --> {data_type}, data --> {data}")
 
     def toggle_robot_auto(self):
         if self.is_robot_auto.get():

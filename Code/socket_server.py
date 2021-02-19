@@ -6,7 +6,6 @@ import time
 import log_set_up  # This must Always be the first custom module imported
 from camera import Camera
 from config import Conf
-from enums import Com
 from misc import pretty_time
 from robot_control import Robot
 from socket_functions import read_transmission, make_fixed_string, code_list
@@ -51,18 +50,18 @@ class SocketServer:
                 if com_response is False:
                     self.socket_list.remove(notified_socket)
                 else:
-                    for i in range(com_response[Com.NUM_SEGMENTS]):
+                    for i in range(com_response[Conf.NUM_SEGMENTS]):
                         data_type, data = com_response[i+1]
                         print(
                             f"socket_server: "
                             f"data_type {data_type}: data {data}"
                         )
-                        if data_type == Com.TEST:
+                        if data_type == Conf.TEST:
                             print("Test type")  # debug  ################
                             com_data = make_fixed_string(
                                     Conf.PRE_HEADER_LEN, 1
                                 )
-                            com_data += code_list(["testing"], Com.TEST)
+                            com_data += code_list(["testing"], Conf.TEST)
                             print(f"Server side printing: {data}")
                             notified_socket.send(com_data)
                         else:

@@ -29,10 +29,5 @@ class DurTypes(Enum):
     MAIN_SUP_DUR = 3
 
 
-class Com(Enum):
-    NUM_SEGMENTS = 0
-    TEST = 10
-
-
 if __name__ == "__main__":
     pass
