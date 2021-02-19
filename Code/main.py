@@ -2,7 +2,7 @@
 Kuwin Wyke
 Midwestern State University
 """
-import multiprocessing
+# import multiprocessing
 import threading
 import logging
 import time
@@ -54,18 +54,19 @@ def main():
     cam_starter.start()
     time.sleep(.1)
     cam = Camera.get_inst(robot_type)
-    socket_server = SocketServer(robot_type)
-    socket_thread = threading.Thread(target=socket_server.start, daemon=True)
-    socket_thread.start()
+    # # Socket thread is not needed without GUI being active
+    # socket_server = SocketServer(robot_type)
+    # socket_thread = threading.Thread(target=socket_server.start, daemon=True)
+    # socket_thread.start()
     ##########################################################################
-    # Set up all class instances #############################################
-    start_gui = True
-    # start_gui = False
-    if start_gui:
-        gui_proc = multiprocessing.Process(target=gui_main, daemon=True)
-        gui_proc.start()
-
-
+    # Start gui if wanted on same system######################################
+    # TODO: Set up GUI process
+    #  - Get image from camera to gui (hopefully via socket)
+    # start_gui = True
+    # # start_gui = False
+    # if start_gui:
+    #     gui_proc = multiprocessing.Process(target=gui_main, daemon=True)
+    #     gui_proc.start()
     ##########################################################################
 
     i = 0

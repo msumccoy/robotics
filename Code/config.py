@@ -332,6 +332,15 @@ class Conf:
     if not os.path.isfile(CAM_SETTINGS_FILE):
         with open(CAM_SETTINGS_FILE, 'w') as file:
             file.write("{}")
+    else:
+        with open(CAM_SETTINGS_FILE) as file:
+            if file.read() == "":
+                empty = True
+            else:
+                empty = False
+        if empty:
+            with open(CAM_SETTINGS_FILE, "w") as file:
+                file.write("{}")
 
     # CS = camera settings
     CS_DEFAULT = "default"
@@ -376,7 +385,8 @@ class Conf:
 
     NUM_SEGMENTS = 0
     COM_IMG = 10
-    COM_TEST = 11
+    COM_IMG_REQUEST = 11
+    COM_TEST = 100
 
     ##########################################################################
     # Log settings  ##########################################################

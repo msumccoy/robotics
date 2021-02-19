@@ -198,7 +198,7 @@ class GUI(MainClass):
 
         # Set bindings
         self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
-        self.root.bind('<Up>', self.test_communicate)
+        self.root.bind('<Up>', self.get_image)
         # self.root.bind('<Up>', self.shortcut_btn)
         # self.root.bind('<Down>', self.shortcut_btn)
         # self.root.bind('<Left>', self.shortcut_btn)
@@ -500,10 +500,13 @@ class GUI(MainClass):
     ##########################################################################
     def get_image(self, empty=None):
         com_data = make_fixed_string(Conf.PRE_HEADER_LEN, 1)
-        com_data += code_list([f"testing from gui"], Conf.COM_IMG)
+        com_data += code_list([f"testing from gui"], Conf.COM_IMG_REQUEST)
         self.client_socket.send(com_data)
+        print("get image aslkdfja;lfdja;fdlkja;lfdjka;lkfj;alkjfd;alkjdf;alkjf;lakjf;lakjf;lakjf;le")
         com_response = read_transmission(self.client_socket)
-        print(com_response)
+        while not com_response:
+            com_response = read_transmission(self.client_socket)
+        print(f"{com_response}: com__response")
 
     def test_communicate(self, a=None):
         com_data = make_fixed_string(Conf.PRE_HEADER_LEN, 1)
@@ -512,7 +515,6 @@ class GUI(MainClass):
         com_response = read_transmission(self.client_socket)
         for j in range(com_response[Conf.NUM_SEGMENTS]):
             data_type, data = com_response[j+1]
-            print(f"socket_client: data_type --> {data_type}, data --> {data}")
 
     ##########################################################################
 
@@ -520,7 +522,7 @@ class GUI(MainClass):
         self.close()
 
     def start(self):
-        self.root.after(5000, self.get_image)
+        self.root.after(2000, self.get_image)
         # self.root.after(10, self.update_image)
         # self.root.after(100, self.check_main_loop_time)
         self.root.mainloop()
@@ -534,6 +536,8 @@ class GUI(MainClass):
 
 
 def gui_main():
+    print("GUI currently does not work. SEE main.py FOR TODO")
+    return 
     ui = GUI()
     ui.start()
 

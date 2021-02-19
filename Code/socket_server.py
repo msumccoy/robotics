@@ -9,7 +9,7 @@ from camera import Camera
 from config import Conf
 from misc import pretty_time
 from robot_control import Robot
-from socket_functions import read_transmission, make_fixed_string, code_list
+from socket_functions import read_transmission, make_fixed_string, code_list, code_pickle
 from variables import ExitControl
 
 
@@ -29,6 +29,15 @@ class SocketServer:
         self.sever_socket.bind((Conf.LOCAL_IP, Conf.PING_MONITOR_PORT))
         self.sever_socket.listen()
         self.socket_list = [self.sever_socket]
+        i = 0
+        while Camera.inst is None:
+            time.sleep(1)
+            i += 1
+            if i % 30 == 0:
+                print(
+                    "Socket_server init thread waiting for camera "
+                    "to complete setup"
+                )
         self.cam = Camera.get_inst(robot_type)
         self.robot = Robot.get_inst(robot_type)
         self.logger.info(f"Socket init ran in {pretty_time(self.start_time)}")
@@ -53,10 +62,10 @@ class SocketServer:
                 else:
                     for i in range(com_response[Conf.NUM_SEGMENTS]):
                         data_type, data = com_response[i+1]
-                        print(
-                            f"socket_server: "
-                            f"data_type {data_type}: data {data}"
-                        )
+                        # print(
+                        #     f"socket_server: "
+                        #     f"data_type {data_type}: data {data}"
+                        # )
                         ######################################################
                         # Different communication actions  ###################
                         ######################################################
@@ -65,19 +74,15 @@ class SocketServer:
                                     Conf.PRE_HEADER_LEN, 1
                                 )
                             com_data += code_list(["testing"], Conf.COM_TEST)
-                            print(f"Server side printing: {data}")
                             notified_socket.send(com_data)
-                        elif data_type == Conf.COM_IMG:
+                        elif data_type == Conf.COM_IMG_REQUEST:
                             com_data = make_fixed_string(
                                     Conf.PRE_HEADER_LEN, 1
                                 )
-                            # TODO: Figure out how to cut frame into
-                            #  manageable pieces to send over socket
-                            frame = pickle.dumps(self.cam.frame)
-                            print('frame', frame)
-                            com_data += code_list(frame, Conf.COM_IMG)
-                            print(f"Server side printing data: {data}")
-                            print(f"Server side printing com_data: {com_data}")
+                            com_data += code_pickle(
+                                self.cam.frame, Conf.COM_IMG
+                            )
+                            print(f'{com_data[:500]}\n --- sending coded pickle asdfasdfasdfasdfasdfadsfasdfasdf')
                             notified_socket.send(com_data)
                         else:
                             raise TypeError(
