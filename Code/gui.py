@@ -13,7 +13,6 @@ import psutil
 from PIL import Image, ImageTk
 
 from config import Conf
-from enums import RobotType
 from misc import pretty_time
 
 

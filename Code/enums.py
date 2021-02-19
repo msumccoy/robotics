@@ -12,11 +12,6 @@ class RobotType(Enum):
     SPIDER = 1
 
 
-class LensType(Enum):
-    SINGLE = 0
-    DOUBLE = 1
-
-
 class ObjDist(Enum):
     AVG = 0
     LOCATION = 1
@@ -32,6 +27,11 @@ class DurTypes(Enum):
     MAIN_DUR = 1
     MAIN_SUP_LOOP = 2
     MAIN_SUP_DUR = 3
+
+
+class Com(Enum):
+    NUM_SEGMENTS = 0
+    TEST = 10
 
 
 if __name__ == "__main__":

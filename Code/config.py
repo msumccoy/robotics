@@ -365,6 +365,16 @@ class Conf:
     G_SLIDE_HEIGHT = 70
 
     ##########################################################################
+    # Socket server settings  ################################################
+    ##########################################################################
+    LOCAL_IP = "127.0.0.1"
+    PING_MONITOR_IP = "127.0.0.1"
+    PING_MONITOR_PORT = 1234
+    PRE_HEADER_LEN = 3
+    HEADER_LEN = 10
+    ENCODING = "utf-8"
+
+    ##########################################################################
     # Log settings  ##########################################################
     ##########################################################################
     default_log_level_file = logging.DEBUG
@@ -387,6 +397,11 @@ class Conf:
     LOG_ROBOT_FILE = LOG_ROOT + LOG_ROBOT_NAME + ".log"
     LOG_ROBOT_FILE_LEVEL = default_log_level_file
     LOG_ROBOT_STREAM_LEVEL = default_log_level_terminal
+    # Robot log settings  ####################################################
+    LOG_SOCKET_NAME = "socket"
+    LOG_SOCKET_FILE = LOG_ROOT + LOG_SOCKET_NAME + ".log"
+    LOG_SOCKET_FILE_LEVEL = default_log_level_file
+    LOG_SOCKET_STREAM_LEVEL = default_log_level_terminal
     # Robot log settings  ####################################################
     LOG_GUI_NAME = "gui"
     LOG_GUI_FILE = LOG_ROOT + LOG_GUI_NAME + ".log"

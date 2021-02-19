@@ -67,5 +67,22 @@ robot_stream_handler.setLevel(Conf.LOG_ROBOT_STREAM_LEVEL)
 robot_logger.addHandler(robot_file_handler)
 robot_logger.addHandler(robot_stream_handler)
 
+# Set up robot logger  #######################################################
+socket_logger = logging.getLogger(Conf.LOG_SOCKET_NAME)
+socket_logger.setLevel(logging.DEBUG)
+
+socket_file_handler = handlers.RotatingFileHandler(
+    Conf.LOG_SOCKET_FILE, maxBytes=Conf.MAX_BYTES, backupCount=Conf.BACKUP_COUNT
+)
+socket_file_handler.setFormatter(formatter)
+socket_file_handler.setLevel(Conf.LOG_SOCKET_FILE_LEVEL)
+
+socket_stream_handler = logging.StreamHandler()
+socket_stream_handler.setFormatter(formatter_terminal)
+socket_stream_handler.setLevel(Conf.LOG_SOCKET_STREAM_LEVEL)
+
+socket_logger.addHandler(socket_file_handler)
+socket_logger.addHandler(socket_stream_handler)
+
 # Set up gui logger  #########################################################
 # GUI logger will be set up in gui.py
