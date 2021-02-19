@@ -2,6 +2,7 @@
 Kuwin Wyke
 Midwestern State University
 """
+import multiprocessing
 import threading
 import logging
 import time
@@ -9,10 +10,12 @@ import time
 import log_set_up  # This must Always be the first custom module imported
 # Custom Modules  ############################################################
 from camera import Camera
+from gui import gui_main
 from robot_control import Robot
 from config import Conf
 from enums import RobotType
 from misc import pretty_time
+from socket_server import SocketServer
 
 
 def start_camera(robot_type):
@@ -51,6 +54,18 @@ def main():
     cam_starter.start()
     time.sleep(.1)
     cam = Camera.get_inst(robot_type)
+    socket_server = SocketServer(robot_type)
+    socket_thread = threading.Thread(target=socket_server.start, daemon=True)
+    socket_thread.start()
+    ##########################################################################
+    # Set up all class instances #############################################
+    start_gui = True
+    # start_gui = False
+    if start_gui:
+        gui_proc = multiprocessing.Process(target=gui_main, daemon=True)
+        gui_proc.start()
+
+
     ##########################################################################
 
     i = 0
