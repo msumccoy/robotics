@@ -31,10 +31,18 @@ def read_transmission(current_socket):
                         data_type == Conf.COM_IMG_REQUEST
                 ):
                     segment = [data_type, decode_list(current_socket)]
+                elif data_type == Conf.COM_TEST2:
+                    list_header = current_socket.recv(Conf.HEADER_LEN)
+                    list_len = int(list_header.decode(Conf.ENCODING).strip())
+                    current_list = current_socket.recv(list_len)
+                    segment = [data_type, current_list]
+                    # segment = [data_type, decode_list(current_socket)]
                 elif data_type == Conf.COM_IMG:
                     segment = [data_type, decode_pickle(current_socket)]
                 else:
-                    print("unknonw data type need to put error response")
+                    print(
+                        f"unknown data type need to put error response {data_type}"
+                    )
                     return False
                 response.append(segment)
             return response

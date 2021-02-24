@@ -12,9 +12,12 @@ import multiprocessing
 import select
 import socket
 import time
+import cv2
+import numpy as np
+import base64
 
 from config import Conf
-from socket_functions import read_transmission, make_fixed_string, code_list
+from socket_functions import read_transmission, make_fixed_string, code_list, decode_list
 
 
 def mock_robot():
@@ -36,8 +39,10 @@ def socket_server():
     sever_socket.bind((Conf.LOCAL_IP, Conf.PING_MONITOR_PORT))
     sever_socket.listen()
     socket_list = [sever_socket]
+    cam = cv2.VideoCapture(2)
     while True:
-        time.sleep(1)
+        _, frame = cam.read()
+        cv2.imshow("frame", frame)
 
         read_sockets, _, exception_sockets = select.select(
             socket_list, [], socket_list, 0
@@ -60,7 +65,9 @@ def socket_server():
                         com_data = make_fixed_string(
                                 Conf.PRE_HEADER_LEN, 1
                             )
-                        com_data += code_list(["testing"], Conf.COM_TEST)
+                        encoded, buffer = cv2.imencode('.jpg', frame)
+                        jpg_as_text = base64.b64encode(buffer)
+                        com_data += code_list([jpg_as_text], Conf.COM_TEST2)
                         print(f"Server side printing: {data}")
                         notified_socket.send(com_data)
                     else:
@@ -68,6 +75,11 @@ def socket_server():
                             "Unknown data type received in main loop: "
                             "data_type = {}".format(data_type)
                         )
+        k = cv2.waitKey(1)
+        if k == ord('a'):
+            print(jpg_as_text)
+        elif k != -1 and k != 255:
+            break
 
 
 def socket_client():
@@ -97,7 +109,7 @@ def main():
     time.sleep(2)
     proc2.start()
 
-    input("move on when ready\n")
+    proc1.join()
 
 
 if __name__ == '__main__':
