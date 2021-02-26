@@ -240,7 +240,7 @@ class Camera:
         )
 
     ##########################################################################
-    # Main detection function. ###############################################
+    # Main detection function ################################################
     ##########################################################################
     def start_recognition(self):
         if not self.is_connected:
@@ -424,7 +424,7 @@ class Camera:
                     self.action_request = Conf.CMD_VARS
                 elif k == Conf.CMD_CV_DUMP_CMD:
                     self.action_request = Conf.CMD_VARS1
-            ##################################################################
+            # End -- Place notes in openCV note window  ######################
             self.main_loop_dur = time.time() - loop_start
             total_dur = time.time() - self.start_time
             HeartBeats.cam = time.time()
@@ -442,7 +442,7 @@ class Camera:
                     f"This is greater than the threshold of "
                     f"{Conf.LOOP_DUR_THRESHOLD}ms"
                 )
-    ##########################################################################
+    # End -- Main detection function  ########################################
 
     ##########################################################################
     # Main robot control function ############################################
@@ -602,7 +602,7 @@ class Camera:
             time.sleep(Conf.SEARCH_REST)
             if self.robot.servo_posUD >= Conf.RBT_MAX_HEAD_BACK:
                 break
-    ##########################################################################
+    # End -- Main robot control function  ####################################
 
     def get_frame(self):
         if not self.is_connected:

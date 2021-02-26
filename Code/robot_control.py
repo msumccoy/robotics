@@ -370,8 +370,7 @@ class Robot:
                         f"manual_control: "
                         f"{command} is an unknown motion number\n"
                     )
-
-    ##########################################################################
+    # End -- Manual control for robot  #######################################
 
     def dump_status(self):
         # This method is used to get the current status of all the
