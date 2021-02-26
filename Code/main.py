@@ -7,7 +7,7 @@ import threading
 import logging
 import time
 
-import log_set_up  # This must Always be the first custom module imported
+import log_set_up_and_funcs  # This must Always be the first custom module imported
 # Custom Modules  ############################################################
 from camera import Camera
 from gui import gui_main

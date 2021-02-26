@@ -4,7 +4,7 @@ import select
 import socket
 import time
 
-import log_set_up  # This must Always be the first custom module imported
+import log_set_up_and_funcs  # This must Always be the first custom module imported
 from camera import Camera
 from config import Conf
 from misc import pretty_time

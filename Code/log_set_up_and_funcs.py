@@ -7,11 +7,11 @@ log any information. Consequently, this must module must be the first import
 at the start of the program
 """
 import logging
+import time
 from logging import handlers
 
 from config import Conf
 
-# TODO: limit the number of logs of a certain type go to log file to prevent flooding
 
 formatter = logging.Formatter(Conf.FORMAT, Conf.FORMAT_DATE)
 formatter_terminal = logging.Formatter(Conf.FORMAT_TERMINAL, Conf.FORMAT_DATE)
@@ -86,3 +86,77 @@ socket_logger.addHandler(socket_stream_handler)
 
 # Set up gui logger  #########################################################
 # GUI logger will be set up in gui.py
+
+
+class LoggingControl:
+    _inst = {}
+    main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
+
+    @staticmethod
+    def get_inst(logger):
+        with Conf.LOCK_CLASS:
+            if logger not in LoggingControl._inst:
+                LoggingControl._inst[logger] = LoggingControl(logger)
+        return LoggingControl._inst[logger]
+
+    def __init__(self, logger):
+        self.main_logger.info(f"Logger started: {logger}")
+        self.logger = logging.getLogger(logger)
+        self.log_times = {}
+
+    def debug(self, message, *, log_type=None):
+        if log_type is not None:
+            self.log_with_limit(Conf.DEBUG, message, log_type)
+            return
+        self.logger.debug(message)
+
+    def info(self, message, *, log_type=None):
+        if log_type is not None:
+            self.log_with_limit(Conf.INFO, message, log_type)
+            return
+        self.logger.info(message)
+
+    def warning(self, message, *, log_type=None):
+        if log_type is not None:
+            self.log_with_limit(Conf.WARNING, message, log_type)
+            return
+        self.logger.warning(message)
+
+    def error(self, message, *, log_type=None):
+        if log_type is not None:
+            self.log_with_limit(Conf.ERROR, message, log_type)
+            return
+        self.logger.error(message)
+
+    def critical(self, message, *, log_type=None):
+        if log_type is not None:
+            self.log_with_limit(Conf.CRITICAL, message, log_type)
+            return
+        self.logger.critical(message)
+
+    def log_with_limit(self, lvl, message, log_type):
+        if log_type not in self.log_times:
+            self.add_log_type(log_type)
+        last = self.log_times[log_type][Conf.LAST_LOG]
+        frequency = self.log_times[log_type][Conf.FREQUENCY_LOG]
+
+        dur = time.time() - last
+        if dur >= frequency:
+            if lvl == Conf.DEBUG:
+                self.logger.debug(message)
+            elif lvl == Conf.INFO:
+                self.logger.info(message)
+            elif lvl == Conf.WARNING:
+                self.logger.warning(message)
+            elif lvl == Conf.ERROR:
+                self.logger.error(message)
+            elif lvl == Conf.CRITICAL:
+                self.logger.critical(message)
+            self.log_times[log_type][Conf.LAST_LOG] = time.time()
+
+    def add_log_type(self, log_type, frequency=Conf.DEFAULT_LOG_FREQUENCY):
+        self.log_times[log_type] = [0, frequency]
+        self.logger.debug(
+            f"Limiting ***'{log_type}'*** to log no more than every "
+            f"{frequency} seconds."
+        )

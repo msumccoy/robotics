@@ -393,7 +393,7 @@ class Conf:
     # Log settings  ##########################################################
     ##########################################################################
     default_log_level_file = logging.DEBUG
-    default_log_level_terminal = logging.ERROR  #logging.INFO
+    default_log_level_terminal = logging.DEBUG  #logging.INFO
     LOG_ROOT = PATH_ROOT + "logs/"
     if not os.path.exists(LOG_ROOT):
         os.mkdir(LOG_ROOT)
@@ -429,6 +429,27 @@ class Conf:
     FORMAT_DATE = "%Y-%m-%d %H:%M:%S"
     MAX_BYTES = 5120
     BACKUP_COUNT = 4
+
+    LAST_LOG = 0
+    FREQUENCY_LOG = 1
+    DEFAULT_LOG_FREQUENCY = 30  # seconds
+
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+    # Log Types  #############################################################
+    LOG_ROBOT_AUTO_FAIL = "robot auto gen"
+    LOG_ROBOT_AUTO_FAIL_HEAD = "robot auto head"
+
+    LOG_CAM_NUM_OBJECTS = "num objects"
+    LOG_CAM_OBJECTS_NOT_FOUND = "not found"
+    LOG_CAM_STOP_SEARCH = "robot has stopped searching"
+    LOG_CAM_LOOP_TIME = "Total runtime"
+    LOG_CAM_RECOGNITION_TIME = "Recognition loop time"
+    # LOG_CAM_DEVIATION = "deviation"
 
     ##########################################################################
     # Locks  #################################################################

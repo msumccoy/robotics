@@ -15,7 +15,7 @@ if "raspberrypi" in os.uname():
     is_rpi = True
     from adafruit_servokit import ServoKit
 
-import log_set_up
+from log_set_up_and_funcs import LoggingControl
 from config import Conf
 from enums import RobotType
 from misc import get_int, pretty_time
@@ -25,8 +25,11 @@ from variables import ExitControl
 class Robot:
     # TODO: Go in Heart2Heart and see what feed back can be obtained from the
     _inst = {}
-    main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
-    logger = logging.getLogger(Conf.LOG_ROBOT_NAME)
+    main_logger = LoggingControl.get_inst(Conf.LOG_MAIN_NAME)
+    logger = LoggingControl.get_inst(Conf.LOG_ROBOT_NAME)
+    # Remove comments to add custom log frequency
+    # logger.add_log_type(Conf.LOG_ROBOT_AUTO_FAIL, 30)
+    # logger.add_log_type(Conf.LOG_ROBOT_AUTO_FAIL_HEAD, 30)
 
     @staticmethod
     def get_inst(robot_type, enable_auto=True):
@@ -78,7 +81,7 @@ class Robot:
             )
         except serial.serialutil.SerialException:
             self.ser = None
-            self.logger.exception(
+            self.logger.error(
                 "Robot control failed. Cannot connect to robot!!!!!!!!!!!!!!!"
             )
         # 90 degrees is the center position
@@ -100,12 +103,14 @@ class Robot:
             if auto and not self.active_auto_control:
                 self.logger.debug(
                     "Auto command sent but auto control off and no connection"
-                    f". motion_cmd = {motion_cmd}"
+                    f". motion_cmd = {motion_cmd}",
+                    log_type=Conf.LOG_ROBOT_AUTO_FAIL
                 )
                 return False
             self.logger.debug(
                 "send_command: no robot to connect to. "
-                f"motion_cmd = {motion_cmd}"
+                f"motion_cmd = {motion_cmd}",
+                log_type=Conf.LOG_ROBOT_AUTO_FAIL
             )
             return False
         # Need to make sure robot is aware that command is being sent before
@@ -165,13 +170,13 @@ class Robot:
                 self.ser.flush()
             except serial.SerialException as e:
                 try:
-                    self.logger.exception(f"Serial exception hit: {e}")
+                    self.logger.error(f"Serial exception hit: {e}")
                     self.ser.flush()
                 except termios.error:
-                    self.main_logger.exception(
+                    self.main_logger.error(
                         "Robot Unable to connect. Please check configuration"
                     )
-                    self.logger.exception(
+                    self.logger.error(
                         "Robot Unable to connect. Please check configuration"
                     )
                 self.ser = None
@@ -201,7 +206,7 @@ class Robot:
         if motion_num in self.full_dict:
             return Conf.HEX_HUNDRED_NUM[motion_num]
         else:
-            self.logger.info(f"Motion number {motion_num} not allowed")
+            self.logger.error(f"Motion number {motion_num} not allowed")
             return Conf.HEX_STOP
 
     def send_head_command(self, motion_cmd, pos=None, auto=False):
@@ -209,7 +214,8 @@ class Robot:
             if auto and not self.active_auto_control:
                 self.logger.debug(
                     "send_head_command: auto head control attempted but"
-                    " active_auto_control off"
+                    " active_auto_control off",
+                    log_type=Conf.LOG_ROBOT_AUTO_FAIL_HEAD
                 )
                 return False
             if motion_cmd == Conf.CMD_RH_UP or motion_cmd == Conf.CMD_RH_UP1:
@@ -229,7 +235,8 @@ class Robot:
         else:
             self.logger.info(
                 "Cannot control head servos as this program is not being "
-                "executed on a raspberry pi"
+                "executed on a raspberry pi",
+                log_type=Conf.LOG_ROBOT_AUTO_FAIL_HEAD
             )
 
     def set_head(self):

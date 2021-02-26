@@ -17,7 +17,7 @@ if "raspberrypi" in os.uname():
     from picamera.exc import PiCameraError
     from picamera.array import PiRGBArray
 
-import log_set_up
+from log_set_up_and_funcs import LoggingControl
 from misc import manual_ender, get_float, get_specific_response, pretty_time
 from config import Conf
 from enums import RobotType, ObjDist
@@ -26,8 +26,14 @@ from variables import ExitControl, HeartBeats
 
 class Camera:
     _inst = {}
-    main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
-    logger = logging.getLogger(Conf.LOG_CAM_NAME)
+    main_logger = LoggingControl.get_inst(Conf.LOG_MAIN_NAME)
+    logger = LoggingControl.get_inst(Conf.LOG_CAM_NAME)
+    # Remove comments to add custom log frequency
+    # logger.add_log_type(Conf.LOG_CAM_NUM_OBJECTS, 30)
+    # logger.add_log_type(Conf.LOG_CAM_OBJECTS_NOT_FOUND, 30)
+    # logger.add_log_type(Conf.LOG_CAM_STOP_SEARCH, 30)
+    # logger.add_log_type(Conf.LOG_CAM_LOOP_TIME, 30)
+    # logger.add_log_type(Conf.LOG_CAM_RECOGNITION_TIME, 30)
 
     @staticmethod
     def get_inst(cam_name, cam_num=-1, disp=False, record=False, take_pic=False):
@@ -311,8 +317,7 @@ class Camera:
                         text = f"Location: {self.obj_dist[ObjDist.LOCATION]}"
                         self.put_text(text, note_x, note_y)
                     else:
-                        self.logger.exception(
-                            f"main_loop_support: "
+                        self.logger.error(
                             f"Major deviation in calculated.\n"
                             f"avg: "
                             f"{self.obj_dist[ObjDist.AVG]} vs dist: {dist}"
@@ -328,8 +333,8 @@ class Camera:
                                 Conf.CV_LINE_COLOR2
                             )
                 self.logger.debug(
-                    f"main_loop_support:Several objects detected. "
-                    f"Num: {self.num_objects}"
+                    f"Several objects detected. Num: {self.num_objects}",
+                    log_type=Conf.LOG_CAM_NUM_OBJECTS
                 )
 
             ##################################################################
@@ -369,7 +374,10 @@ class Camera:
                     )
                     self.put_text(text, note_x, note_y, frame=self.note_frame)
                 else:
-                    self.logger.debug("main_loop_support: Object not found")
+                    self.logger.debug(
+                        "Object not found",
+                        log_type=Conf.LOG_CAM_OBJECTS_NOT_FOUND
+                    )
 
                 if self.record:
                     note_x = self.width - (Conf.CS_X_OFFSET * 10)
@@ -430,16 +438,20 @@ class Camera:
             HeartBeats.cam = time.time()
             if self.main_loop_dur < threshold:
                 self.logger.debug(
-                    f"Recognition loop ran in {pretty_time(self.main_loop_dur, False)}"
+                    "Recognition loop ran in "
+                    f"{pretty_time(self.main_loop_dur, False)}",
+                    log_type=Conf.LOG_CAM_RECOGNITION_TIME
                 )
                 self.logger.debug(
-                    f"Total runtime {pretty_time(total_dur, False)}"
+                    f"Total runtime {pretty_time(total_dur, False)}",
+                    log_type=Conf.LOG_CAM_LOOP_TIME
                 )
             else:
                 self.logger.debug(
-                    f"Recognition loop ran in {pretty_time(self.main_loop_dur, False)}"
-                    f"\n----------------------------- "
-                    f"This is greater than the threshold of "
+                    "Recognition loop ran in "
+                    f"{pretty_time(self.main_loop_dur, False)}"
+                    "\n----------------------------- "
+                    "This is greater than the threshold of "
                     f"{Conf.LOOP_DUR_THRESHOLD}ms"
                 )
     # End -- Main detection function  ########################################
@@ -547,7 +559,8 @@ class Camera:
                     self.logger.warning(
                         "Object not found in "
                         f"{pretty_time(non_search_dur, is_raw=False)}"
-                        " and robot has stopped searching"
+                        " and robot has stopped searching",
+                        log_type=Conf.LOG_CAM_STOP_SEARCH
                     )
             if success and dur > orig_wait_time:
                 self.logger.info(f"control_robot: Command sent: {cmd_sent}")
