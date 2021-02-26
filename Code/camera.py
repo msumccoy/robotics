@@ -25,10 +25,6 @@ from variables import ExitControl, HeartBeats
 
 
 class Camera:
-    # TODO: set up calibration in OpenCV
-    #   * Currently default values are set for focus, object width ect.
-    #   -> Redo main loop
-    #   -> Set up calibration
     _inst = {}
     main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     logger = logging.getLogger(Conf.LOG_CAM_NAME)
