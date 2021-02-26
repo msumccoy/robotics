@@ -228,6 +228,7 @@ class Camera:
         self.reset_distances(True)
         self.last_non_search = time.time()
 
+        self.split_img = False  # Option to display Frame and Note separately
         self.command = None
         self.num_objects = 0
         self.detected_objects = None
@@ -395,7 +396,11 @@ class Camera:
                     self.capture_picture(limit=True)
 
                 self.frame_full = np.vstack((self.frame, self.note_frame))
-                cv2.imshow(Conf.CV_WINDOW, self.frame_full)
+                if self.split_img:
+                    cv2.imshow(Conf.CV_WINDOW, self.frame)
+                    cv2.imshow(Conf.CV_WINDOW_NOTE, self.note_frame)
+                else:
+                    cv2.imshow(Conf.CV_WINDOW, self.frame_full)
                 k = cv2.waitKey(1)
                 if k == 27 or k == Conf.CMD_CV_EXIT or k == Conf.CMD_CV_EXIT1:
                     ExitControl.cam = ExitControl.gen = False
