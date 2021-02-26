@@ -307,7 +307,7 @@ class Conf:
     CV_CASCADE_FILE = (
             CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     )
-    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
+    # CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################
@@ -357,7 +357,7 @@ class Conf:
 
     CS_MID_TOLERANCE = 20
     FREQUENCY_PIC = 30
-    LOOP_DUR_THRESHOLD = 200  # milliseconds before triggering a warning
+    LOOP_DUR_THRESHOLD = 300  # milliseconds before triggering a warning
 
     # Cam memory settings  ###################################################
     MEM_DIST_LIST_LEN = 1
@@ -442,15 +442,20 @@ class Conf:
     CRITICAL = "critical"
 
     # Log Types  #############################################################
+    LOG_ROBOT_SEND_CMD = "send_command called"
     LOG_ROBOT_AUTO_FAIL = "robot auto gen"
     LOG_ROBOT_AUTO_FAIL_HEAD = "robot auto head"
+    LOG_ROBOT_SET_HEAD = "set head"
+    LOG_ROBOT_SUB_SEND = "sub send cmd"
+    LOG_ROBOT_CLEAR_CACHE = "clear cache"
+    LOG_ROBOT_GET_HEX_CMD = "get hex cmd"
 
     LOG_CAM_NUM_OBJECTS = "num objects"
     LOG_CAM_OBJECTS_NOT_FOUND = "not found"
     LOG_CAM_STOP_SEARCH = "robot has stopped searching"
     LOG_CAM_LOOP_TIME = "Total runtime"
     LOG_CAM_RECOGNITION_TIME = "Recognition loop time"
-    # LOG_CAM_DEVIATION = "deviation"
+    LOG_CAM_DEVIATION = "deviation"
 
     ##########################################################################
     # Locks  #################################################################

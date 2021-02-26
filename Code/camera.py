@@ -28,6 +28,7 @@ class Camera:
     _inst = {}
     main_logger = LoggingControl.get_inst(Conf.LOG_MAIN_NAME)
     logger = LoggingControl.get_inst(Conf.LOG_CAM_NAME)
+    logger.add_log_type(Conf.LOG_CAM_DEVIATION, 5)
     # Remove comments to add custom log frequency
     # logger.add_log_type(Conf.LOG_CAM_NUM_OBJECTS, 30)
     # logger.add_log_type(Conf.LOG_CAM_OBJECTS_NOT_FOUND, 30)
@@ -36,15 +37,21 @@ class Camera:
     # logger.add_log_type(Conf.LOG_CAM_RECOGNITION_TIME, 30)
 
     @staticmethod
-    def get_inst(cam_name, cam_num=-1, disp=False, record=False, take_pic=False):
+    def get_inst(
+            cam_name, cam_num=-1, disp=False, record=False, take_pic=False,
+            set_up=False, split_img=False
+    ):
         with Conf.LOCK_CLASS:
             if cam_name not in Camera._inst:
                 Camera._inst[cam_name] = Camera(
-                    cam_name, cam_num, disp, record, take_pic
+                    cam_name, cam_num, disp, record, take_pic, set_up,
+                    split_img
                 )
         return Camera._inst[cam_name]
 
-    def __init__(self, robot, cam_num, disp, record, take_pic):
+    def __init__(
+            self, robot, cam_num, disp, record, take_pic, set_up, split_img
+    ):
         self.main_logger.info(f"Camera: started on version {Conf.VERSION}")
         self.logger.info(
             f"Cam started on version {Conf.VERSION}:\n"
@@ -53,6 +60,8 @@ class Camera:
             f"- display: {disp}\n"
             f"- record: {record}\n"
             f"- take_pic: {take_pic}\n"
+            f"- set_up: {set_up}\n"
+            f"- split_img: {split_img}\n"
         )
         self.start_time = time.time()
         self.lock = Conf.LOCK_CAM
@@ -224,11 +233,14 @@ class Camera:
             "min Neigh", track_bar, track_bar_neigh, 50, self.set_neigh
         )
 
+        if set_up:
+            self.is_profile_setup = False
+
         self.obj_dist = {}
         self.reset_distances(True)
         self.last_non_search = time.time()
 
-        self.split_img = False  # Option to display Frame and Note separately
+        self.split_img = split_img  # Display Frame and Note separately
         self.command = None
         self.num_objects = 0
         self.detected_objects = None
@@ -242,6 +254,7 @@ class Camera:
         # loop to robot control loop
         self.action_request = ""
 
+        self.is_on = True
         self.logger.info(
             f"Cam init ran in {pretty_time(self.start_time)}"
         )
@@ -256,6 +269,7 @@ class Camera:
                 "connected"
             )
             self.is_profile_setup = True
+            self.is_on = False
             return
         self.logger.debug("start_recognition started")
         if not self.is_profile_setup:
@@ -283,7 +297,11 @@ class Camera:
                 for (x, y, w, h) in self.detected_objects:
                     dist = (self.focal_len * self.obj_width) / w
                     check = self.obj_dist[ObjDist.AVG] - dist
-                    if -Conf.DIST_DISCREPANCY < check < Conf.DIST_DISCREPANCY:
+                    if(
+                        -Conf.DIST_DISCREPANCY < check < Conf.DIST_DISCREPANCY
+                        or self.obj_dist[ObjDist.AVG] <= 0.1
+
+                    ):
                         self.obj_dist[ObjDist.LIST].insert(0, dist)
                         self.obj_dist[ObjDist.SUM] += dist
                         self.obj_dist[ObjDist.COUNT] += 1
@@ -319,9 +337,10 @@ class Camera:
                         self.put_text(text, note_x, note_y)
                     else:
                         self.logger.error(
-                            f"Major deviation in calculated.\n"
+                            f"Major deviation in calculated distance.\n"
                             f"avg: "
-                            f"{self.obj_dist[ObjDist.AVG]} vs dist: {dist}"
+                            f"{self.obj_dist[ObjDist.AVG]} vs dist: {dist}",
+                            log_type=Conf.LOG_CAM_DEVIATION
                         )
             else:
                 if self.detected_objects is not None:
@@ -580,15 +599,25 @@ class Camera:
                     self.robot.send_head_command(self.action_request)
                 elif self.action_request == Conf.CMD_CV_HEAD_DELTA_P:
                     self.robot.head_delta_theta += 5
+                    self.robot.logger.debug(
+                        "Camera: control_robot: head_delta_theta increased to"
+                        f" {self.robot.head_delta_theta} "
+                    )
                 elif self.action_request == Conf.CMD_CV_HEAD_DELTA_M:
                     self.robot.head_delta_theta -= 5
+                    self.robot.logger.debug(
+                        "Camera: control_robot: head_delta_theta decreased to"
+                        f" {self.robot.head_delta_theta} "
+                    )
                 elif self.action_request == Conf.CMD_VARS:
                     self.robot.dump_status()
                 elif self.action_request == Conf.CMD_VARS1:
                     self.robot.dump_conf()
                 elif self.action_request == Conf.CMD_VARS2:
                     self.dump_status()
-                elif self.action_request != "":
+                elif self.action_request != "":  # Send all viable commands
+                    if self.action_request == Conf.CMD_STOP:
+                        self.robot.active_auto_control = False
                     self.robot.send_command(self.action_request)
 
                 if self.robot.cam_request == Conf.CMD_VARS2:
@@ -906,22 +935,24 @@ class Camera:
                 print()
 
     def close(self):
-        self.main_logger.info(
-            "Camera: closing after running for "
-            f"{pretty_time(self.start_time)}"
-        )
-        self.logger.info(
-            "Camera: closing after running for "
-            f"{pretty_time(self.start_time)}\n"
-        )
-        with open(Conf.CAM_SETTINGS_FILE, 'w') as file:
-            json.dump(self.settings, file, indent=4)
-        if self.cam_num < 0:
-            self.cam.close()
-        else:
-            self.cam.release()
-        cv2.destroyAllWindows()
-        ExitControl.cam = False
+        if self.is_on:
+            self.main_logger.info(
+                "Camera: closing after running for "
+                f"{pretty_time(self.start_time)}"
+            )
+            self.logger.info(
+                "Camera: closing after running for "
+                f"{pretty_time(self.start_time)}\n"
+            )
+            with open(Conf.CAM_SETTINGS_FILE, 'w') as file:
+                json.dump(self.settings, file, indent=4)
+            if self.cam_num < 0:
+                self.cam.close()
+            else:
+                self.cam.release()
+            cv2.destroyAllWindows()
+            ExitControl.cam = False
+            self.is_on = False
 
     @property
     def inst(self):

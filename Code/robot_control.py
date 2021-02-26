@@ -86,7 +86,7 @@ class Robot:
             )
         # 90 degrees is the center position
         self.servo_posLR = self.servo_posUD = 90
-        self.head_delta_theta = 5
+        self.head_delta_theta = 15
         if is_rpi:
             self.servos = ServoKit(channels=16)
             self.servos.servo[0].angle = self.servo_posLR  # Left and Right
@@ -96,6 +96,7 @@ class Robot:
         time.sleep(3)
         self.send_command(-1)
         self.cam_request = ""  # Camera will monitor this property for request
+        self.is_on = True
         self.logger.info(f"Robot init ran in {pretty_time(self.start)}")
 
     def send_command(self, motion_cmd, auto=False):
@@ -115,9 +116,15 @@ class Robot:
             return False
         # Need to make sure robot is aware that command is being sent before
         # sending command
-        self.logger.debug(f"send_command called: command -- {motion_cmd}")
+        self.logger.debug(
+            f"send_command called: command -- {motion_cmd}",
+                log_type=Conf.LOG_ROBOT_SEND_CMD
+        )
         if auto and not self.active_auto_control:
-            self.logger.debug("Auto command sent but auto control off")
+            self.logger.debug(
+                "Auto command sent but auto control off",
+                log_type=Conf.LOG_ROBOT_AUTO_FAIL
+            )
             return False
         if (
                 motion_cmd == Conf.CMD_STOP or motion_cmd == Conf.CMD_STOP1
@@ -184,13 +191,17 @@ class Robot:
 
     def sub_send_command(self, hex_cmd, cache_wait=0.05):
         self.logger.debug(
-            f"sub_send_command: sending motion command -- {hex_cmd}"
+            f"sub_send_command: sending motion command -- {hex_cmd}",
+            log_type=Conf.LOG_ROBOT_SUB_SEND
         )
         self.ser.write(hex_cmd)
         self.clear_cache(cache_wait)
 
     def clear_cache(self, wait):
-        self.logger.debug(f"clearing cache: wait time {wait}sec")
+        self.logger.debug(
+            f"clearing cache: wait time {wait}sec",
+            log_type=Conf.LOG_ROBOT_CLEAR_CACHE
+        )
         check = ""
         while check == "":
             check = self.ser.read(4)
@@ -201,7 +212,10 @@ class Robot:
         time.sleep(wait)
 
     def get_hex_cmd(self, motion_num):
-        self.logger.debug(f"get_hex_cmd called. motion_num: {motion_num}")
+        self.logger.debug(
+            f"get_hex_cmd called. motion_num: {motion_num}",
+            log_type=Conf.LOG_ROBOT_GET_HEX_CMD
+        )
 
         if motion_num in self.full_dict:
             return Conf.HEX_HUNDRED_NUM[motion_num]
@@ -252,6 +266,12 @@ class Robot:
 
         self.servos.servo[0].angle = self.servo_posLR  # Left and Right
         self.servos.servo[1].angle = self.servo_posUD  # Up and Down
+
+        self.logger.debug(
+            f"set_head: Up/Down --> {self.servo_posUD} ____ "
+            f"Left/Right --> {self.servo_posLR}",
+                log_type=Conf.LOG_ROBOT_SET_HEAD
+        )
 
     ##########################################################################
     # Manual control for robot ###############################################
@@ -399,13 +419,15 @@ class Robot:
                 print(f"property: {key} --> {properties[key]}")
 
     def close(self):
-        self.main_logger.info(
-            f"Robot: is closing after running for {pretty_time(self.start)}"
-        )
-        self.logger.info(
-            f"Robot: is closing after running for {pretty_time(self.start)}\n"
-        )
-        ExitControl.robot = False
+        if self.is_on:
+            self.main_logger.info(
+                f"Robot: is closing after running for {pretty_time(self.start)}"
+            )
+            self.logger.info(
+                f"Robot: is closing after running for {pretty_time(self.start)}\n"
+            )
+            ExitControl.robot = False
+            self.is_on = False
 
 
 def main():

@@ -157,6 +157,6 @@ class LoggingControl:
     def add_log_type(self, log_type, frequency=Conf.DEFAULT_LOG_FREQUENCY):
         self.log_times[log_type] = [0, frequency]
         self.logger.debug(
-            f"Limiting ***'{log_type}'*** to log no more than every "
+            f"***'{log_type}'*** Limiting to log no more than every "
             f"{frequency} seconds."
         )

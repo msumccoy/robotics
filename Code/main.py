@@ -27,6 +27,8 @@ def start_camera(robot_type):
         disp=True,
         # record=True,
         # take_pic=True,
+        # set_up=True,
+        #split_img=True
     )
     try:
         cam.start_recognition()
