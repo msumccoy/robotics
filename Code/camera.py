@@ -578,6 +578,8 @@ class Camera:
                             self.command, auto=True
                         )
                         cmd_sent_time = time.time()
+                    # TODO: need to set this to a thread and double check if
+                    #       it is alive before deploying again
                     self.rbt_head_search()
                 else:
                     self.logger.warning(
@@ -636,19 +638,48 @@ class Camera:
             else:
                 time.sleep(1)
 
-    def rbt_head_search(self):
+    def rbt_head_search(self, *, change_delta=True):
+        """
+        This function is used to search in front of the robot for the ball
+        by positioning the camera
+        """
+
+        # Set head in one corner to later progress to other diagonal
         self.robot.send_head_command(
             Conf.ROBOT_HEAD_SET_U_D, pos=Conf.RBT_MIN_HEAD_FORWARD, auto=True
         )
+        self.robot.send_head_command(
+            Conf.ROBOT_HEAD_SET_L_R, pos=Conf.RBT_MIN_HEAD_RIGHT, auto=True
+        )
+        if change_delta:
+            self.robot.head_delta_theta = 15
         while (
                 not self.obj_dist[ObjDist.IS_FOUND] and
                 self.robot.active_auto_control and
-                self.action_request == ""
+                self.robot.servo_posUD < Conf.RBT_MAX_HEAD_BACK
         ):
+            self.rbt_head_search_lr()
             self.robot.send_head_command(Conf.CMD_RH_UP, auto=True)
-            time.sleep(Conf.SEARCH_REST)
-            if self.robot.servo_posUD >= Conf.RBT_MAX_HEAD_BACK:
-                break
+        self.rbt_head_search_lr()
+
+    def rbt_head_search_lr(self):
+        if self.robot.servo_posLR <= Conf.RBT_MIN_HEAD_RIGHT:
+            while (
+                    not self.obj_dist[ObjDist.IS_FOUND] and
+                    self.robot.active_auto_control and
+                    self.robot.servo_posLR < Conf.RBT_MAX_HEAD_LEFT
+            ):
+                self.robot.send_head_command(Conf.CMD_RH_LEFT, auto=True)
+                time.sleep(Conf.SEARCH_REST)
+        else:
+            while (
+                    not self.obj_dist[ObjDist.IS_FOUND] and
+                    self.robot.active_auto_control and
+                    self.robot.servo_posLR > Conf.RBT_MIN_HEAD_RIGHT
+            ):
+                self.robot.send_head_command(Conf.CMD_RH_RIGHT, auto=True)
+                time.sleep(Conf.SEARCH_REST)
+
     # End -- Main robot control function  ####################################
 
     def get_frame(self):

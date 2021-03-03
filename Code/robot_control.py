@@ -270,7 +270,7 @@ class Robot:
         self.logger.debug(
             f"set_head: Up/Down --> {self.servo_posUD} ____ "
             f"Left/Right --> {self.servo_posLR}",
-                log_type=Conf.LOG_ROBOT_SET_HEAD
+            log_type=Conf.LOG_ROBOT_SET_HEAD
         )
 
     ##########################################################################
