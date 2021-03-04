@@ -507,43 +507,24 @@ class Camera:
             if self.obj_dist[ObjDist.IS_FOUND]:
                 self.last_non_search = time.time()
                 if dur > wait_time:
-                    if (
+                    if (  # Within kick range
                             Conf.KICK_DIST + Conf.KICK_RANGE
                             > self.obj_dist[ObjDist.AVG]
                             > Conf.KICK_DIST - Conf.KICK_RANGE
-                    ):  # Within kick range
-                        if self.robot_type == RobotType.HUMAN:
-                            self.command = 26
-                            wait_time = Conf.HUMANOID_FULL[self.command][1]
-                        elif self.robot_type == RobotType.SPIDER:
-                            self.command = 29
-                            wait_time = Conf.SPIDER_FULL[self.command][1]
+                    ):
                         cmd_sent = Conf.CMD_KICK
-                    elif (
-                            self.obj_dist[ObjDist.AVG]
-                            > Conf.KICK_DIST
-                    ):  # Walk forward
-                        if self.robot_type == RobotType.HUMAN:
-                            self.command = 15
-                            wait_time = Conf.HUMANOID_FULL[self.command][1]
-                        elif self.robot_type == RobotType.SPIDER:
-                            self.command = 5
-                            wait_time = Conf.SPIDER_FULL[self.command][1]
+                    elif self.obj_dist[ObjDist.AVG] > Conf.KICK_DIST:
                         cmd_sent = Conf.CMD_FORWARD
-                    else:  # Walk backward
-                        if self.robot_type == RobotType.HUMAN:
-                            self.command = 16
-                            wait_time = Conf.HUMANOID_FULL[self.command][1]
-                        elif self.robot_type == RobotType.SPIDER:
-                            self.command = 6
-                            wait_time = Conf.SPIDER_FULL[self.command][1]
+                    else:
                         cmd_sent = Conf.CMD_BACKWARD
+                    self.command = self.robot.get_command_num(cmd_sent)
+                    wait_time = self.robot.full_dict[self.command][1]
                     cmd_sent_time = time.time()
                     success = self.robot.send_command(self.command, auto=True)
             else:  # Search for object
                 non_search_dur = time.time() - self.last_non_search
                 if non_search_dur < Conf.MAX_SEARCH_DUR:
-                    # Search infront of robot then turn robot around 180
+                    # Search in front of robot then turn robot around 180
                     if not rbt_hd_srch_thrd.is_alive():
                         rbt_hd_srch_thrd = threading.Thread(
                             target=self.rbt_head_search
