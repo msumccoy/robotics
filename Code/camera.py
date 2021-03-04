@@ -495,7 +495,7 @@ class Camera:
         from robot_control import Robot
         self.logger.debug("control_robot: Started")
         self.robot = Robot.get_inst(self.robot_type)
-        turning = False
+        rbt_hd_srch_thrd = threading.Thread(target=self.rbt_head_search)
         cmd_sent = None
         cmd_sent_time = 0
         wait_time = 0
@@ -506,9 +506,6 @@ class Camera:
             orig_wait_time = wait_time
             if self.obj_dist[ObjDist.IS_FOUND]:
                 self.last_non_search = time.time()
-                if turning:
-                    self.robot.send_command(-1, auto=True)
-                    wait_time = 0
                 if dur > wait_time:
                     if (
                             Conf.KICK_DIST + Conf.KICK_RANGE
@@ -546,41 +543,23 @@ class Camera:
             else:  # Search for object
                 non_search_dur = time.time() - self.last_non_search
                 if non_search_dur < Conf.MAX_SEARCH_DUR:
-                    turning = (
-                            cmd_sent == Conf.CMD_LEFT
-                            or cmd_sent == Conf.CMD_RIGHT
-                    )
-                    if not turning or turning and non_search_dur > wait_time:
-                        turn_direction = (
-                            self.obj_dist[ObjDist.LOCATION]
+                    # Search infront of robot then turn robot around 180
+                    if not rbt_hd_srch_thrd.is_alive():
+                        rbt_hd_srch_thrd = threading.Thread(
+                            target=self.rbt_head_search
                         )
-                        if turn_direction == Conf.CMD_LEFT:
-                            if self.robot_type == RobotType.HUMAN:
-                                self.command = 19
-                                wait_time = (
-                                    Conf.HUMANOID_FULL[self.command][1]
-                                )
-                            elif self.robot_type == RobotType.SPIDER:
-                                self.command = 7
-                                wait_time = Conf.SPIDER_FULL[self.command][1]
-                            cmd_sent = Conf.CMD_LEFT
-                        else:  # Turn right
-                            if self.robot_type == RobotType.HUMAN:
-                                self.command = 20  # Conf.HUMANOID_MOTION
-                                wait_time = (
-                                    Conf.HUMANOID_FULL[self.command][1]
-                                )
-                            elif self.robot_type == RobotType.SPIDER:
-                                self.command = 8  # Conf.SPIDER_FULL
-                                wait_time = Conf.SPIDER_FULL[self.command][1]
-                            cmd_sent = Conf.CMD_RIGHT
-                        success = self.robot.send_command(
-                            self.command, auto=True
-                        )
-                        cmd_sent_time = time.time()
-                    # TODO: need to set this to a thread and double check if
-                    #       it is alive before deploying again
-                    self.rbt_head_search()
+                        cmd_sent = Conf.CMD_RIGHT
+                        self.command = self.robot.get_command_num(cmd_sent)
+                        wait_time = self.robot.full_dict[self.command][1]
+                        self.robot.send_command(self.command)
+                        temp_dur = 0
+                        temp_wait = wait_time / 10
+                        while (
+                                temp_dur < wait_time
+                                and not self.obj_dist[ObjDist.IS_FOUND]
+                        ):
+                            time.sleep(temp_wait)
+                        rbt_hd_srch_thrd.start()
                 else:
                     self.logger.warning(
                         "Object not found in "
