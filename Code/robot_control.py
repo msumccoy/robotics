@@ -114,11 +114,11 @@ class Robot:
                 log_type=Conf.LOG_ROBOT_AUTO_FAIL
             )
             return False
-        # Need to make sure robot is aware that command is being sent before
-        # sending command
+        # TODO: Make sure robot is aware that command is being sent before
+        #  sending command
         self.logger.debug(
             f"send_command called: command -- {motion_cmd}",
-                log_type=Conf.LOG_ROBOT_SEND_CMD
+            log_type=Conf.LOG_ROBOT_SEND_CMD
         )
         if auto and not self.active_auto_control:
             self.logger.debug(
@@ -126,53 +126,22 @@ class Robot:
                 log_type=Conf.LOG_ROBOT_AUTO_FAIL
             )
             return False
-        if (
-                motion_cmd == Conf.CMD_STOP or motion_cmd == Conf.CMD_STOP1
-                or type(motion_cmd) == int and motion_cmd < 0
-        ):
-            if self.robot_type == RobotType.HUMAN:
-                motion_cmd = self.get_hex_cmd(1)
-            elif self.robot_type == RobotType.SPIDER:
-                motion_cmd = self.get_hex_cmd(17)
-        elif motion_cmd == Conf.CMD_FORWARD or motion_cmd == Conf.CMD_FORWARD1:
-            if self.robot_type == RobotType.HUMAN:
-                motion_cmd = self.get_hex_cmd(15)
-            elif self.robot_type == RobotType.SPIDER:
-                motion_cmd = self.get_hex_cmd(5)
-        elif motion_cmd == Conf.CMD_BACKWARD or motion_cmd == Conf.CMD_BACKWARD1:
-            if self.robot_type == RobotType.HUMAN:
-                motion_cmd = self.get_hex_cmd(16)
-            elif self.robot_type == RobotType.SPIDER:
-                motion_cmd = self.get_hex_cmd(6)
-        elif motion_cmd == Conf.CMD_LEFT or motion_cmd == Conf.CMD_LEFT1:
-            if self.robot_type == RobotType.HUMAN:
-                motion_cmd = self.get_hex_cmd(19)
-            elif self.robot_type == RobotType.SPIDER:
-                motion_cmd = self.get_hex_cmd(13)
-        elif motion_cmd == Conf.CMD_RIGHT or motion_cmd == Conf.CMD_RIGHT1:
-            if self.robot_type == RobotType.HUMAN:
-                motion_cmd = self.get_hex_cmd(20)
-            elif self.robot_type == RobotType.SPIDER:
-                motion_cmd = self.get_hex_cmd(12)
-        elif motion_cmd == Conf.CMD_DANCE or motion_cmd == Conf.CMD_DANCE1:
-            if self.robot_type == RobotType.HUMAN:
-                motion_cmd = self.get_hex_cmd(7)
-            elif self.robot_type == RobotType.SPIDER:
-                motion_cmd = self.get_hex_cmd(16)
-        elif motion_cmd == Conf.CMD_KICK or motion_cmd == Conf.CMD_KICK1:
-            if self.robot_type == RobotType.HUMAN:
-                motion_cmd = self.get_hex_cmd(25)
-            elif self.robot_type == RobotType.SPIDER:
-                motion_cmd = self.get_hex_cmd(9)
-        elif type(motion_cmd) == int:
-            motion_cmd = self.get_hex_cmd(motion_cmd)
+
+        motion_num = self.get_command_num(motion_cmd)
+        if motion_num is None:
+            self.logger.error(
+                "send_command: motion_cmd requested not valid Command is not "
+                f"-- {motion_cmd}"
+            )
+            return False
+        motion_hex = self.get_hex_cmd(motion_cmd)
 
         with self.lock:
             try:
                 self.sub_send_command(Conf.HEX_STOP)
                 self.sub_send_command(Conf.HEX_RESET)
-                self.logger.debug(f"motion command {motion_cmd}")
-                self.sub_send_command(motion_cmd)
+                self.logger.debug(f"motion command {motion_hex}")
+                self.sub_send_command(motion_hex)
                 self.sub_send_command(Conf.HEX_RESUME)
                 self.ser.flush()
             except serial.SerialException as e:
@@ -272,6 +241,51 @@ class Robot:
             f"Left/Right --> {self.servo_posLR}",
             log_type=Conf.LOG_ROBOT_SET_HEAD
         )
+
+    def get_command_num(self, cmd):
+        cmd_num = None
+        if (
+                cmd == Conf.CMD_STOP or cmd == Conf.CMD_STOP1
+                or (type(cmd) == int and cmd < 0)
+        ):
+            if self.robot_type == RobotType.HUMAN:
+                cmd_num = 1
+            elif self.robot_type == RobotType.SPIDER:
+                cmd_num = 17
+        elif cmd == Conf.CMD_FORWARD or cmd == Conf.CMD_FORWARD1:
+            if self.robot_type == RobotType.HUMAN:
+                cmd_num = 15
+            elif self.robot_type == RobotType.SPIDER:
+                cmd_num = 5
+        elif cmd == Conf.CMD_BACKWARD or cmd == Conf.CMD_BACKWARD1:
+            if self.robot_type == RobotType.HUMAN:
+                cmd_num = 16
+            elif self.robot_type == RobotType.SPIDER:
+                cmd_num = 6
+        elif cmd == Conf.CMD_LEFT or cmd == Conf.CMD_LEFT1:
+            if self.robot_type == RobotType.HUMAN:
+                cmd_num = 19
+            elif self.robot_type == RobotType.SPIDER:
+                cmd_num = 13
+        elif cmd == Conf.CMD_RIGHT or cmd == Conf.CMD_RIGHT1:
+            if self.robot_type == RobotType.HUMAN:
+                cmd_num = 20
+            elif self.robot_type == RobotType.SPIDER:
+                cmd_num = 12
+        elif cmd == Conf.CMD_DANCE or cmd == Conf.CMD_DANCE1:
+            if self.robot_type == RobotType.HUMAN:
+                cmd_num = 7
+            elif self.robot_type == RobotType.SPIDER:
+                cmd_num = 16
+        elif cmd == Conf.CMD_KICK or cmd == Conf.CMD_KICK1:
+            if self.robot_type == RobotType.HUMAN:
+                cmd_num = 25
+            elif self.robot_type == RobotType.SPIDER:
+                cmd_num = 9
+        elif type(cmd) == int and cmd in self.full_dict:
+            cmd_num = cmd
+
+        return cmd_num
 
     ##########################################################################
     # Manual control for robot ###############################################
