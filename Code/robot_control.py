@@ -13,7 +13,11 @@ from camera import Camera
 is_rpi = False
 if "raspberrypi" in os.uname():
     is_rpi = True
-    from adafruit_servokit import ServoKit
+    try:
+        from adafruit_servokit import ServoKit
+        has_head = True
+    except ModuleNotFoundError:
+        has_head = False
 
 from log_set_up_and_funcs import LoggingControl
 from config import Conf
@@ -57,10 +61,10 @@ class Robot:
             self.lock = Conf.LOCK_SPIDER
             self.logger.info("Initializing spider")
         else:
-            self.logger.exception(
+            self.logger.error(
                 f"{robot_type} is not a valid option for robot type"
             )
-            self.main_logger.exception(
+            self.main_logger.error(
                 f"Robot: crashed -- '{robot_type}' is not a valid robot type"
             )
             raise ValueError(
@@ -87,7 +91,7 @@ class Robot:
         # 90 degrees is the center position
         self.servo_posLR = self.servo_posUD = 90
         self.head_delta_theta = 15
-        if is_rpi:
+        if is_rpi and has_head:
             self.servos = ServoKit(channels=16)
             self.servos.servo[0].angle = self.servo_posLR  # Left and Right
             self.servos.servo[1].angle = self.servo_posUD  # Up and Down
@@ -134,7 +138,7 @@ class Robot:
                 f"-- {motion_cmd}"
             )
             return False
-        motion_hex = self.get_hex_cmd(motion_cmd)
+        motion_hex = self.get_hex_cmd(motion_num)
 
         with self.lock:
             try:
@@ -193,7 +197,7 @@ class Robot:
             return Conf.HEX_STOP
 
     def send_head_command(self, motion_cmd, pos=None, auto=False):
-        if is_rpi:
+        if self.servos is None:
             if auto and not self.active_auto_control:
                 self.logger.debug(
                     "send_head_command: auto head control attempted but"
@@ -223,6 +227,12 @@ class Robot:
             )
 
     def set_head(self):
+        if self.servos is None:
+            self.logger.debug(
+                "set_head: Cannot set head as no head is present",
+                log_type=Conf.LOG_ROBOT_AUTO_FAIL_HEAD
+            )
+            return False
         if self.servo_posLR < Conf.RBT_MIN_HEAD_RIGHT:
             self.servo_posLR = Conf.RBT_MIN_HEAD_RIGHT
         elif self.servo_posLR > Conf.RBT_MAX_HEAD_LEFT:
@@ -293,7 +303,7 @@ class Robot:
     def manual_control(self):
         self.logger.debug("control started")
         dictionary = self.short_dict
-        while ExitControl.gen and ExitControl.robot:
+        while ExitControl.gen and ExitControl.robot and self.ser is not None:
             if self.full_control:
                 print(
                     "manual_control: "

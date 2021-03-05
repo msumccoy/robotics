@@ -69,8 +69,8 @@ class Camera:
         self.count = 0
         self.is_connected = False
         if robot != RobotType.HUMAN and robot != RobotType.SPIDER:
-            self.logger.exception(f"'{robot}' is not a valid robot type")
-            self.main_logger.exception(
+            self.logger.error(f"'{robot}' is not a valid robot type")
+            self.main_logger.error(
                 f"Camera: crashed -- '{robot}' is not a valid robot type"
             )
             ExitControl.cam = False
@@ -150,12 +150,14 @@ class Camera:
                 except AttributeError:
                     pass
             if self.cam_num > 5:
-                self.logger.exception("No viable camera found")
-                self.main_logger.exception(
+                self.logger.error("No viable camera found")
+                self.main_logger.error(
                     "Camera: crashed -- No viable camera found"
                 )
                 self.is_connected = False
                 ExitControl.cam = False
+                self.is_on = False
+                return
         if self.cam_num != cam_num:
             self.logger.info(
                 f"Cam num changed from {cam_num} to {self.cam_num} because"
@@ -422,7 +424,7 @@ class Camera:
                     cv2.imshow(Conf.CV_WINDOW, self.frame_full)
                 k = cv2.waitKey(1)
                 if k == 27 or k == Conf.CMD_CV_EXIT or k == Conf.CMD_CV_EXIT1:
-                    ExitControl.cam = ExitControl.gen = False
+                    ExitControl.cam = False
                     cv2.destroyAllWindows()
                 elif k == Conf.CMD_CV_STOP or k == Conf.CMD_CV_STOP1:
                     self.action_request = Conf.CMD_STOP
@@ -538,6 +540,7 @@ class Camera:
                         while (
                                 temp_dur < wait_time
                                 and not self.obj_dist[ObjDist.IS_FOUND]
+                                and self.robot.active_auto_control
                         ):
                             time.sleep(temp_wait)
                         rbt_hd_srch_thrd.start()

@@ -28,7 +28,7 @@ def start_camera(robot_type):
         # record=True,
         # take_pic=True,
         # set_up=True,
-        #split_img=True
+        split_img=True,
     )
     try:
         cam.start_recognition()
@@ -72,7 +72,7 @@ def main():
     ##########################################################################
 
     i = 0
-    while not cam.is_profile_setup:
+    while cam.is_connected and not cam.is_profile_setup:
         time.sleep(1)
         i += 1
         if i % 30 == 0:
@@ -82,7 +82,6 @@ def main():
         robot.manual_control()
     finally:
         robot.close()
-        cam.close()
 
     main_logger.info(
         f"Program completed after running for {pretty_time(start)}\n"
