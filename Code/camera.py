@@ -102,7 +102,7 @@ class Camera:
                     self.ret = True
                     self.is_connected = True
                 except PiCameraError:
-                    self.logger.exception("Tried to start pi cam but failed")
+                    self.logger.error("Tried to start pi cam but failed")
         else:
             try:
                 self.cam = cv2.VideoCapture(cam_num)
@@ -532,7 +532,7 @@ class Camera:
                         cmd_sent = Conf.CMD_RIGHT
                         self.command = self.robot.get_command_num(cmd_sent)
                         wait_time = self.robot.full_dict[self.command][1]
-                        self.robot.send_command(self.command)
+                        self.robot.send_command(self.command, auto=True)
                         temp_dur = 0
                         temp_wait = wait_time / 10
                         while (
