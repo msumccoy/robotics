@@ -197,7 +197,7 @@ class Robot:
             return Conf.HEX_STOP
 
     def send_head_command(self, motion_cmd, pos=None, auto=False):
-        if self.servos is None:
+        if self.servos is not None:
             if auto and not self.active_auto_control:
                 self.logger.debug(
                     "send_head_command: auto head control attempted but"
@@ -303,7 +303,10 @@ class Robot:
     def manual_control(self):
         self.logger.debug("control started")
         dictionary = self.short_dict
-        while ExitControl.gen and ExitControl.robot and self.ser is not None:
+        while (
+            ExitControl.gen and ExitControl.robot and 
+            (self.ser is not None or self.servos is not None)
+            ):
             if self.full_control:
                 print(
                     "manual_control: "
