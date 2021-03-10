@@ -238,8 +238,8 @@ class Camera:
         if set_up:
             self.is_profile_setup = False
 
-        self.obj_dist = {}
-        self.reset_distances(True)
+        self.cam_obj_dict = {}
+        self.reset_cam_distances(True)
         self.last_non_search = time.time()
 
         self.split_img = split_img  # Display Frame and Note separately
@@ -298,33 +298,33 @@ class Camera:
                         )
                 for (x, y, w, h) in self.detected_objects:
                     dist = (self.focal_len * self.obj_width) / w
-                    check = self.obj_dist[ObjDist.AVG] - dist
+                    check = self.cam_obj_dict[ObjDist.AVG] - dist
                     if(
                         -Conf.DIST_DISCREPANCY < check < Conf.DIST_DISCREPANCY
-                        or self.obj_dist[ObjDist.AVG] <= 0.1
+                        or self.cam_obj_dict[ObjDist.AVG] <= 0.1
 
                     ):
-                        self.obj_dist[ObjDist.LIST].insert(0, dist)
-                        self.obj_dist[ObjDist.SUM] += dist
-                        self.obj_dist[ObjDist.COUNT] += 1
+                        self.cam_obj_dict[ObjDist.LIST].insert(0, dist)
+                        self.cam_obj_dict[ObjDist.SUM] += dist
+                        self.cam_obj_dict[ObjDist.COUNT] += 1
                         if (
-                                self.obj_dist[ObjDist.COUNT]
+                                self.cam_obj_dict[ObjDist.COUNT]
                                 > Conf.MEM_DIST_LIST_LEN
                         ):
-                            num = self.obj_dist[ObjDist.LIST].pop()
-                            self.obj_dist[ObjDist.SUM] -= num
-                            self.obj_dist[ObjDist.COUNT] -= 1
-                        self.obj_dist[ObjDist.AVG] = (
-                                self.obj_dist[ObjDist.SUM]
-                                / self.obj_dist[ObjDist.COUNT]
+                            num = self.cam_obj_dict[ObjDist.LIST].pop()
+                            self.cam_obj_dict[ObjDist.SUM] -= num
+                            self.cam_obj_dict[ObjDist.COUNT] -= 1
+                        self.cam_obj_dict[ObjDist.AVG] = (
+                                self.cam_obj_dict[ObjDist.SUM]
+                                / self.cam_obj_dict[ObjDist.COUNT]
                         )
-                        self.obj_dist[ObjDist.LAST_SEEN] = (
+                        self.cam_obj_dict[ObjDist.LAST_SEEN] = (
                             time.time()
                         )
-                        self.obj_dist[ObjDist.IS_FOUND] = True
+                        self.cam_obj_dict[ObjDist.IS_FOUND] = True
                         note_x = x
                         note_y = y - int(Conf.CS_Y_OFFSET / 2)
-                        text = f"Distance: {self.obj_dist[ObjDist.AVG]:.2f}"
+                        text = f"Distance: {self.cam_obj_dict[ObjDist.AVG]:.2f}"
                         self.put_text(text, note_x, note_y)
                         center_point = x + (w / 2)
                         if center_point < self.left_limit:
@@ -333,15 +333,15 @@ class Camera:
                             pos = Conf.CMD_RIGHT
                         else:
                             pos = Conf.CONST_MIDDLE
-                        self.obj_dist[ObjDist.LOCATION] = pos
+                        self.cam_obj_dict[ObjDist.LOCATION] = pos
                         note_y = y + h + Conf.CS_Y_OFFSET
-                        text = f"Location: {self.obj_dist[ObjDist.LOCATION]}"
+                        text = f"Location: {self.cam_obj_dict[ObjDist.LOCATION]}"
                         self.put_text(text, note_x, note_y)
                     else:
                         self.logger.error(
                             f"Major deviation in calculated distance.\n"
                             f"avg: "
-                            f"{self.obj_dist[ObjDist.AVG]} vs dist: {dist}",
+                            f"{self.cam_obj_dict[ObjDist.AVG]} vs dist: {dist}",
                             log_type=Conf.LOG_CAM_DEVIATION
                         )
             else:
@@ -382,17 +382,17 @@ class Camera:
                 note_y = Conf.CS_Y_OFFSET
                 text = time.strftime(Conf.FORMAT_DATE)
                 self.put_text(text, note_x, note_y, frame=self.note_frame)
-                if self.obj_dist[ObjDist.IS_FOUND]:
+                if self.cam_obj_dict[ObjDist.IS_FOUND]:
                     note_y += Conf.CS_Y_OFFSET
                     text = (
-                        f"Distance "
-                        f"{self.obj_dist[ObjDist.AVG]:.2f}"
+                        f"Distance from camera "
+                        f"{self.cam_obj_dict[ObjDist.AVG]:.2f}"
                     )
                     self.put_text(text, note_x, note_y, frame=self.note_frame)
                     note_y += Conf.CS_Y_OFFSET
                     text = (
                         "Relative location in vision: "
-                        f"{self.obj_dist[ObjDist.LOCATION]}"
+                        f"{self.cam_obj_dict[ObjDist.LOCATION]}"
                     )
                     self.put_text(text, note_x, note_y, frame=self.note_frame)
                 else:
@@ -506,16 +506,16 @@ class Camera:
             success = False
             dur = time.time() - cmd_sent_time
             orig_wait_time = wait_time
-            if self.obj_dist[ObjDist.IS_FOUND]:
+            if self.cam_obj_dict[ObjDist.IS_FOUND]:
                 self.last_non_search = time.time()
                 if dur > wait_time:
                     if (  # Within kick range
                             Conf.KICK_DIST + Conf.KICK_RANGE
-                            > self.obj_dist[ObjDist.AVG]
+                            > self.cam_obj_dict[ObjDist.AVG]
                             > Conf.KICK_DIST - Conf.KICK_RANGE
                     ):
                         cmd_sent = Conf.CMD_KICK
-                    elif self.obj_dist[ObjDist.AVG] > Conf.KICK_DIST:
+                    elif self.cam_obj_dict[ObjDist.AVG] > Conf.KICK_DIST:
                         cmd_sent = Conf.CMD_FORWARD
                     else:
                         cmd_sent = Conf.CMD_BACKWARD
@@ -539,7 +539,7 @@ class Camera:
                         temp_wait = wait_time / 10
                         while (
                                 temp_dur < wait_time
-                                and not self.obj_dist[ObjDist.IS_FOUND]
+                                and not self.cam_obj_dict[ObjDist.IS_FOUND]
                                 and self.robot.active_auto_control
                         ):
                             time.sleep(temp_wait)
@@ -617,7 +617,7 @@ class Camera:
         if change_delta:
             self.robot.head_delta_theta = 15
         while (
-                not self.obj_dist[ObjDist.IS_FOUND] and
+                not self.cam_obj_dict[ObjDist.IS_FOUND] and
                 self.robot.active_auto_control and
                 self.robot.servo_posUD < Conf.RBT_MAX_HEAD_BACK
         ):
@@ -628,7 +628,7 @@ class Camera:
     def rbt_head_search_lr(self):
         if self.robot.servo_posLR <= Conf.RBT_MIN_HEAD_RIGHT:
             while (
-                    not self.obj_dist[ObjDist.IS_FOUND] and
+                    not self.cam_obj_dict[ObjDist.IS_FOUND] and
                     self.robot.active_auto_control and
                     self.robot.servo_posLR < Conf.RBT_MAX_HEAD_LEFT
             ):
@@ -636,7 +636,7 @@ class Camera:
                 time.sleep(Conf.SEARCH_REST)
         else:
             while (
-                    not self.obj_dist[ObjDist.IS_FOUND] and
+                    not self.cam_obj_dict[ObjDist.IS_FOUND] and
                     self.robot.active_auto_control and
                     self.robot.servo_posLR > Conf.RBT_MIN_HEAD_RIGHT
             ):
@@ -679,20 +679,20 @@ class Camera:
             self.num_objects = 0
 
         dur = (
-            time.time() - self.obj_dist[ObjDist.LAST_SEEN]
+            time.time() - self.cam_obj_dict[ObjDist.LAST_SEEN]
         )
         if dur > Conf.MAX_LAST_SEEN:
-            self.reset_distances()
+            self.reset_cam_distances()
 
-    def reset_distances(self, full_reset=False):
-        self.obj_dist[ObjDist.AVG] = 0.0
-        self.obj_dist[ObjDist.LOCATION] = "N/A"
-        self.obj_dist[ObjDist.SUM] = 0.0
-        self.obj_dist[ObjDist.COUNT] = 0
-        self.obj_dist[ObjDist.IS_FOUND] = False
-        self.obj_dist[ObjDist.LIST] = []
+    def reset_cam_distances(self, full_reset=False):
+        self.cam_obj_dict[ObjDist.AVG] = 0.0
+        self.cam_obj_dict[ObjDist.LOCATION] = "N/A"
+        self.cam_obj_dict[ObjDist.SUM] = 0.0
+        self.cam_obj_dict[ObjDist.COUNT] = 0
+        self.cam_obj_dict[ObjDist.IS_FOUND] = False
+        self.cam_obj_dict[ObjDist.LIST] = []
         if full_reset:
-            self.obj_dist[ObjDist.LAST_SEEN] = 0.0
+            self.cam_obj_dict[ObjDist.LAST_SEEN] = 0.0
 
     def reset_profile(self, profile):
         # TODO: Add option for if it is a rpi cam
