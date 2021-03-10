@@ -51,6 +51,7 @@ class Conf:
     RBT_MIN_HEAD_RIGHT = 0
     RBT_MAX_HEAD_BACK = 100
     RBT_MIN_HEAD_FORWARD = 0
+    RBT_HEIGHT = 24.0  # inches
 
     ROBOT_CONTROL = "robot control"
     ROBOT_HEAD = "robot head"

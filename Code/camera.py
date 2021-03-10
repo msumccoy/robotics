@@ -239,6 +239,7 @@ class Camera:
             self.is_profile_setup = False
 
         self.cam_obj_dict = {}
+        self.rbt_obj_dict = {}
         self.reset_cam_distances(True)
         self.last_non_search = time.time()
 
@@ -691,6 +692,12 @@ class Camera:
         self.cam_obj_dict[ObjDist.COUNT] = 0
         self.cam_obj_dict[ObjDist.IS_FOUND] = False
         self.cam_obj_dict[ObjDist.LIST] = []
+
+        self.rbt_obj_dict[ObjDist.AVG] = 0.0
+        self.rbt_obj_dict[ObjDist.SUM] = 0.0
+        self.cam_obj_dict[ObjDist.COUNT] = 0
+        self.cam_obj_dict[ObjDist.LIST] = []
+
         if full_reset:
             self.cam_obj_dict[ObjDist.LAST_SEEN] = 0.0
 
