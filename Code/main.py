@@ -49,7 +49,10 @@ def main():
     # robot_type = RobotType.SPIDER
 
     # Set up all class instances #############################################
-    robot = Robot.get_inst(robot_type, enable_auto=False)
+    robot = Robot.get_inst(
+        robot_type,
+        enable_auto=False
+    )
     cam_starter = threading.Thread(
         target=start_camera, args=(robot_type,), daemon=True
     )

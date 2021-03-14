@@ -108,7 +108,7 @@ class Robot:
             if auto and not self.active_auto_control:
                 self.logger.debug(
                     "Auto command sent but auto control off and no connection"
-                    f". motion_cmd = {motion_cmd}",
+                    f". motion_cmd = {motion_cmd} --> {self.full_dict[motion_cmd]}",
                     log_type=Conf.LOG_ROBOT_AUTO_FAIL
                 )
                 return False
@@ -196,7 +196,7 @@ class Robot:
             self.logger.error(f"Motion number {motion_num} not allowed")
             return Conf.HEX_STOP
 
-    def send_head_command(self, motion_cmd, pos=None, auto=False):
+    def send_head_command(self, motion_cmd, pos=None, auto=False, delta=None):
         if self.servos is not None:
             if auto and not self.active_auto_control:
                 self.logger.debug(
@@ -205,14 +205,16 @@ class Robot:
                     log_type=Conf.LOG_ROBOT_AUTO_FAIL_HEAD
                 )
                 return False
+            if delta is None:
+                delta = self.head_delta_theta
             if motion_cmd == Conf.CMD_RH_UP or motion_cmd == Conf.CMD_RH_UP1:
-                self.servo_posUD += self.head_delta_theta
+                self.servo_posUD += delta
             elif motion_cmd == Conf.CMD_RH_DOWN or motion_cmd == Conf.CMD_RH_DOWN1:
-                self.servo_posUD -= self.head_delta_theta
+                self.servo_posUD -= delta
             elif motion_cmd == Conf.CMD_RH_LEFT or motion_cmd == Conf.CMD_RH_LEFT1:
-                self.servo_posLR += self.head_delta_theta
+                self.servo_posLR += delta
             elif motion_cmd == Conf.CMD_RH_RIGHT or motion_cmd == Conf.CMD_RH_RIGHT1:
-                self.servo_posLR -= self.head_delta_theta
+                self.servo_posLR -= delta
             elif motion_cmd == Conf.ROBOT_HEAD_SET_U_D and pos is not None:
                 self.servo_posUD = pos
             elif motion_cmd == Conf.ROBOT_HEAD_SET_L_R and pos is not None:

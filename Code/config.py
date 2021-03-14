@@ -58,7 +58,7 @@ class Conf:
     ROBOT_HEAD_SET_U_D = "robot head set, up and down"
     ROBOT_HEAD_SET_L_R = "robot head set, left and right"
 
-    SEARCH_REST = .5
+    SEARCH_REST = .1
 
     # Movement control dictionaries  #########################################
     HUMANOID_FULL = {  # Full dictionary with all motions in Heart2Heart
@@ -457,6 +457,7 @@ class Conf:
     LOG_CAM_LOOP_TIME = "Total runtime"
     LOG_CAM_RECOGNITION_TIME = "Recognition loop time"
     LOG_CAM_DEVIATION = "deviation"
+    LOG_CAM_WRITE_VIDEO = "writing to video"
 
     ##########################################################################
     # Locks  #################################################################
@@ -492,13 +493,13 @@ class Conf:
     CMD_DANCE = "dance"
     CMD_DANCE1 = "d"
     CMD_RH_UP = "head_up"
-    CMD_RH_UP1 = "h_u"
+    CMD_RH_UP1 = "U"
     CMD_RH_DOWN = "head_down"
-    CMD_RH_DOWN1 = "h_d"
+    CMD_RH_DOWN1 = "D"
     CMD_RH_LEFT = "head_left"
-    CMD_RH_LEFT1 = "h_l"
+    CMD_RH_LEFT1 = "L"
     CMD_RH_RIGHT = "head_right"
-    CMD_RH_RIGHT1 = "h_r"
+    CMD_RH_RIGHT1 = "R"
     CMD_SET_HEAD_DELTA = "delta"
     CMD_SET_HEAD_UD = "set_ud"
     CMD_SET_HEAD_LR = "set_lr"

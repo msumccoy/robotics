@@ -411,7 +411,8 @@ class Camera:
                     if dur > self.vid_write_frequency:
                         self.video_writer.write(self.frame_full)
                         self.logger.debug(
-                            "start_recognition: Writing to video file"
+                            "start_recognition: Writing to video file",
+                            log_type=Conf.LOG_CAM_WRITE_VIDEO
                         )
 
                 if self.take_pic:
@@ -508,6 +509,7 @@ class Camera:
             dur = time.time() - cmd_sent_time
             orig_wait_time = wait_time
             if self.cam_obj_dict[ObjDist.IS_FOUND]:
+                self.search_turn = False
                 self.last_non_search = time.time()
                 if dur > wait_time:
                     if (  # Within kick range
@@ -532,18 +534,20 @@ class Camera:
                         rbt_hd_srch_thrd = threading.Thread(
                             target=self.rbt_head_search
                         )
-                        cmd_sent = Conf.CMD_RIGHT
-                        self.command = self.robot.get_command_num(cmd_sent)
-                        wait_time = self.robot.full_dict[self.command][1]
-                        self.robot.send_command(self.command, auto=True)
-                        temp_dur = 0
-                        temp_wait = wait_time / 10
-                        while (
-                                temp_dur < wait_time
-                                and not self.cam_obj_dict[ObjDist.IS_FOUND]
-                                and self.robot.active_auto_control
-                        ):
-                            time.sleep(temp_wait)
+                        if self.search_turn:
+                            cmd_sent = Conf.CMD_RIGHT
+                            self.command = self.robot.get_command_num(cmd_sent)
+                            wait_time = self.robot.full_dict[self.command][1]
+                            self.robot.send_command(self.command, auto=True)
+                            temp_dur = 0
+                            temp_wait = wait_time / 10
+                            while (
+                                    temp_dur < wait_time
+                                    and not self.cam_obj_dict[ObjDist.IS_FOUND]
+                                    and self.robot.active_auto_control
+                            ):
+                                time.sleep(temp_wait)
+                            self.search_turn = False
                         rbt_hd_srch_thrd.start()
                 else:
                     self.logger.warning(
@@ -609,6 +613,7 @@ class Camera:
         """
 
         # Set head in one corner to later progress to other diagonal
+        self.search_turn = True
         self.robot.send_head_command(
             Conf.ROBOT_HEAD_SET_U_D, pos=Conf.RBT_MIN_HEAD_FORWARD, auto=True
         )
@@ -618,12 +623,14 @@ class Camera:
         if change_delta:
             self.robot.head_delta_theta = 15
         while (
+                self.is_on and
                 not self.cam_obj_dict[ObjDist.IS_FOUND] and
                 self.robot.active_auto_control and
                 self.robot.servo_posUD < Conf.RBT_MAX_HEAD_BACK
         ):
             self.rbt_head_search_lr()
-            self.robot.send_head_command(Conf.CMD_RH_UP, auto=True)
+            if not self.cam_obj_dict[ObjDist.IS_FOUND]:
+                self.robot.send_head_command(Conf.CMD_RH_UP, auto=True)
         self.rbt_head_search_lr()
 
     def rbt_head_search_lr(self):
