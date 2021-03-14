@@ -540,6 +540,7 @@ class Camera:
                             wait_time = self.robot.full_dict[self.command][1]
                             self.robot.send_command(self.command, auto=True)
                             temp_dur = 0
+                            wait_start = time.time()
                             temp_wait = wait_time / 10
                             while (
                                     temp_dur < wait_time
@@ -547,6 +548,7 @@ class Camera:
                                     and self.robot.active_auto_control
                             ):
                                 time.sleep(temp_wait)
+                                temp_dur = time.time() - wait_start
                             self.search_turn = False
                         rbt_hd_srch_thrd.start()
                 else:
