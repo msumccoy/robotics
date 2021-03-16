@@ -114,7 +114,7 @@ class Robot:
                 return False
             self.logger.debug(
                 "send_command: no robot to connect to. "
-                f"motion_cmd = {motion_cmd}",
+                f"motion_cmd = {motion_cmd} --> {self.full_dict[motion_cmd]}",
                 log_type=Conf.LOG_ROBOT_AUTO_FAIL
             )
             return False

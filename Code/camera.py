@@ -167,7 +167,8 @@ class Camera:
             [Conf.CV_NOTE_HEIGHT, self.width, 3], dtype=np.uint8
         )
         if self.is_connected:
-            self.midpoint = int(self.width / 2)
+            self.midpoint_y = int(self.height / 2)
+            self.midpoint_x = int(self.width / 2)
             self.frame_full = np.vstack((self.frame, self.note_frame))
         else:
             self.frame = np.zeros([640, 640, 3], dtype=np.uint8)
@@ -250,8 +251,11 @@ class Camera:
         self.update_instance_settings()
         self.main_loop_dur = 0
         self.get_frame_time = 0
-        self.left_limit = self.midpoint - Conf.CS_MID_TOLERANCE
-        self.right_limit = self.midpoint + Conf.CS_MID_TOLERANCE
+        self.up_limit = self.midpoint_y - Conf.CS_MID_TOLERANCE
+        self.down_limit = self.midpoint_y + Conf.CS_MID_TOLERANCE
+        self.left_limit = self.midpoint_x - Conf.CS_MID_TOLERANCE
+        self.right_limit = self.midpoint_x + Conf.CS_MID_TOLERANCE
+        self.search_turn = False
 
         # This property will be used to pass actions from main recognition
         # loop to robot control loop
@@ -327,14 +331,17 @@ class Camera:
                         note_y = y - int(Conf.CS_Y_OFFSET / 2)
                         text = f"Distance: {self.cam_obj_dict[ObjDist.AVG]:.2f}"
                         self.put_text(text, note_x, note_y)
-                        center_point = x + (w / 2)
-                        if center_point < self.left_limit:
+                        pos_x = x + (w / 2)
+                        pos_y = y + (h / 2)
+                        if pos_x < self.left_limit:
                             pos = Conf.CMD_LEFT
-                        elif center_point > self.right_limit:
+                        elif pos_x > self.right_limit:
                             pos = Conf.CMD_RIGHT
                         else:
                             pos = Conf.CONST_MIDDLE
                         self.cam_obj_dict[ObjDist.LOCATION] = pos
+                        self.cam_obj_dict[ObjDist.X] = pos_x
+                        self.cam_obj_dict[ObjDist.Y] = pos_y
                         note_y = y + h + Conf.CS_Y_OFFSET
                         text = f"Location: {self.cam_obj_dict[ObjDist.LOCATION]}"
                         self.put_text(text, note_x, note_y)
@@ -500,6 +507,7 @@ class Camera:
         self.logger.debug("control_robot: Started")
         self.robot = Robot.get_inst(self.robot_type)
         rbt_hd_srch_thrd = threading.Thread(target=self.rbt_head_search)
+        rbt_hd_track_thrd = threading.Thread(target=self.rbt_head_track)
         cmd_sent = None
         cmd_sent_time = 0
         wait_time = 0
@@ -509,6 +517,11 @@ class Camera:
             dur = time.time() - cmd_sent_time
             orig_wait_time = wait_time
             if self.cam_obj_dict[ObjDist.IS_FOUND]:
+                if not rbt_hd_track_thrd.is_alive():
+                    rbt_hd_track_thrd = threading.Thread(
+                        target=self.rbt_head_track
+                    )
+                    rbt_hd_track_thrd.start()
                 self.search_turn = False
                 self.last_non_search = time.time()
                 if dur > wait_time:
@@ -608,6 +621,45 @@ class Camera:
             else:
                 time.sleep(1)
 
+    def rbt_head_track(self, *, delta=1, rest=0.05):
+        """
+        This function is to track the ball with the robot head
+        """
+        last_up_down_move = 0
+        while (
+                self.is_on and
+                self.cam_obj_dict[ObjDist.IS_FOUND] and
+                (
+                    self.cam_obj_dict[ObjDist.Y] < self.up_limit
+                    or
+                    self.cam_obj_dict[ObjDist.Y] > self.down_limit
+                    or
+                    self.cam_obj_dict[ObjDist.X] < self.left_limit
+                    or
+                    self.cam_obj_dict[ObjDist.X] > self.right_limit
+                )
+        ):
+            dur = time.time() - last_up_down_move
+            if dur > rest * 2:
+                if self.cam_obj_dict[ObjDist.Y] < self.up_limit:
+                    self.robot.send_head_command(
+                        Conf.CMD_RH_UP, auto=True, delta=delta
+                    )
+                elif self.cam_obj_dict[ObjDist.Y] > self.down_limit:
+                    self.robot.send_head_command(
+                        Conf.CMD_RH_DOWN, auto=True, delta=delta
+                    )
+                    last_up_down_move = time.time()
+            if self.cam_obj_dict[ObjDist.X] < self.left_limit:
+                self.robot.send_head_command(
+                    Conf.CMD_RH_LEFT, auto=True, delta=delta
+                )
+            elif self.cam_obj_dict[ObjDist.X] > self.right_limit:
+                self.robot.send_head_command(
+                    Conf.CMD_RH_RIGHT, auto=True, delta=delta
+                )
+            time.sleep(rest)
+
     def rbt_head_search(self, *, change_delta=True):
         """
         This function is used to search in front of the robot for the ball
@@ -697,6 +749,8 @@ class Camera:
     def reset_cam_distances(self, full_reset=False):
         self.cam_obj_dict[ObjDist.AVG] = 0.0
         self.cam_obj_dict[ObjDist.LOCATION] = "N/A"
+        self.cam_obj_dict[ObjDist.X] = 0.0
+        self.cam_obj_dict[ObjDist.Y] = 0.0
         self.cam_obj_dict[ObjDist.SUM] = 0.0
         self.cam_obj_dict[ObjDist.COUNT] = 0
         self.cam_obj_dict[ObjDist.IS_FOUND] = False
