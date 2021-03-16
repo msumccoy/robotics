@@ -104,17 +104,21 @@ class Robot:
         self.logger.info(f"Robot init ran in {pretty_time(self.start)}")
 
     def send_command(self, motion_cmd, auto=False):
+        try:
+            note = f"--> {self.full_dict[motion_cmd]}"
+        except KeyError:
+            note = ""
         if self.ser is None:
             if auto and not self.active_auto_control:
                 self.logger.debug(
                     "Auto command sent but auto control off and no connection"
-                    f". motion_cmd = {motion_cmd} --> {self.full_dict[motion_cmd]}",
+                    f". motion_cmd = {motion_cmd} {note}",
                     log_type=Conf.LOG_ROBOT_AUTO_FAIL
                 )
                 return False
             self.logger.debug(
                 "send_command: no robot to connect to. "
-                f"motion_cmd = {motion_cmd} --> {self.full_dict[motion_cmd]}",
+                f"motion_cmd = {motion_cmd} {note}",
                 log_type=Conf.LOG_ROBOT_AUTO_FAIL
             )
             return False
