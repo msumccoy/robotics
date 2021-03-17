@@ -54,7 +54,7 @@ def main():
         enable_auto=False
     )
     cam_starter = threading.Thread(
-        target=start_camera, args=(robot_type,), daemon=True
+        target=start_camera, args=(robot_type,)
     )
     cam_starter.start()
     time.sleep(.1)

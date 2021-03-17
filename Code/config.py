@@ -52,6 +52,7 @@ class Conf:
     RBT_MAX_HEAD_BACK = 100
     RBT_MIN_HEAD_FORWARD = 0
     RBT_HEIGHT = 24.0  # inches
+    RBT_NECK_HEIGHT = 1  # inch
 
     ROBOT_CONTROL = "robot control"
     ROBOT_HEAD = "robot head"
@@ -81,8 +82,8 @@ class Conf:
         16: ["Move backward 5 steps (slowly)", 1],
         17: ["Move left 5 steps (slowly)", 1],
         18: ["Move right 5 steps (slowly)", 1],
-        19: ["Turn left (5 step turn)", 1],
-        20: ["Turn right (5 step turn)", 1],
+        19: ["Turn left (5 step turn)", 3],
+        20: ["Turn right (5 step turn)", 3],
         21: ["Move forward 5 steps (fast but more unstable)", 1],
         22: ["Move backward 5 steps (fast but more unstable)", 1],
         23: ["Move left 5 steps (fast but more unstable)", 1],

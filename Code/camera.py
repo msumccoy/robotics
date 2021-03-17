@@ -668,12 +668,22 @@ class Camera:
 
         # Set head in one corner to later progress to other diagonal
         self.search_turn = True
-        self.robot.send_head_command(
-            Conf.ROBOT_HEAD_SET_U_D, pos=Conf.RBT_MIN_HEAD_FORWARD, auto=True
-        )
-        self.robot.send_head_command(
-            Conf.ROBOT_HEAD_SET_L_R, pos=Conf.RBT_MIN_HEAD_RIGHT, auto=True
-        )
+        if self.cam_obj_dict[ObjDist.Y] < self.midpoint_y:
+            self.robot.send_head_command(
+                Conf.ROBOT_HEAD_SET_U_D, pos=Conf.RBT_MIN_HEAD_FORWARD, auto=True
+            )
+        else:
+            self.robot.send_head_command(
+                Conf.ROBOT_HEAD_SET_U_D, pos=Conf.RBT_MAX_HEAD_BACK, auto=True
+            )
+        if self.cam_obj_dict[ObjDist.X] < self.midpoint_x:
+            self.robot.send_head_command(
+                Conf.ROBOT_HEAD_SET_L_R, pos=Conf.RBT_MIN_HEAD_RIGHT, auto=True
+            )
+        else:
+            self.robot.send_head_command(
+                Conf.ROBOT_HEAD_SET_L_R, pos=Conf.RBT_MAX_HEAD_LEFT, auto=True
+            )
         if change_delta:
             self.robot.head_delta_theta = 15
         while (
@@ -916,6 +926,9 @@ class Camera:
                 "Enter focal length: "
             )
         self.update_instance_settings()
+
+    def get_obj_distance(self):
+        pass
 
     def capture_picture(self, limit=False):
         if limit:
