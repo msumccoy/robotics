@@ -59,6 +59,8 @@ class Conf:
     ROBOT_HEAD_SET_U_D = "robot head set, up and down"
     ROBOT_HEAD_SET_L_R = "robot head set, left and right"
 
+    RBT_H_UD = 1
+    RBT_H_LR = 0
     SEARCH_REST = .1
 
     # Movement control dictionaries  #########################################
@@ -309,7 +311,7 @@ class Conf:
     CV_CASCADE_FILE = (
             CASCADE_ROOT + "tennis_ball_20x20_stage14_3500samples.xml"
     )
-    # CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
+    CV_CASCADE_FILE = CASCADE_ROOT + "haarcascade_frontalface_alt.xml"
     CV_DETECTOR = cv2.CascadeClassifier(CV_CASCADE_FILE)
 
     ##########################################################################

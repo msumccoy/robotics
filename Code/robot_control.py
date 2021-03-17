@@ -93,8 +93,8 @@ class Robot:
         self.head_delta_theta = 15
         if is_rpi and has_head:
             self.servos = ServoKit(channels=16)
-            self.servos.servo[0].angle = self.servo_posLR  # Left and Right
-            self.servos.servo[1].angle = self.servo_posUD  # Up and Down
+            self.servos.servo[Conf.RBT_H_LR].angle = self.servo_posLR
+            self.servos.servo[Conf.RBT_H_UD].angle = self.servo_posUD
         else:
             self.servos = None
         time.sleep(3)
@@ -249,8 +249,8 @@ class Robot:
         elif self.servo_posUD > Conf.RBT_MAX_HEAD_BACK:
             self.servo_posUD = Conf.RBT_MAX_HEAD_BACK
 
-        self.servos.servo[0].angle = self.servo_posLR  # Left and Right
-        self.servos.servo[1].angle = self.servo_posUD  # Up and Down
+        self.servos.servo[Conf.RBT_H_LR].angle = self.servo_posLR
+        self.servos.servo[Conf.RBT_H_UD].angle = self.servo_posUD
 
         self.logger.debug(
             f"set_head: Up/Down --> {self.servo_posUD} ____ "
