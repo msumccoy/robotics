@@ -409,22 +409,6 @@ class Camera:
                         log_type=Conf.LOG_CAM_OBJECTS_NOT_FOUND
                     )
 
-                if self.record:
-                    note_x = self.width - (Conf.CS_X_OFFSET * 10)
-                    note_y = Conf.CV_NOTE_HEIGHT - Conf.CS_Y_OFFSET
-                    text = "Recording"
-                    self.put_text(text, note_x, note_y, frame=self.note_frame)
-                    dur = time.time() - self.last_vid_write
-                    if dur > self.vid_write_frequency:
-                        self.video_writer.write(self.frame_full)
-                        self.logger.debug(
-                            "start_recognition: Writing to video file",
-                            log_type=Conf.LOG_CAM_WRITE_VIDEO
-                        )
-
-                if self.take_pic:
-                    self.capture_picture(limit=True)
-
                 self.frame_full = np.vstack((self.frame, self.note_frame))
                 if self.split_img:
                     cv2.imshow(Conf.CV_WINDOW, self.frame)
@@ -468,6 +452,24 @@ class Camera:
                 elif k == Conf.CMD_CV_DUMP_CMD:
                     self.action_request = Conf.CMD_VARS1
             # End -- Place notes in openCV note window  ######################
+
+            if self.record:
+                note_x = self.width - (Conf.CS_X_OFFSET * 10)
+                note_y = Conf.CV_NOTE_HEIGHT - Conf.CS_Y_OFFSET
+                text = "Recording"
+                self.put_text(text, note_x, note_y, frame=self.note_frame)
+                self.frame_full = np.vstack((self.frame, self.note_frame))
+                dur = time.time() - self.last_vid_write
+                if dur > self.vid_write_frequency:
+                    self.video_writer.write(self.frame)
+                    self.logger.debug(
+                        "start_recognition: Writing to video file",
+                        log_type=Conf.LOG_CAM_WRITE_VIDEO
+                    )
+
+            if self.take_pic:
+                self.capture_picture(limit=True)
+
             self.main_loop_dur = time.time() - loop_start
             total_dur = time.time() - self.start_time
             HeartBeats.cam = time.time()
