@@ -2,25 +2,8 @@ import sys
 import pygame
 import random
 
-
-##############################################################################
-# Things that will go in config file  ########################################
-##############################################################################
-class Conf:
-    SIZE = WIDTH, HEIGHT = 600, 400
-    MOVE_VAL = 2
-    WHITE = (255, 255, 255)
-    BLACK = (0, 0, 0)
-    COLOR1 = (0, 255, 125)
-    COLOR2 = (125, 125, 125)
-
-    # CONSTANTS  #############################################################
-    ACCEPT = 0
-    UD_UPPER = 1
-    UD_LOWER = 2
-    LR_LEFT = 1
-    LR_RIGHT = 2
-# End config file ############################################################
+from config import Conf
+from classes import Robot, Ball
 
 
 def check_limit(pos, upper=0, lower=Conf.HEIGHT, left=0, right=Conf.WIDTH):
@@ -40,11 +23,53 @@ def check_limit(pos, upper=0, lower=Conf.HEIGHT, left=0, right=Conf.WIDTH):
     return return_list
 
 
+def main2():
+    pygame.init()
+
+    screen = pygame.display.set_mode(Conf.WIN_SIZE)
+    background = pygame.Surface(Conf.WIN_SIZE).convert()
+    background.fill(Conf.WHITE)
+    screen.blit(background, (0, 0))
+
+    a = Robot()
+    all_sprites = pygame.sprite.Group()
+    all_sprites.add(a)
+
+    print(a)
+    all_sprites.draw(screen)
+
+    pygame.display.update()
+    clock = pygame.time.Clock()
+    while True:
+        clock.tick(Conf.FPS)
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP]:
+            a.move(Conf.UP)
+        if keys[pygame.K_DOWN]:
+            a.move(Conf.DOWN)
+        if keys[pygame.K_RIGHT]:
+            a.move(Conf.RIGHT)
+        if keys[pygame.K_LEFT]:
+            a.move(Conf.LEFT)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    sys.exit()
+
+        screen.fill(Conf.WHITE)
+        all_sprites.update()
+        all_sprites.draw(screen)
+        pygame.display.update()
+
+
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode(Conf.SIZE)
-    background = pygame.Surface(Conf.SIZE).convert()
+    screen = pygame.display.set_mode(Conf.WIN_SIZE)
+    background = pygame.Surface(Conf.WIN_SIZE).convert()
     obj = pygame.Surface((50, 50), pygame.SRCALPHA)
     bounce_obj = pygame.Surface((15, 15))
     bounce_obj.fill(Conf.BLACK)
@@ -60,6 +85,7 @@ def main():
     counter = 0
     movement_ud = 1
     movement_lr = 1
+    robot = Robot()
     while True:
         counter += 1
         screen.blit(background, pos, pos)
@@ -145,6 +171,7 @@ def main():
                     del keys[event.key]
                 elif event.key == pygame.K_RIGHT:
                     del keys[event.key]
+        # screen.blit(robot.surface, (100, 100))
         screen.blit(obj, pos)
         screen.blit(bounce_obj, pos1)
         pygame.display.update()
@@ -152,7 +179,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main2()
 
 
 

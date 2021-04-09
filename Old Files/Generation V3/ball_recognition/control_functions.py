@@ -23,7 +23,7 @@ class AlertWindow:
         self.window = window_name
 
     def output(self, message):
-        background = np.zeros(CV2Window.SIZE, np.uint8)
+        background = np.zeros(CV2Window.WIN_SIZE, np.uint8)
         background = cv2.putText(
             background, message, (10, 50), CV2Window.FONT,
             CV2Window.FONT_SCALE, CV2Window.TEXT_COLOR,
