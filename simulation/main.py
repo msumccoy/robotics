@@ -4,23 +4,7 @@ import random
 
 from config import Conf
 from classes import Robot, Ball
-
-
-def check_limit(pos, upper=0, lower=Conf.HEIGHT, left=0, right=Conf.WIDTH):
-    return_list = [Conf.ACCEPT, Conf.ACCEPT]
-    x_left = pos.x
-    x_right = pos.x + pos.width
-    y_top = pos.y
-    y_bottom = pos.y + pos.height
-    if y_top <= upper:
-        return_list[0] = Conf.UD_UPPER
-    elif y_bottom >= lower:
-        return_list[0] = Conf.UD_LOWER
-    if x_left <= left:
-        return_list[1] = Conf.LR_LEFT
-    elif x_right >= right:
-        return_list[1] = Conf.LR_RIGHT
-    return return_list
+from classes import all_sprites, robot_sprites, ball_sprites
 
 
 def main2():
@@ -31,26 +15,21 @@ def main2():
     background.fill(Conf.WHITE)
     screen.blit(background, (0, 0))
 
-    a = Robot()
-    all_sprites = pygame.sprite.Group()
-    all_sprites.add(a)
-
-    print(a)
-    all_sprites.draw(screen)
-
-    pygame.display.update()
+    robot0 = Robot(pos=(50, 50))
+    ball0 = Ball()
+    ball1 = Ball()
     clock = pygame.time.Clock()
     while True:
         clock.tick(Conf.FPS)
         keys = pygame.key.get_pressed()
         if keys[pygame.K_UP]:
-            a.move(Conf.UP)
+            robot0.move(Conf.UP)
         if keys[pygame.K_DOWN]:
-            a.move(Conf.DOWN)
+            robot0.move(Conf.DOWN)
         if keys[pygame.K_RIGHT]:
-            a.move(Conf.RIGHT)
+            robot0.move(Conf.RIGHT)
         if keys[pygame.K_LEFT]:
-            a.move(Conf.LEFT)
+            robot0.move(Conf.LEFT)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -58,12 +37,13 @@ def main2():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     sys.exit()
+                elif event.key == pygame.K_SPACE:
+                    robot0.kick()
 
         screen.fill(Conf.WHITE)
         all_sprites.update()
         all_sprites.draw(screen)
         pygame.display.update()
-
 
 
 def main():
