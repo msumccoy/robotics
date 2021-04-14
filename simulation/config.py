@@ -16,7 +16,9 @@ class Conf:
     LR_LEFT = 1
     LR_RIGHT = 2
 
-    UP = 'up'
-    DOWN = 'down'
+    UP = FORWARD = 'up or forward'
+    DOWN = BACKWARD = 'down or backward'
     LEFT = 'left'
     RIGHT = 'right'
+
+    COOLDOWN_TIME = .05

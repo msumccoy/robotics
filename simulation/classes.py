@@ -1,5 +1,7 @@
+import time
 import pygame
 import random
+import math
 
 from config import Conf
 
@@ -34,17 +36,34 @@ class BaseClass(pygame.sprite.Sprite):
         self.size = size
         all_sprites.add(self)
 
-    def move(self, move_type, speed=None):
+    def move(self, move_dir, speed=None):
         if speed is None:
             speed = self.speed
-        if move_type == Conf.UP and self.rect.top > 0:
+        try:
+            angle = (move_dir * math.pi) / 180
+            self.rect.x += speed * math.cos(angle)
+            self.rect.y -= speed * math.sin(angle)
+        except TypeError:
+            pass
+        if move_dir == Conf.UP:
             self.rect.y -= speed
-        elif move_type == Conf.DOWN and self.rect.bottom < Conf.HEIGHT:
+        elif move_dir == Conf.DOWN:
             self.rect.y += speed
-        elif move_type == Conf.LEFT and self.rect.left > 0:
+        elif move_dir == Conf.LEFT:
             self.rect.x -= speed
-        elif move_type == Conf.RIGHT and self.rect.right < Conf.WIDTH:
+        elif move_dir == Conf.RIGHT:
             self.rect.x += speed
+        self.check_bounds()
+
+    def check_bounds(self):
+        if self.rect.top < 0:
+            self.rect.y = 0
+        elif self.rect.bottom > Conf.HEIGHT:
+            self.rect.y = Conf.HEIGHT - self.rect.height
+        elif self.rect.left < 0:
+            self.rect.x = 0
+        elif self.rect.right > Conf.WIDTH:
+            self.rect.x = Conf.WIDTH - self.rect.width
 
     def change_speed(self, direction):
         if direction == Conf.UP:
@@ -56,12 +75,32 @@ class BaseClass(pygame.sprite.Sprite):
 class Robot(BaseClass):
     def __init__(self, size=Conf.RBT_SIZE, pos=(0, 0), img=None):
         super().__init__(size, pos=pos, text="RBT")
+        self.direction_angle = 0
+        self.cool_down_l = 0
+        self.cool_down_r = 0
         robot_sprites.add(self)
 
+    def move(self, move_dir, speed=None):
+        if move_dir == Conf.FORWARD:
+            print("forward")
+            super().move(self.direction_angle)
+        elif move_dir == Conf.BACKWARD:
+            super().move(self.direction_angle, speed=-self.speed)
+        elif move_dir == Conf.LEFT:
+            dur = time.time() - self.cool_down_l
+            if dur > Conf.COOLDOWN_TIME:
+                self.direction_angle += 15
+                self.cool_down_l = time.time()
+        elif move_dir == Conf.RIGHT:
+            dur = time.time() - self.cool_down_r
+            if dur > Conf.COOLDOWN_TIME:
+                self.direction_angle -= 15
+                self.cool_down_r = time.time()
+
     def kick(self):
-        print(ball_sprites)
-        for a in ball_sprites:
-            print(a)
+        for ball in ball_sprites:
+            ball.speed = 10
+            print(ball)
 
 
 class Ball(BaseClass):
@@ -72,3 +111,13 @@ class Ball(BaseClass):
             )
         super().__init__(size, pos=pos, color=color, text="B")
         ball_sprites.add(self)
+        self.speed = 0
+        self.move_angle = 0  # Degrees from positive x-axis
+        self.friction = -0.3
+
+    def update(self):
+        if self.speed != 0:
+            self.move(self.move_angle)
+            self.speed += self.friction
+            if self.speed < 0:
+                self.speed = 0

@@ -17,7 +17,7 @@ def main2():
 
     robot0 = Robot(pos=(50, 50))
     ball0 = Ball()
-    ball1 = Ball()
+    # ball1 = Ball()
     clock = pygame.time.Clock()
     while True:
         clock.tick(Conf.FPS)
