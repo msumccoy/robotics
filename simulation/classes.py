@@ -40,7 +40,7 @@ class BaseClass(pygame.sprite.Sprite):
         if speed is None:
             speed = self.speed
         try:
-            angle = (move_dir * math.pi) / 180
+            angle = self.deg_to_rad(move_dir)
             self.rect.x += speed * math.cos(angle)
             self.rect.y -= speed * math.sin(angle)
         except TypeError:
@@ -71,10 +71,23 @@ class BaseClass(pygame.sprite.Sprite):
         elif direction == Conf.DOWN:
             self.speed -= 1
 
+    def deg_to_rad(self, angle):
+        angle = (angle * math.pi) / 180
+        return angle
+
 
 class Robot(BaseClass):
     def __init__(self, size=Conf.RBT_SIZE, pos=(0, 0), img=None):
         super().__init__(size, pos=pos, text="RBT")
+        self.image_org = self.image.copy()
+        arrow_size = (size[0] / 5, size[1] / 5)
+        self.dir_arrow = pygame.Surface(arrow_size)
+        self.dir_arrow.fill(Conf.BLACK)
+        self.dir_arrow_rect = self.dir_arrow.get_rect()
+        self.dir_arrow_offset = (
+            self.dir_arrow_rect.width / 2,
+            self.dir_arrow_rect.height / 2
+        )
         self.direction_angle = 0
         self.cool_down_l = 0
         self.cool_down_r = 0
@@ -82,12 +95,13 @@ class Robot(BaseClass):
 
     def move(self, move_dir, speed=None):
         if move_dir == Conf.FORWARD:
-            print("forward")
             super().move(self.direction_angle)
         elif move_dir == Conf.BACKWARD:
             super().move(self.direction_angle, speed=-self.speed)
+            self.image.fill(Conf.BLACK)
         elif move_dir == Conf.LEFT:
             dur = time.time() - self.cool_down_l
+            self.image = self.image_org.copy()
             if dur > Conf.COOLDOWN_TIME:
                 self.direction_angle += 15
                 self.cool_down_l = time.time()
@@ -101,6 +115,26 @@ class Robot(BaseClass):
         for ball in ball_sprites:
             ball.speed = 10
             print(ball)
+
+    def update(self):
+        self.place_dir_arrow()
+
+    def place_dir_arrow(self):
+        angle = self.deg_to_rad(self.direction_angle)
+        x = math.cos(angle) * self.rect.width
+        if x + self.dir_arrow_rect.right > self.rect.width:
+            x = self.rect.width - self.dir_arrow_rect.width
+        elif x < 0:
+            x = self.dir_arrow_offset[1]
+        y = -(math.sin(angle) * self.rect.height)
+        if y + self.dir_arrow_rect.bottom > self.rect.height:
+            y = self.dir_arrow_rect.bottom - self.dir_arrow_rect.height
+        elif y < 0:
+            y = 0
+        print(y)
+        self.image = self.image_org.copy()
+        self.image.blit(self.dir_arrow, (x, y))
+
 
 
 class Ball(BaseClass):
