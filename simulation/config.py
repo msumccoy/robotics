@@ -1,8 +1,8 @@
 class Conf:
     FPS = 30
     WIN_SIZE = WIDTH, HEIGHT = 600, 400
-    RBT_SIZE = 30, 30
-    BALL_SIZE = 10, 10
+    RBT_SIZE = [50] * 2
+    BALL_SIZE = [10, 10]
     MOVE_VAL = 2
     WHITE = (255, 255, 255)
     BLACK = (0, 0, 0)
@@ -21,4 +21,10 @@ class Conf:
     LEFT = 'left'
     RIGHT = 'right'
 
-    COOLDOWN_TIME = .05
+    COOLDOWN_TIME = .015
+    KICK_RANGE = 10  # Distance unit
+    DIRECTION_OFFSET = 30  # Degrees
+    DIST_OFFSET = KICK_RANGE / 3  # Degrees
+    FORCE_LIMIT = 13
+    WALL_PENALTY = 1
+    FRICTION_DECREASE = -0.3  # Must be negative

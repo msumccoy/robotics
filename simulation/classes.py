@@ -40,7 +40,7 @@ class BaseClass(pygame.sprite.Sprite):
         if speed is None:
             speed = self.speed
         try:
-            angle = self.deg_to_rad(move_dir)
+            angle = move_dir
             self.rect.x += speed * math.cos(angle)
             self.rect.y -= speed * math.sin(angle)
         except TypeError:
@@ -60,7 +60,7 @@ class BaseClass(pygame.sprite.Sprite):
             self.rect.y = 0
         elif self.rect.bottom > Conf.HEIGHT:
             self.rect.y = Conf.HEIGHT - self.rect.height
-        elif self.rect.left < 0:
+        if self.rect.left < 0:
             self.rect.x = 0
         elif self.rect.right > Conf.WIDTH:
             self.rect.x = Conf.WIDTH - self.rect.width
@@ -71,9 +71,13 @@ class BaseClass(pygame.sprite.Sprite):
         elif direction == Conf.DOWN:
             self.speed -= 1
 
-    def deg_to_rad(self, angle):
-        angle = (angle * math.pi) / 180
-        return angle
+    @staticmethod
+    def deg_to_rad(angle):
+        return (angle * math.pi) / 180
+
+    @staticmethod
+    def rad_to_deg(angle):
+        return (angle * 180) / math.pi
 
 
 class Robot(BaseClass):
@@ -88,9 +92,13 @@ class Robot(BaseClass):
             self.dir_arrow_rect.width / 2,
             self.dir_arrow_rect.height / 2
         )
+        self.centerx, self.centery = self.rect.width / 2, self.rect.height / 2
         self.direction_angle = 0
         self.cool_down_l = 0
         self.cool_down_r = 0
+        self.DIRECTION_OFFSET = self.deg_to_rad(Conf.DIRECTION_OFFSET)
+
+        self.place_dir_arrow()
         robot_sprites.add(self)
 
     def move(self, move_dir, speed=None):
@@ -98,43 +106,94 @@ class Robot(BaseClass):
             super().move(self.direction_angle)
         elif move_dir == Conf.BACKWARD:
             super().move(self.direction_angle, speed=-self.speed)
-            self.image.fill(Conf.BLACK)
         elif move_dir == Conf.LEFT:
             dur = time.time() - self.cool_down_l
-            self.image = self.image_org.copy()
             if dur > Conf.COOLDOWN_TIME:
-                self.direction_angle += 15
+                self.direction_angle += self.DIRECTION_OFFSET * 0.5
                 self.cool_down_l = time.time()
+                self.place_dir_arrow()
+                self.limit_angle()
         elif move_dir == Conf.RIGHT:
             dur = time.time() - self.cool_down_r
             if dur > Conf.COOLDOWN_TIME:
-                self.direction_angle -= 15
+                self.direction_angle -= self.DIRECTION_OFFSET * 0.5
                 self.cool_down_r = time.time()
+                self.place_dir_arrow()
+                self.limit_angle()
+
+    def limit_angle(self, angle=None):
+        if angle is None:
+            angle = self.direction_angle
+            default = True
+        else:
+            default = False
+        pi_twice = 2 * math.pi
+        while angle < 0:
+            angle += pi_twice
+        while angle > pi_twice:
+            angle -= pi_twice
+        if default:
+            self.direction_angle = angle
+        else:
+            return angle
 
     def kick(self):
         for ball in ball_sprites:
-            ball.speed = 10
-            print(ball)
+            distx = ball.rect.centerx - self.rect.centerx
+            disty = -(ball.rect.centery - self.rect.centery)
+            dist = (
+                math.sqrt((distx * distx) + (disty * disty))
+                - (self.rect.width / 2)
+                - (ball.rect.width / 2)
+            )
+            if (
+                    dist < 0 and abs(dist) > Conf.KICK_RANGE
+                    or 0 < dist and dist > Conf.KICK_RANGE - Conf.DIST_OFFSET
+            ):
+                continue
+            if distx > 0 and disty > 0 or distx > 0 > disty:
+                # Quadrant 1 or Quadrant 4
+                angle = math.atan(disty / distx)
+            else:  # Quadrant 2 or Quadrant 3
+                if distx == 0:
+                    if disty < 0:
+                        angle = 3 * math.pi / 2
+                    else:
+                        angle = math.pi / 2
+                else:
+                    angle = math.atan(disty / distx) + math.pi
+            angle = self.limit_angle(angle)
+            if abs(self.direction_angle - angle) > self.DIRECTION_OFFSET:
+                new_da = self.limit_angle(self.direction_angle + math.pi)
+                new_a = self.limit_angle(angle + math.pi)
+                if abs(new_da - new_a) > self.DIRECTION_OFFSET:
+                    continue
+            ball.speed = self.kick_force(dist)
+            ball.move_angle = angle
 
-    def update(self):
-        self.place_dir_arrow()
+    @staticmethod
+    def kick_force(dist):
+        dist = 2 * dist - 1
+        force = abs(dist*dist - 23)
+        if force > Conf.FORCE_LIMIT:
+            force = Conf.FORCE_LIMIT
+        return force
 
     def place_dir_arrow(self):
-        angle = self.deg_to_rad(self.direction_angle)
-        x = math.cos(angle) * self.rect.width
+        x = self.centerx + (math.cos(self.direction_angle) * self.rect.width / 2)
+        y = self.centery - (math.sin(self.direction_angle) * self.rect.height / 2)
+        x -= self.dir_arrow_offset[0]
+        y -= self.dir_arrow_offset[1]
         if x + self.dir_arrow_rect.right > self.rect.width:
             x = self.rect.width - self.dir_arrow_rect.width
         elif x < 0:
-            x = self.dir_arrow_offset[1]
-        y = -(math.sin(angle) * self.rect.height)
+            x = 0
         if y + self.dir_arrow_rect.bottom > self.rect.height:
-            y = self.dir_arrow_rect.bottom - self.dir_arrow_rect.height
+            y = self.rect.height - self.dir_arrow_rect.height
         elif y < 0:
             y = 0
-        print(y)
         self.image = self.image_org.copy()
         self.image.blit(self.dir_arrow, (x, y))
-
 
 
 class Ball(BaseClass):
@@ -147,11 +206,18 @@ class Ball(BaseClass):
         ball_sprites.add(self)
         self.speed = 0
         self.move_angle = 0  # Degrees from positive x-axis
-        self.friction = -0.3
+        self.friction = Conf.FRICTION_DECREASE
+
+    def check_bounds(self):
+        if self.rect.top < 0 or self.rect.bottom > Conf.HEIGHT:
+            self.speed -= Conf.WALL_PENALTY
+            self.move_angle *= -1
+        if self.rect.left < 0 or self.rect.right > Conf.WIDTH:
+            self.speed -= Conf.WALL_PENALTY
+            self.move_angle = math.pi - self.move_angle
+        super().check_bounds()
 
     def update(self):
-        if self.speed != 0:
+        if self.speed > 0:
             self.move(self.move_angle)
             self.speed += self.friction
-            if self.speed < 0:
-                self.speed = 0
