@@ -1,3 +1,13 @@
+"""
+boundary limits
+goal limit
+have side
+record score
+robot and robot collision
+robot and ball collision
+robot kick ball
+
+"""
 import sys
 import pygame
 import random
