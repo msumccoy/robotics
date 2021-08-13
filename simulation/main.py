@@ -13,8 +13,9 @@ import pygame
 import random
 
 from config import Conf
-from classes import Robot, Ball
-from classes import all_sprites, robot_sprites, ball_sprites
+from classes import Robot, Ball, Goal, ScoreNum
+from classes import all_sprites, robot_sprites, ball_sprites, goal_sprites
+
 
 
 def main():
@@ -25,9 +26,11 @@ def main():
     background.fill(Conf.WHITE)
     screen.blit(background, (0, 0))
 
-    robot0 = Robot(pos=(50, 50))
+    robot0 = Robot(pos=(50, 50), side=Conf.LEFT)
     ball0 = Ball()
-    ball1 = Ball()
+    goal_left = Goal(Conf.LEFT)
+    goal_right = Goal(Conf.RIGHT)
+    s = ScoreNum()
     clock = pygame.time.Clock()
     while True:
         clock.tick(Conf.FPS)

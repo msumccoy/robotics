@@ -4,11 +4,65 @@ import random
 import math
 
 from config import Conf
-
+from variables import PlayerCount, Score
 
 all_sprites = pygame.sprite.Group()
 robot_sprites = pygame.sprite.Group()
 ball_sprites = pygame.sprite.Group()
+goal_sprites = pygame.sprite.Group()
+
+
+class ScoreNum(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((200, 30))
+        self.image.fill(Conf.ALPHA_COLOR)
+        self.image.set_colorkey(Conf.ALPHA_COLOR)
+        self.rect = self.image.get_rect()
+
+        self.rect.y = 0
+        self.rect.centerx = Conf.WIDTH//2
+
+        self.font = pygame.font.SysFont('arial', 20)
+        self.text = "LEFT 0 : RIGHT 0"
+        self.text_render = self.font.render(self.text, True, Conf.BLACK)
+        self.text_rect = self.text_render.get_rect()
+        self.text_rect.center = (self.rect.width//2, self.rect.height//2)
+        self.image.blit(self.text_render, self.text_rect)
+
+        all_sprites.add(self)
+
+    def update_score(self):
+        print("update")
+        # self.image.fill(Conf.ALPHA_COLOR)
+        # self.text = f"LEFT {Score.LEFT} : RIGHT {Score.RIGHT}"
+        # self.text_render = self.font.render(self.text, True, Conf.BLACK)
+        # self.text_rect = self.text_render.get_rect()
+        # self.text_rect.center = (self.rect.width//2, self.rect.height//2)
+        # self.image.blit(self.text_render, self.text_rect)
+
+
+# score = ScoreNum()
+
+
+class Goal(pygame.sprite.Sprite):
+    def __init__(self, side):
+        super().__init__()
+        self.height = int(Conf.HEIGHT / 3)
+        self.width = 6
+        self.image = pygame.Surface((self.width, self.height))
+        self.image.fill(Conf.BLACK)
+        self.rect = self.image.get_rect()
+        self.side = side
+
+        self.rect.centery = int(Conf.HEIGHT / 2)
+        if side == Conf.LEFT:
+            self.rect.x = 5 - self.width
+        else:
+            self.rect.x = Conf.WIDTH - 5
+
+        goal_sprites.add(self)
+        all_sprites.add(self)
 
 
 class BaseClass(pygame.sprite.Sprite):
@@ -81,8 +135,16 @@ class BaseClass(pygame.sprite.Sprite):
 
 
 class Robot(BaseClass):
-    def __init__(self, size=Conf.RBT_SIZE, pos=(0, 0), img=None):
-        super().__init__(size, pos=pos, text="RBT")
+    def __init__(self, size=Conf.RBT_SIZE, pos=(0, 0), img=None, side=None):
+        if side == Conf.LEFT:
+            color = Conf.COLOR1
+            PlayerCount.LEFT += 1
+        elif side == Conf.RIGHT:
+            color = Conf.COLOR2
+            PlayerCount.LEFT += 1
+        else:
+            color = Conf.COLOR3
+        super().__init__(size, pos=pos, text="RBT", color=color)
         self.image_org = self.image.copy()
         arrow_size = (size[0] / 5, size[1] / 5)
         self.dir_arrow = pygame.Surface(arrow_size)
@@ -218,6 +280,14 @@ class Ball(BaseClass):
         super().check_bounds()
 
     def update(self):
+        for goal in goal_sprites:
+            if self.rect.colliderect(goal):
+                if goal.side == Conf.LEFT:
+                    Score.RIGHT += 1
+                else:
+                    Score.LEFT += 1
+                # score.update_score()
+
         if self.speed > 0:
             self.move(self.move_angle)
             self.speed += self.friction
