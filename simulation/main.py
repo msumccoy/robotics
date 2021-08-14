@@ -17,8 +17,15 @@ from classes import Robot, Ball, Goal, ScoreNum
 from classes import all_sprites, robot_sprites, ball_sprites, goal_sprites
 
 
-
 def main():
+    print(
+        "Take note that this game is primarily designed for one robot and "
+        "one ball.\n"
+        "While the game does have the functionality to have multiple balls "
+        "and multiple robots all functionality is not implemented\n"
+        "Namely robot collision, and ball collision (for blocking balls "
+        "kicked by other players)"
+    )
     pygame.init()
 
     screen = pygame.display.set_mode(Conf.WIN_SIZE)
@@ -26,11 +33,10 @@ def main():
     background.fill(Conf.WHITE)
     screen.blit(background, (0, 0))
 
-    robot0 = Robot(pos=(50, 50), side=Conf.LEFT)
+    robot0 = Robot(side=Conf.LEFT)
     ball0 = Ball()
     goal_left = Goal(Conf.LEFT)
     goal_right = Goal(Conf.RIGHT)
-    s = ScoreNum()
     clock = pygame.time.Clock()
     while True:
         clock.tick(Conf.FPS)

@@ -7,8 +7,10 @@ class Conf:
     WHITE = (255, 255, 255)
     BLACK = (0, 0, 0)
     COLOR1 = (0, 255, 125)
-    COLOR2 = (255, 125, 0)
+    COLOR2 = (255, 0, 125)
     COLOR3 = (125, 125, 125)
+    COLOR_LEFT = (0, 255, 125)
+    COLOR_RIGHT = (255, 125, 0)
     ALPHA_COLOR = (156, 34, 87)
 
     ACCEPT = 0

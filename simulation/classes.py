@@ -12,7 +12,34 @@ ball_sprites = pygame.sprite.Group()
 goal_sprites = pygame.sprite.Group()
 
 
+def rest_positions():
+    for robot in robot_sprites:
+        robot.rect.centery = random.randint(0, Conf.HEIGHT)
+        if robot.side == Conf.LEFT:
+            robot.rect.centerx = random.randint(0, Conf.WIDTH//2)
+        else:
+            robot.rect.centerx = random.randint(Conf.WIDTH//2, Conf.WIDTH)
+            robot.direction_angle = math.pi
+            robot.place_dir_arrow()
+        robot.check_bounds()
+
+    for ball in ball_sprites:
+        ball.rect.centerx = Conf.WIDTH//2
+        ball.rect.centery = Conf.HEIGHT//2
+        ball.speed = 0
+
+    time.sleep(1)
+
+
 class ScoreNum(pygame.sprite.Sprite):
+    _inst = None
+
+    @classmethod
+    def get_inst(cls):
+        if cls._inst is None:
+            cls._inst = cls()
+        return cls._inst
+
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((200, 30))
@@ -33,16 +60,12 @@ class ScoreNum(pygame.sprite.Sprite):
         all_sprites.add(self)
 
     def update_score(self):
-        print("update")
-        # self.image.fill(Conf.ALPHA_COLOR)
-        # self.text = f"LEFT {Score.LEFT} : RIGHT {Score.RIGHT}"
-        # self.text_render = self.font.render(self.text, True, Conf.BLACK)
-        # self.text_rect = self.text_render.get_rect()
-        # self.text_rect.center = (self.rect.width//2, self.rect.height//2)
-        # self.image.blit(self.text_render, self.text_rect)
-
-
-# score = ScoreNum()
+        self.image.fill(Conf.ALPHA_COLOR)
+        self.text = f"LEFT {Score.LEFT} : RIGHT {Score.RIGHT}"
+        self.text_render = self.font.render(self.text, True, Conf.BLACK)
+        self.text_rect = self.text_render.get_rect()
+        self.text_rect.center = (self.rect.width//2, self.rect.height//2)
+        self.image.blit(self.text_render, self.text_rect)
 
 
 class Goal(pygame.sprite.Sprite):
@@ -51,9 +74,18 @@ class Goal(pygame.sprite.Sprite):
         self.height = int(Conf.HEIGHT / 3)
         self.width = 6
         self.image = pygame.Surface((self.width, self.height))
-        self.image.fill(Conf.BLACK)
+        if side == Conf.LEFT:
+            self.color = Conf.COLOR_LEFT
+        elif side == Conf.RIGHT:
+            self.color = Conf.COLOR_RIGHT
+        else:
+            raise ValueError(
+                f"Error side must either be '{Conf.LEFT}' or '{Conf.RIGHT}'"
+            )
+        self.image.fill(self.color)
         self.rect = self.image.get_rect()
         self.side = side
+        self.last_touch = 0
 
         self.rect.centery = int(Conf.HEIGHT / 2)
         if side == Conf.LEFT:
@@ -135,16 +167,31 @@ class BaseClass(pygame.sprite.Sprite):
 
 
 class Robot(BaseClass):
-    def __init__(self, size=Conf.RBT_SIZE, pos=(0, 0), img=None, side=None):
+    def __init__(self, size=Conf.RBT_SIZE, pos=None, img=None, side=None):
         if side == Conf.LEFT:
-            color = Conf.COLOR1
+            color = Conf.COLOR_LEFT
             PlayerCount.LEFT += 1
+            if pos is None:
+                pos = (
+                    random.randint(0, Conf.WIDTH//2),
+                    random.randint(0, Conf.HEIGHT)
+                )
+            self.direction_angle = 0
         elif side == Conf.RIGHT:
-            color = Conf.COLOR2
+            color = Conf.COLOR_RIGHT
             PlayerCount.LEFT += 1
+            if pos is None:
+                pos = (
+                    random.randint(Conf.WIDTH//2, Conf.WIDTH),
+                    random.randint(0, Conf.HEIGHT)
+                )
+            self.direction_angle = math.pi
         else:
-            color = Conf.COLOR3
+            raise ValueError(
+                f"Error side must either be '{Conf.LEFT}' or '{Conf.RIGHT}'"
+            )
         super().__init__(size, pos=pos, text="RBT", color=color)
+        self.check_bounds()
         self.image_org = self.image.copy()
         arrow_size = (size[0] / 5, size[1] / 5)
         self.dir_arrow = pygame.Surface(arrow_size)
@@ -155,10 +202,10 @@ class Robot(BaseClass):
             self.dir_arrow_rect.height / 2
         )
         self.centerx, self.centery = self.rect.width / 2, self.rect.height / 2
-        self.direction_angle = 0
         self.cool_down_l = 0
         self.cool_down_r = 0
         self.DIRECTION_OFFSET = self.deg_to_rad(Conf.DIRECTION_OFFSET)
+        self.side = side
 
         self.place_dir_arrow()
         robot_sprites.add(self)
@@ -261,14 +308,13 @@ class Robot(BaseClass):
 class Ball(BaseClass):
     def __init__(self, size=Conf.BALL_SIZE, pos=None, color=Conf.COLOR2):
         if pos is None:
-            pos = (
-                random.randint(0, Conf.WIDTH), random.randint(0, Conf.HEIGHT)
-            )
+            pos = (Conf.WIDTH//2, Conf.HEIGHT//2)
         super().__init__(size, pos=pos, color=color, text="B")
         ball_sprites.add(self)
         self.speed = 0
         self.move_angle = 0  # Degrees from positive x-axis
         self.friction = Conf.FRICTION_DECREASE
+        self.score = ScoreNum.get_inst()
 
     def check_bounds(self):
         if self.rect.top < 0 or self.rect.bottom > Conf.HEIGHT:
@@ -281,12 +327,15 @@ class Ball(BaseClass):
 
     def update(self):
         for goal in goal_sprites:
-            if self.rect.colliderect(goal):
+            enough_dur = (time.time() - goal.last_touch) > 0.1
+            if self.rect.colliderect(goal) and enough_dur:
+                goal.last_touch = time.time()
                 if goal.side == Conf.LEFT:
                     Score.RIGHT += 1
                 else:
                     Score.LEFT += 1
-                # score.update_score()
+                self.score.update_score()
+                rest_positions()
 
         if self.speed > 0:
             self.move(self.move_angle)
