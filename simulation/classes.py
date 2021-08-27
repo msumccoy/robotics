@@ -340,3 +340,7 @@ class Ball(BaseClass):
         if self.speed > 0:
             self.move(self.move_angle)
             self.speed += self.friction
+
+
+# TODO: Fix curling error by using dynamic principle to calculate position of
+#  the ball based velocity and acceleration instead of current method
