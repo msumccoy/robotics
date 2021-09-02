@@ -31,3 +31,9 @@ class Conf:
     FORCE_LIMIT = 13
     WALL_PENALTY = 1
     FRICTION_DECREASE = -0.3  # Must be negative
+
+
+class Physics:
+    G = 9.81
+    MU = 0.1
+    BALL_MASS = 0.1  # Kilograms

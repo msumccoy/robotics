@@ -3,7 +3,7 @@ import pygame
 import random
 import math
 
-from config import Conf
+from config import Conf, Physics
 from variables import PlayerCount, Score
 
 all_sprites = pygame.sprite.Group()
@@ -118,27 +118,27 @@ class BaseClass(pygame.sprite.Sprite):
         ######################################################################
         self.rect.x = pos[0]
         self.rect.y = pos[1]
-        self.speed = 5
+        self.distance = 5
         self.size = size
         all_sprites.add(self)
 
-    def move(self, move_dir, speed=None):
-        if speed is None:
-            speed = self.speed
+    def move(self, move_dir, distance=None):
+        if distance is None:
+            distance = self.distance
         try:
             angle = move_dir
-            self.rect.x += speed * math.cos(angle)
-            self.rect.y -= speed * math.sin(angle)
+            self.rect.x += distance * math.cos(angle)
+            self.rect.y -= distance * math.sin(angle)
         except TypeError:
             pass
         if move_dir == Conf.UP:
-            self.rect.y -= speed
+            self.rect.y -= distance
         elif move_dir == Conf.DOWN:
-            self.rect.y += speed
+            self.rect.y += distance
         elif move_dir == Conf.LEFT:
-            self.rect.x -= speed
+            self.rect.x -= distance
         elif move_dir == Conf.RIGHT:
-            self.rect.x += speed
+            self.rect.x += distance
         self.check_bounds()
 
     def check_bounds(self):
@@ -153,9 +153,9 @@ class BaseClass(pygame.sprite.Sprite):
 
     def change_speed(self, direction):
         if direction == Conf.UP:
-            self.speed += 1
+            self.distance += 1
         elif direction == Conf.DOWN:
-            self.speed -= 1
+            self.distance -= 1
 
     @staticmethod
     def deg_to_rad(angle):
@@ -214,7 +214,7 @@ class Robot(BaseClass):
         if move_dir == Conf.FORWARD:
             super().move(self.direction_angle)
         elif move_dir == Conf.BACKWARD:
-            super().move(self.direction_angle, speed=-self.speed)
+            super().move(self.direction_angle, distance=-self.distance)
         elif move_dir == Conf.LEFT:
             dur = time.time() - self.cool_down_l
             if dur > Conf.COOLDOWN_TIME:
@@ -277,16 +277,17 @@ class Robot(BaseClass):
                 new_a = self.limit_angle(angle + math.pi)
                 if abs(new_da - new_a) > self.DIRECTION_OFFSET:
                     continue
-            ball.speed = self.kick_force(dist)
+            ball.get_kicked(speed=self.kick_speed(dist), angle=angle)
+            ball.speed = self.kick_speed(dist)
             ball.move_angle = angle
 
     @staticmethod
-    def kick_force(dist):
+    def kick_speed(dist):
         dist = 2 * dist - 1
-        force = abs(dist*dist - 23)
-        if force > Conf.FORCE_LIMIT:
-            force = Conf.FORCE_LIMIT
-        return force
+        speed = abs(dist*dist - 23)
+        if speed > Conf.FORCE_LIMIT:
+            speed = Conf.FORCE_LIMIT
+        return speed
 
     def place_dir_arrow(self):
         x = self.centerx + (math.cos(self.direction_angle) * self.rect.width / 2)
@@ -313,8 +314,16 @@ class Ball(BaseClass):
         ball_sprites.add(self)
         self.speed = 0
         self.move_angle = 0  # Degrees from positive x-axis
+        self.do_move = False
         self.friction = Conf.FRICTION_DECREASE
         self.score = ScoreNum.get_inst()
+
+        self.kick_time = 0
+        self.eqn_t = 0
+        self.mass = Physics.BALL_MASS
+        self.f_normal = self.mass * Physics.G
+        self.f_friction = self.f_normal * Physics.MU  # Force due to friction
+        self.a_friction = self.f_friction / self.mass  # Acceleration  ||
 
     def check_bounds(self):
         if self.rect.top < 0 or self.rect.bottom > Conf.HEIGHT:
@@ -324,6 +333,11 @@ class Ball(BaseClass):
             self.speed -= Conf.WALL_PENALTY
             self.move_angle = math.pi - self.move_angle
         super().check_bounds()
+
+    def get_kicked(self, speed, angle):
+        self.kick_time = time.time()
+        self.eqn_t = speed / self.a_friction
+        self.do_move = True
 
     def update(self):
         for goal in goal_sprites:
@@ -337,7 +351,7 @@ class Ball(BaseClass):
                 self.score.update_score()
                 rest_positions()
 
-        if self.speed > 0:
+        if self.do_move:
             self.move(self.move_angle)
             self.speed += self.friction
 
