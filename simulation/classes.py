@@ -129,6 +129,7 @@ class BaseClass(pygame.sprite.Sprite):
             angle = move_dir
             self.rect.x += distance * math.cos(angle)
             self.rect.y -= distance * math.sin(angle)
+            # print(f"self-{self}\ndist: {distance} angle{(move_dir * 180) / math.pi} x:{self.rect.x} y:{self.rect.y}")
         except TypeError:
             pass
         if move_dir == Conf.UP:
@@ -283,7 +284,6 @@ class Robot(BaseClass):
 
     @staticmethod
     def kick_speed(dist):
-        dist = 2 * dist - 1
         speed = abs(dist*dist - 23)
         if speed > Conf.FORCE_LIMIT:
             speed = Conf.FORCE_LIMIT
@@ -319,7 +319,7 @@ class Ball(BaseClass):
         self.score = ScoreNum.get_inst()
 
         self.kick_time = 0
-        self.eqn_t = 0
+        self.max_time = 0
         self.mass = Physics.BALL_MASS
         self.f_normal = self.mass * Physics.G
         self.f_friction = self.f_normal * Physics.MU  # Force due to friction
@@ -335,8 +335,10 @@ class Ball(BaseClass):
         super().check_bounds()
 
     def get_kicked(self, speed, angle):
+        self.speed = speed
+        self.move_angle = angle
         self.kick_time = time.time()
-        self.eqn_t = speed / self.a_friction
+        self.max_time = speed / self.a_friction
         self.do_move = True
 
     def update(self):
@@ -352,9 +354,11 @@ class Ball(BaseClass):
                 rest_positions()
 
         if self.do_move:
-            self.move(self.move_angle)
-            self.speed += self.friction
-
-
-# TODO: Fix curling error by using dynamic principle to calculate position of
-#  the ball based velocity and acceleration instead of current method
+            dur = time.time() - self.kick_time
+            if dur < self.max_time:
+                distance = 0.5 * self.speed * (self.max_time - dur)
+                if distance < 2:
+                    return
+                self.move(self.move_angle, distance)
+            else:
+                self.do_move = False

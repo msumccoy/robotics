@@ -28,7 +28,7 @@ class Conf:
     KICK_RANGE = 10  # Distance unit
     DIRECTION_OFFSET = 30  # Degrees
     DIST_OFFSET = KICK_RANGE / 3  # Degrees
-    FORCE_LIMIT = 13
+    FORCE_LIMIT = 4
     WALL_PENALTY = 1
     FRICTION_DECREASE = -0.3  # Must be negative
 
