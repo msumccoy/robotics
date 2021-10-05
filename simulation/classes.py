@@ -122,6 +122,7 @@ class BaseClass(pygame.sprite.Sprite):
         self.rect.y = pos[1]
         self.distance = 5
         self.size = size
+        self.half_len = size[0]//2
         all_sprites.add(self)
 
     def move(self, move_dir, distance=None):
@@ -231,10 +232,18 @@ class Robot(BaseClass):
             self.vec.y = ball.rect.centery - self.rect.centery
             dist, angle = self.vec.as_polar()
 
-            if Conf.KICK_RANGE-Conf.DIST_OFFSET < dist < Conf.KICK_RANGE+Conf.DIST_OFFSET:
-                print("GOOD")
+            if (
+                    self.half_len - Conf.HALF_RANGE
+                    < dist
+                    < self.half_len + Conf.HALF_RANGE
+                    and
+                    self.direction_angle - Conf.DIRECTION_OFFSET
+                    < angle
+                    < self.direction_angle + Conf.DIRECTION_OFFSET
+            ):
+                print("GOOD") # Now kick the ball
             else:
-                print(dist, angle)
+                print(dist, angle, self.direction_angle)
             return
             if distx > 0 and disty > 0 or distx > 0 > disty:
                 # Quadrant 1 or Quadrant 4
@@ -264,7 +273,7 @@ class Robot(BaseClass):
         return speed
 
     def place_dir_arrow(self):
-        center_dist = self.rect.width//2 - self.dir_arrow_rect.width//2
+        center_dist = self.half_len - self.dir_arrow_rect.width//2
         self.vec.from_polar((center_dist, self.direction_angle))
         self.vec.x += center_dist
         self.vec.y += center_dist

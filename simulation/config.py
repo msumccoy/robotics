@@ -25,9 +25,8 @@ class Conf:
     RIGHT = 'right'
 
     COOLDOWN_TIME = .015
-    KICK_RANGE = 10  # Distance unit
+    HALF_RANGE = 10  # Distance unit
     DIRECTION_OFFSET = 10  # Degrees
-    DIST_OFFSET = KICK_RANGE / 3  # Degrees
     FORCE_LIMIT = 4
     WALL_PENALTY = 1
     FRICTION_DECREASE = -0.3  # Must be negative
