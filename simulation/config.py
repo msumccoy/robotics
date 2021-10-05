@@ -31,6 +31,8 @@ class Conf:
     WALL_PENALTY = 1
     FRICTION_DECREASE = -0.3  # Must be negative
 
+    DEGREE = "degree"
+
 
 class Physics:
     G = 9.81

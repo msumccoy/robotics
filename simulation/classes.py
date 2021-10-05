@@ -20,7 +20,7 @@ def rest_positions():
             robot.rect.centerx = random.randint(0, Conf.WIDTH//2)
         else:
             robot.rect.centerx = random.randint(Conf.WIDTH//2, Conf.WIDTH)
-            robot.direction_angle = math.pi
+            robot.direction_angle = 180
             robot.place_dir_arrow()
         robot.check_bounds()
 
@@ -179,7 +179,7 @@ class Robot(BaseClass):
                     random.randint(Conf.WIDTH//2, Conf.WIDTH),
                     random.randint(0, Conf.HEIGHT)
                 )
-            self.direction_angle = math.pi
+            self.direction_angle = 180
         else:
             raise ValueError(
                 f"Error side must either be '{Conf.LEFT}' or '{Conf.RIGHT}'"
@@ -226,11 +226,11 @@ class Robot(BaseClass):
                 self.place_dir_arrow()
 
     def kick(self):
-        # TODO: finish fixing
         for ball in ball_sprites:
             self.vec.x = ball.rect.centerx - self.rect.centerx
             self.vec.y = ball.rect.centery - self.rect.centery
             dist, angle = self.vec.as_polar()
+            self.limit_angle()
 
             if (
                     self.half_len - Conf.HALF_RANGE
@@ -241,29 +241,16 @@ class Robot(BaseClass):
                     < angle
                     < self.direction_angle + Conf.DIRECTION_OFFSET
             ):
-                print("GOOD") # Now kick the ball
-            else:
-                print(dist, angle, self.direction_angle)
-            return
-            if distx > 0 and disty > 0 or distx > 0 > disty:
-                # Quadrant 1 or Quadrant 4
-                angle = math.atan(disty / distx)
-            else:  # Quadrant 2 or Quadrant 3
-                if distx == 0:
-                    if disty < 0:
-                        angle = 3 * math.pi / 2
-                    else:
-                        angle = math.pi / 2
-                else:
-                    angle = math.atan(disty / distx) + math.pi
-            if abs(self.direction_angle - angle) > self.DIRECTION_OFFSET:
-                new_da = self.limit_angle(self.direction_angle + math.pi)
-                new_a = self.limit_angle(angle + math.pi)
-                if abs(new_da - new_a) > self.DIRECTION_OFFSET:
-                    continue
-            ball.get_kicked(speed=self.kick_speed(dist), angle=angle)
-            ball.speed = self.kick_speed(dist)
-            ball.move_angle = angle
+                ball.get_kicked(speed=self.kick_speed(dist), angle=angle)
+                ball.move_angle = angle
+
+    def limit_angle(self):
+        upper = 180
+        lower = -180
+        while self.direction_angle > upper:
+            self.direction_angle -= 360
+        while self.direction_angle < lower:
+            self.direction_angle += 360
 
     @staticmethod
     def kick_speed(dist):
@@ -337,3 +324,5 @@ class Ball(BaseClass):
                 self.move(self.move_angle, distance)
             else:
                 self.do_move = False
+
+# TODO: ball sticks on left and right walls. FIX IT!!!
