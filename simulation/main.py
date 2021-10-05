@@ -16,6 +16,8 @@ from config import Conf
 from classes import Robot, Ball, Goal, ScoreNum
 from classes import all_sprites, robot_sprites, ball_sprites, goal_sprites
 
+from simulation.variables import ExitCtr
+
 
 def main():
     print(
@@ -38,7 +40,7 @@ def main():
     goal_left = Goal(Conf.LEFT)
     goal_right = Goal(Conf.RIGHT)
     clock = pygame.time.Clock()
-    while True:
+    while ExitCtr.gen:
         clock.tick(Conf.FPS)
         keys = pygame.key.get_pressed()
         if keys[pygame.K_UP]:

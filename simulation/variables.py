@@ -1,8 +1,12 @@
 class Score:
-    LEFT = 0
-    RIGHT = 0
+    left = 0
+    right = 0
 
 
 class PlayerCount:
-    LEFT = 0
-    RIGHT = 0
+    left = 0
+    right = 0
+
+
+class ExitCtr:
+    gen = True

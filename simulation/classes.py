@@ -61,7 +61,7 @@ class ScoreNum(pygame.sprite.Sprite):
 
     def update_score(self):
         self.image.fill(Conf.ALPHA_COLOR)
-        self.text = f"LEFT {Score.LEFT} : RIGHT {Score.RIGHT}"
+        self.text = f"LEFT {Score.left} : RIGHT {Score.right}"
         self.text_render = self.font.render(self.text, True, Conf.BLACK)
         self.text_rect = self.text_render.get_rect()
         self.text_rect.center = (self.rect.width//2, self.rect.height//2)
@@ -171,7 +171,7 @@ class Robot(BaseClass):
     def __init__(self, size=Conf.RBT_SIZE, pos=None, img=None, side=None):
         if side == Conf.LEFT:
             color = Conf.COLOR_LEFT
-            PlayerCount.LEFT += 1
+            PlayerCount.left += 1
             if pos is None:
                 pos = (
                     random.randint(0, Conf.WIDTH//2),
@@ -180,7 +180,7 @@ class Robot(BaseClass):
             self.direction_angle = 0
         elif side == Conf.RIGHT:
             color = Conf.COLOR_RIGHT
-            PlayerCount.LEFT += 1
+            PlayerCount.left += 1
             if pos is None:
                 pos = (
                     random.randint(Conf.WIDTH//2, Conf.WIDTH),
@@ -347,9 +347,9 @@ class Ball(BaseClass):
             if self.rect.colliderect(goal) and enough_dur:
                 goal.last_touch = time.time()
                 if goal.side == Conf.LEFT:
-                    Score.RIGHT += 1
+                    Score.right += 1
                 else:
-                    Score.LEFT += 1
+                    Score.left += 1
                 self.score.update_score()
                 rest_positions()
 
