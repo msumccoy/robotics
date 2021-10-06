@@ -122,6 +122,7 @@ class BaseClass(pygame.sprite.Sprite):
         self.rect.y = pos[1]
         self.distance = 5
         self.size = size
+        self.move_angle = 0
         self.half_len = size[0]//2
         all_sprites.add(self)
 
@@ -149,10 +150,16 @@ class BaseClass(pygame.sprite.Sprite):
         elif direction == Conf.DOWN:
             self.distance -= 1
 
+    def limit_angle(self):
+        upper = 180
+        lower = -180
+        while self.move_angle > upper:
+            self.move_angle -= 360
+        while self.move_angle < lower:
+            self.move_angle += 360
+
     @staticmethod
     def deg_to_rad(angle):
-        # TODO: potentially to delete
-        return angle
         return (angle * math.pi) / 180
 
     @staticmethod
@@ -170,7 +177,6 @@ class Robot(BaseClass):
                     random.randint(0, Conf.WIDTH//2),
                     random.randint(0, Conf.HEIGHT)
                 )
-            self.direction_angle = 0
         elif side == Conf.RIGHT:
             color = Conf.COLOR_RIGHT
             PlayerCount.left += 1
@@ -179,7 +185,7 @@ class Robot(BaseClass):
                     random.randint(Conf.WIDTH//2, Conf.WIDTH),
                     random.randint(0, Conf.HEIGHT)
                 )
-            self.direction_angle = 180
+            self.move_angle = 180
         else:
             raise ValueError(
                 f"Error side must either be '{Conf.LEFT}' or '{Conf.RIGHT}'"
@@ -198,7 +204,7 @@ class Robot(BaseClass):
         self.centerx, self.centery = self.rect.width / 2, self.rect.height / 2
         self.cool_down_l = 0
         self.cool_down_r = 0
-        self.DIRECTION_OFFSET = self.deg_to_rad(Conf.DIRECTION_OFFSET)
+        self.DIRECTION_OFFSET = Conf.DIRECTION_OFFSET
         self.side = side
 
         self.place_dir_arrow()
@@ -207,21 +213,21 @@ class Robot(BaseClass):
     def move(self, move_dir, speed=None):
         if move_dir == Conf.FORWARD:
             # Move in current direction
-            super().move(self.direction_angle)
+            super().move(self.move_angle)
         elif move_dir == Conf.BACKWARD:
             # Rotate direction by 180 amd move forward
-            super().move(self.direction_angle+180)
+            super().move(self.move_angle + 180)
         elif move_dir == Conf.LEFT:
             # Prevent excessive updates to angle change for a single press
             dur = time.time() - self.cool_down_l
             if dur > Conf.COOLDOWN_TIME:
-                self.direction_angle -= self.DIRECTION_OFFSET * 0.5
+                self.move_angle -= self.DIRECTION_OFFSET * 0.5
                 self.cool_down_l = time.time()
                 self.place_dir_arrow()
         elif move_dir == Conf.RIGHT:
             dur = time.time() - self.cool_down_r
             if dur > Conf.COOLDOWN_TIME:
-                self.direction_angle += self.DIRECTION_OFFSET * 0.5
+                self.move_angle += self.DIRECTION_OFFSET * 0.5
                 self.cool_down_r = time.time()
                 self.place_dir_arrow()
 
@@ -237,31 +243,23 @@ class Robot(BaseClass):
                     < dist
                     < self.half_len + Conf.HALF_RANGE
                     and
-                    self.direction_angle - Conf.DIRECTION_OFFSET
+                    self.move_angle - Conf.DIRECTION_OFFSET
                     < angle
-                    < self.direction_angle + Conf.DIRECTION_OFFSET
+                    < self.move_angle + Conf.DIRECTION_OFFSET
             ):
                 ball.get_kicked(speed=self.kick_speed(dist), angle=angle)
                 ball.move_angle = angle
 
-    def limit_angle(self):
-        upper = 180
-        lower = -180
-        while self.direction_angle > upper:
-            self.direction_angle -= 360
-        while self.direction_angle < lower:
-            self.direction_angle += 360
-
     @staticmethod
     def kick_speed(dist):
-        speed = abs(dist*dist - 23)
+        speed = abs((0.0027*dist*dist)+(Conf.FORCE_LIMIT//3))
         if speed > Conf.FORCE_LIMIT:
             speed = Conf.FORCE_LIMIT
         return speed
 
     def place_dir_arrow(self):
         center_dist = self.half_len - self.dir_arrow_rect.width//2
-        self.vec.from_polar((center_dist, self.direction_angle))
+        self.vec.from_polar((center_dist, self.move_angle))
         self.vec.x += center_dist
         self.vec.y += center_dist
         self.image = self.image_org.copy()
@@ -291,9 +289,13 @@ class Ball(BaseClass):
         if self.rect.top < 0 or self.rect.bottom > Conf.HEIGHT:
             self.speed -= Conf.WALL_PENALTY
             self.move_angle *= -1
+            self.limit_angle()
+            self.get_kicked(self.speed, self.move_angle)
         if self.rect.left < 0 or self.rect.right > Conf.WIDTH:
             self.speed -= Conf.WALL_PENALTY
-            self.move_angle = math.pi - self.move_angle
+            self.move_angle += 180
+            self.limit_angle()
+            self.get_kicked(self.speed, self.move_angle)
         super().check_bounds()
 
     def get_kicked(self, speed, angle):
@@ -325,4 +327,3 @@ class Ball(BaseClass):
             else:
                 self.do_move = False
 
-# TODO: ball sticks on left and right walls. FIX IT!!!
