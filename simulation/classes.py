@@ -150,13 +150,28 @@ class BaseClass(pygame.sprite.Sprite):
         elif direction == Conf.DOWN:
             self.distance -= 1
 
-    def limit_angle(self):
+    def limit_angle(self, angle=None):
         upper = 180
         lower = -180
-        while self.move_angle > upper:
-            self.move_angle -= 360
-        while self.move_angle < lower:
-            self.move_angle += 360
+        self_angle = False
+        if angle is None:
+            angle = self.move_angle
+            self_angle = True
+        else:
+            print(f"angle recieved = {angle}")
+
+        while angle > upper:
+            angle -= 360
+        while angle < lower:
+            angle += 360
+
+        if self_angle:
+            self.move_angle = angle
+        else:
+            return angle
+
+    def angle_set(self, angle):
+        self.move_angle = angle
 
     @staticmethod
     def deg_to_rad(angle):
@@ -201,7 +216,10 @@ class Robot(BaseClass):
             self.dir_arrow_rect.width / 2,
             self.dir_arrow_rect.height / 2
         )
-        self.centerx, self.centery = self.rect.width / 2, self.rect.height / 2
+        self.arrow_vec = Vector2()
+        self.dist_half = self.half_len - self.dir_arrow_rect.width//2
+        self.centerx = self.rect.width // 2
+        self.centery = self.rect.height // 2
         self.cool_down_l = 0
         self.cool_down_r = 0
         self.DIRECTION_OFFSET = Conf.DIRECTION_OFFSET
@@ -224,12 +242,14 @@ class Robot(BaseClass):
                 self.move_angle -= self.DIRECTION_OFFSET * 0.5
                 self.cool_down_l = time.time()
                 self.place_dir_arrow()
+                self.limit_angle()
         elif move_dir == Conf.RIGHT:
             dur = time.time() - self.cool_down_r
             if dur > Conf.COOLDOWN_TIME:
                 self.move_angle += self.DIRECTION_OFFSET * 0.5
                 self.cool_down_r = time.time()
                 self.place_dir_arrow()
+                self.limit_angle()
 
     def kick(self):
         for ball in ball_sprites:
@@ -258,12 +278,11 @@ class Robot(BaseClass):
         return speed
 
     def place_dir_arrow(self):
-        center_dist = self.half_len - self.dir_arrow_rect.width//2
-        self.vec.from_polar((center_dist, self.move_angle))
-        self.vec.x += center_dist
-        self.vec.y += center_dist
+        self.arrow_vec.from_polar((self.dist_half, self.move_angle))
+        self.arrow_vec.x += self.dist_half
+        self.arrow_vec.y += self.dist_half
         self.image = self.image_org.copy()
-        self.image.blit(self.dir_arrow, self.vec)
+        self.image.blit(self.dir_arrow, self.arrow_vec)
 
 
 class Ball(BaseClass):
