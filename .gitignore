@@ -18,3 +18,5 @@ Tools/.idea/
 *.log
 *.iml
 /Code/cam_settings.json
+*.log.*
+*.fuse_hidden*

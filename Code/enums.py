@@ -12,14 +12,11 @@ class RobotType(Enum):
     SPIDER = 1
 
 
-class LensType(Enum):
-    SINGLE = 0
-    DOUBLE = 1
-
-
 class ObjDist(Enum):
     AVG = 0
     LOCATION = 1
+    X = 10
+    Y = 11
     SUM = 2
     COUNT = 3
     LAST_SEEN = 4

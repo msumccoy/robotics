@@ -1,4 +1,6 @@
 import logging
+import socket
+from logging import handlers
 import os
 import sys
 import threading
@@ -10,15 +12,32 @@ import time
 import cv2
 import psutil
 from PIL import Image, ImageTk
-import numpy as np
 
-import log_set_up
 from config import Conf
-from camera import Camera
-from enums import RobotType
 from misc import pretty_time
-from robot_control import Robot
-from variables import ExitControl
+
+
+# Set up gui logger  #########################################################
+from socket_functions import make_fixed_string, read_transmission, code_list
+
+formatter = logging.Formatter(Conf.FORMAT, Conf.FORMAT_DATE)
+formatter_terminal = logging.Formatter(Conf.FORMAT_TERMINAL, Conf.FORMAT_DATE)
+
+robot_logger = logging.getLogger(Conf.LOG_GUI_NAME)
+robot_logger.setLevel(logging.DEBUG)
+
+robot_file_handler = handlers.RotatingFileHandler(
+    Conf.LOG_GUI_FILE, maxBytes=Conf.MAX_BYTES, backupCount=Conf.BACKUP_COUNT
+)
+robot_file_handler.setFormatter(formatter)
+robot_file_handler.setLevel(Conf.LOG_GUI_FILE_LEVEL)
+
+robot_stream_handler = logging.StreamHandler()
+robot_stream_handler.setFormatter(formatter_terminal)
+robot_stream_handler.setLevel(Conf.LOG_GUI_STREAM_LEVEL)
+
+robot_logger.addHandler(robot_file_handler)
+robot_logger.addHandler(robot_stream_handler)
 
 
 class MainClass:
@@ -162,151 +181,152 @@ class MainClass:
 
 
 class GUI(MainClass):
-    main_logger = logging.getLogger(Conf.LOG_MAIN_NAME)
     logger = logging.getLogger(Conf.LOG_GUI_NAME)
 
-    def __init__(self, robot_type):
+    def __init__(self):
         super().__init__()
-        self.main_logger.info(f"GUI: started on version {Conf.VERSION}")
         self.logger.info(
             f"GUI started on version {Conf.VERSION}:"
         )
         self.start_time = time.time()
-        self.cam = Camera.get_inst(robot_type)
-        self.robot = Robot.get_inst(robot_type)
         self.process = psutil.Process(os.getpid())
         self.btn_quit.configure(command=self.close)
 
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_socket.connect((Conf.LOCAL_IP, Conf.PING_MONITOR_PORT))
+        self.client_socket.setblocking(False)
+
         # Set bindings
         self.root.bind("<Escape>", self.escape)  # Set up escape shortcut
-        self.root.bind('<Up>', self.shortcut_btn)
-        self.root.bind('<Down>', self.shortcut_btn)
-        self.root.bind('<Left>', self.shortcut_btn)
-        self.root.bind('<Right>', self.shortcut_btn)
-        self.root.bind('<S>', self.shortcut_btn)
-        self.root.bind('<s>', self.shortcut_btn)
-        self.root.bind('<space>', self.shortcut_btn)
-        self.root.bind('<k>', self.shortcut_btn)
-        self.root.bind('<K>', self.shortcut_btn)
-        self.root.bind('<d>', self.shortcut_btn)
-        self.root.bind('<D>', self.shortcut_btn)
-        self.root.bind('<Return>', self.enter_box)
-        self.scale_slider.bind(
-            "<Button-4>", lambda opt: self.on_mouse_wheel("scale_up")
-        )
-        self.scale_slider.bind(
-            "<Button-5>", lambda opt: self.on_mouse_wheel("scale_down")
-        )
-        self.neigh_slider.bind(
-            "<Button-4>", lambda opt: self.on_mouse_wheel("neigh_up")
-        )
-        self.neigh_slider.bind(
-            "<Button-5>", lambda opt: self.on_mouse_wheel("neigh_down")
-        )
+        self.root.bind('<Up>', self.get_image)
+        # self.root.bind('<Up>', self.shortcut_btn)
+        # self.root.bind('<Down>', self.shortcut_btn)
+        # self.root.bind('<Left>', self.shortcut_btn)
+        # self.root.bind('<Right>', self.shortcut_btn)
+        # self.root.bind('<S>', self.shortcut_btn)
+        # self.root.bind('<s>', self.shortcut_btn)
+        # self.root.bind('<space>', self.shortcut_btn)
+        # self.root.bind('<k>', self.shortcut_btn)
+        # self.root.bind('<K>', self.shortcut_btn)
+        # self.root.bind('<d>', self.shortcut_btn)
+        # self.root.bind('<D>', self.shortcut_btn)
+        # self.root.bind('<Return>', self.enter_box)
+        # self.scale_slider.bind(
+        #     "<Button-4>", lambda opt: self.on_mouse_wheel("scale_up")
+        # )
+        # self.scale_slider.bind(
+        #     "<Button-5>", lambda opt: self.on_mouse_wheel("scale_down")
+        # )
+        # self.neigh_slider.bind(
+        #     "<Button-4>", lambda opt: self.on_mouse_wheel("neigh_up")
+        # )
+        # self.neigh_slider.bind(
+        #     "<Button-5>", lambda opt: self.on_mouse_wheel("neigh_down")
+        # )
 
         # Set up tab buttons and widgets  ####################################
         # Set functions executed on movement of slider
-        self.scale_slider.configure(command=self.cam.set_scale)
-        self.neigh_slider.configure(command=self.cam.set_neigh)
-        self.rpi_brightness_slider.configure(command=self.cam.set_brightness)
-        self.rpi_contrast_slider.configure(command=self.cam.set_contrast)
-        self.rpi_iso_slider.configure(command=self.cam.set_iso)
+        # self.scale_slider.configure(command=self.cam.set_scale)
+        # self.neigh_slider.configure(command=self.cam.set_neigh)
+        # self.rpi_brightness_slider.configure(command=self.cam.set_brightness)
+        # self.rpi_contrast_slider.configure(command=self.cam.set_contrast)
+        # self.rpi_iso_slider.configure(command=self.cam.set_iso)
 
         # Set shortcuts and commands for robot control buttons
-        self.btn_forward.configure(
-            command=lambda: self.robot_btn(Conf.CMD_FORWARD)
-        )
-        self.btn_back.configure(
-            command=lambda: self.robot_btn(Conf.CMD_BACKWARD)
-        )
-        self.btn_left.configure(
-            command=lambda: self.robot_btn(Conf.CMD_LEFT)
-        )
-        self.btn_right.configure(
-            command=lambda: self.robot_btn(Conf.CMD_RIGHT)
-        )
-        self.btn_stop.configure(
-            command=lambda: self.robot_btn(Conf.CMD_STOP)
-        )
-        self.btn_kick.configure(
-            command=lambda: self.robot_btn(Conf.CMD_KICK)
-        )
-        self.btn_dance.configure(
-            command=lambda: self.robot_btn(Conf.CMD_DANCE)
-        )
-        self.btn_cmd_enter.configure(
-            command=lambda: self.enter_box(Conf.ROBOT_HEAD)
-        )
-        self.btn_open_dict.configure(command=self.open_dict)
-        self.check_auto_robot.configure(command=self.toggle_robot_auto)
+        # self.btn_forward.configure(
+        #     command=lambda: self.robot_btn(Conf.CMD_FORWARD)
+        # )
+        # self.btn_back.configure(
+        #     command=lambda: self.robot_btn(Conf.CMD_BACKWARD)
+        # )
+        # self.btn_left.configure(
+        #     command=lambda: self.robot_btn(Conf.CMD_LEFT)
+        # )
+        # self.btn_right.configure(
+        #     command=lambda: self.robot_btn(Conf.CMD_RIGHT)
+        # )
+        # self.btn_stop.configure(
+        #     command=lambda: self.robot_btn(Conf.CMD_STOP)
+        # )
+        # self.btn_kick.configure(
+        #     command=lambda: self.robot_btn(Conf.CMD_KICK)
+        # )
+        # self.btn_dance.configure(
+        #     command=lambda: self.robot_btn(Conf.CMD_DANCE)
+        # )
+        # self.btn_cmd_enter.configure(
+        #     command=lambda: self.enter_box(Conf.ROBOT_HEAD)
+        # )
+        # self.btn_open_dict.configure(command=self.open_dict)
+        # self.check_auto_robot.configure(command=self.toggle_robot_auto)
 
         # Shortcuts for robot head
-        self.btn_head_up.configure(
-            command=lambda: self.robot_head_btn(Conf.CMD_RH_UP)
-        )
-        self.btn_head_down.configure(
-            command=lambda: self.robot_head_btn(Conf.CMD_RH_DOWN)
-        )
-        self.btn_head_left.configure(
-            command=lambda: self.robot_head_btn(Conf.CMD_RH_LEFT)
-        )
-        self.btn_head_right.configure(
-            command=lambda: self.robot_head_btn(Conf.CMD_RH_RIGHT)
-        )
-        self.btn_head_speed.configure(
-            command=lambda: self.enter_box(Conf.ROBOT_HEAD)
-        )
-        self.btn_head_set_U_D.configure(
-            command=lambda: self.enter_box(Conf.ROBOT_HEAD_SET_U_D)
-        )
-        self.btn_head_set_L_R.configure(
-            command=lambda: self.enter_box(Conf.ROBOT_HEAD_SET_L_R)
-        )
+        # self.btn_head_up.configure(
+        #     command=lambda: self.robot_head_btn(Conf.CMD_RH_UP)
+        # )
+        # self.btn_head_down.configure(
+        #     command=lambda: self.robot_head_btn(Conf.CMD_RH_DOWN)
+        # )
+        # self.btn_head_left.configure(
+        #     command=lambda: self.robot_head_btn(Conf.CMD_RH_LEFT)
+        # )
+        # self.btn_head_right.configure(
+        #     command=lambda: self.robot_head_btn(Conf.CMD_RH_RIGHT)
+        # )
+        # self.btn_head_speed.configure(
+        #     command=lambda: self.enter_box(Conf.ROBOT_HEAD)
+        # )
+        # self.btn_head_set_U_D.configure(
+        #     command=lambda: self.enter_box(Conf.ROBOT_HEAD_SET_U_D)
+        # )
+        # self.btn_head_set_L_R.configure(
+        #     command=lambda: self.enter_box(Conf.ROBOT_HEAD_SET_L_R)
+        # )
         ######################################################################
 
-        val = (self.cam.settings[self.cam.profile][Conf.CS_SCALE] - 1.005) / 0.1
-        self.scale_slider.set(val)
-        self.neigh_slider.set(self.cam.settings[self.cam.profile][Conf.CS_NEIGH])
-        # Disable pi cam controls if not using pi cam
-        if self.cam.is_pi_cam:
-            self.rpi_brightness_slider.set(self.cam.cam.brightness)
-            self.rpi_contrast_slider.set(self.cam.cam.contrast)
-            self.rpi_iso_slider.set(self.cam.cam.iso)
-
-            self.rpi_brightness_slider.bind(
-                "<Button-4>", lambda opt: self.on_mouse_wheel("bright_up")
-            )
-            self.rpi_brightness_slider.bind(
-                "<Button-5>", lambda opt: self.on_mouse_wheel("bright_down")
-            )
-            self.rpi_contrast_slider.bind(
-                "<Button-4>", lambda opt: self.on_mouse_wheel("contrast_up")
-            )
-            self.rpi_contrast_slider.bind(
-                "<Button-5>", lambda opt: self.on_mouse_wheel("contrast_down")
-            )
-            self.rpi_iso_slider.bind(
-                "<Button-4>", lambda opt: self.on_mouse_wheel("iso_up")
-            )
-            self.rpi_iso_slider.bind(
-                "<Button-5>", lambda opt: self.on_mouse_wheel("iso_down")
-            )
-        else:
-            self.rpi_brightness_slider.grid_remove()
-            self.rpi_contrast_slider.grid_remove()
-            self.rpi_iso_slider.grid_remove()
+        # val = (self.cam.settings[self.cam.profile][Conf.CS_SCALE] - 1.005) / 0.1
+        # self.scale_slider.set(val)
+        # self.neigh_slider.set(self.cam.settings[self.cam.profile][Conf.CS_NEIGH])
+        # # Disable pi cam controls if not using pi cam
+        # if self.cam.is_pi_cam:
+        #     self.rpi_brightness_slider.set(self.cam.cam.brightness)
+        #     self.rpi_contrast_slider.set(self.cam.cam.contrast)
+        #     self.rpi_iso_slider.set(self.cam.cam.iso)
+        #
+        #     self.rpi_brightness_slider.bind(
+        #         "<Button-4>", lambda opt: self.on_mouse_wheel("bright_up")
+        #     )
+        #     self.rpi_brightness_slider.bind(
+        #         "<Button-5>", lambda opt: self.on_mouse_wheel("bright_down")
+        #     )
+        #     self.rpi_contrast_slider.bind(
+        #         "<Button-4>", lambda opt: self.on_mouse_wheel("contrast_up")
+        #     )
+        #     self.rpi_contrast_slider.bind(
+        #         "<Button-5>", lambda opt: self.on_mouse_wheel("contrast_down")
+        #     )
+        #     self.rpi_iso_slider.bind(
+        #         "<Button-4>", lambda opt: self.on_mouse_wheel("iso_up")
+        #     )
+        #     self.rpi_iso_slider.bind(
+        #         "<Button-5>", lambda opt: self.on_mouse_wheel("iso_down")
+        #     )
+        # else:
+        #     self.rpi_brightness_slider.grid_remove()
+        #     self.rpi_contrast_slider.grid_remove()
+        #     self.rpi_iso_slider.grid_remove()
 
         # self.check_auto_robot.state(['selected'])
-        if self.robot.active_auto_control:
-            self.check_auto_robot.select()
-        else:
-            self.check_auto_robot.deselect()
-        self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
-        if robot_type == RobotType.HUMAN:
-            self.full_dict = Conf.HUMANOID_FULL
-            self.short_dict = Conf.HUMANOID_MOTION
-        elif robot_type == RobotType.SPIDER:
-            self.full_dict = self.short_dict = Conf.SPIDER_FULL
+        # if self.robot.active_auto_control:
+        #     self.check_auto_robot.select()
+        # else:
+        #     self.check_auto_robot.deselect()
+        # self.THRESHOLD = Conf.LOOP_DUR_THRESHOLD / 1000
+        # if robot_type == RobotType.HUMAN:
+        #     self.full_dict = Conf.HUMANOID_FULL
+        #     self.short_dict = Conf.HUMANOID_MOTION
+        # elif robot_type == RobotType.SPIDER:
+        #     self.full_dict = self.short_dict = Conf.SPIDER_FULL
 
     def toggle_robot_auto(self):
         if self.is_robot_auto.get():
@@ -326,14 +346,6 @@ class GUI(MainClass):
             for key in self.full_dict:
                 info['text'] += f"{key}:{self.short_dict[key][0]}\n"
             print(self.info['text'])
-
-    def start(self):
-        self.root.after(10, self.update_image)
-        self.root.after(100, self.life_check)
-        self.root.after(100, self.check_main_loop_time)
-        self.root.mainloop()
-        if ExitControl.gen:
-            ExitControl.gen = False
 
     def robot_btn(self, action):
         self.robot.send_command(action)
@@ -483,42 +495,50 @@ class GUI(MainClass):
             self.close()
         self.root.after(50, self.life_check)  # Change back to 1000 after testing
 
+    ##########################################################################
+    # Communication functions  ###############################################
+    ##########################################################################
+    def get_image(self, empty=None):
+        com_data = make_fixed_string(Conf.PRE_HEADER_LEN, 1)
+        com_data += code_list([f"testing from gui"], Conf.COM_IMG_REQUEST)
+        self.client_socket.send(com_data)
+        print("get image aslkdfja;lfdja;fdlkja;lfdjka;lkfj;alkjfd;alkjdf;alkjf;lakjf;lakjf;lakjf;le")
+        com_response = read_transmission(self.client_socket)
+        while not com_response:
+            com_response = read_transmission(self.client_socket)
+        print(f"{com_response}: com__response")
+
+    def test_communicate(self, a=None):
+        com_data = make_fixed_string(Conf.PRE_HEADER_LEN, 1)
+        com_data += code_list([f"testing from gui"], Conf.COM_TEST)
+        self.client_socket.send(com_data)
+        com_response = read_transmission(self.client_socket)
+        for j in range(com_response[Conf.NUM_SEGMENTS]):
+            data_type, data = com_response[j+1]
+
+    ##########################################################################
+
     def escape(self, event):
         self.close()
 
+    def start(self):
+        self.root.after(2000, self.get_image)
+        # self.root.after(10, self.update_image)
+        # self.root.after(100, self.check_main_loop_time)
+        self.root.mainloop()
+
     def close(self):
-        self.main_logger.info(
-            "GUI: is closing after running for "
-            f"{pretty_time(self.start_time)}"
-        )
         self.logger.info(
             "GUI: is closing after running for "
             f"{pretty_time(self.start_time)}\n"
         )
         self.root.destroy()
-        ExitControl.gen = False
 
 
-def cam_starter(robot_type):
-    cam = Camera.get_inst(
-        robot_type,
-        # cam_num=0,
-        # lens_type=LensType.DOUBLE,
-        # record=True,
-        # take_pic=True,
-    )
-    try:
-        cam.start_recognition()
-    finally:
-        cam.close()
-
-
-def independent_test():
-    from enums import RobotType
-    robot_type = RobotType.SPIDER
-    cam_thread = threading.Thread(target=cam_starter, args=(robot_type,))
-    cam_thread.start()
-    ui = GUI(robot_type)
+def gui_main():
+    print("GUI currently does not work. SEE main.py FOR TODO")
+    return 
+    ui = GUI()
     ui.start()
 
 
@@ -529,4 +549,4 @@ def display_layout():
 
 if __name__ == "__main__":
     # display_layout()
-    independent_test()
+    gui_main()

@@ -21,7 +21,7 @@ with open(config_file) as file:
 
 class Conf:
     # VERSION = major_change.minor_change
-    VERSION = 2.0  # 2.1
+    VERSION = 2.0  # 3.0 to be confirmed after completion
     PATH_ROOT = config["path"]  # Typically: /home/pi/Documents/Code/
     ##########################################################################
     # Templates  #############################################################
@@ -51,13 +51,17 @@ class Conf:
     RBT_MIN_HEAD_RIGHT = 0
     RBT_MAX_HEAD_BACK = 100
     RBT_MIN_HEAD_FORWARD = 0
+    RBT_HEIGHT = 24.0  # inches
+    RBT_NECK_HEIGHT = 1  # inch
 
     ROBOT_CONTROL = "robot control"
     ROBOT_HEAD = "robot head"
     ROBOT_HEAD_SET_U_D = "robot head set, up and down"
     ROBOT_HEAD_SET_L_R = "robot head set, left and right"
 
-    SEARCH_REST = .5
+    RBT_H_UD = 1
+    RBT_H_LR = 0
+    SEARCH_REST = .1
 
     # Movement control dictionaries  #########################################
     HUMANOID_FULL = {  # Full dictionary with all motions in Heart2Heart
@@ -80,8 +84,8 @@ class Conf:
         16: ["Move backward 5 steps (slowly)", 1],
         17: ["Move left 5 steps (slowly)", 1],
         18: ["Move right 5 steps (slowly)", 1],
-        19: ["Turn left (5 step turn)", 1],
-        20: ["Turn right (5 step turn)", 1],
+        19: ["Turn left (5 step turn)", 3],
+        20: ["Turn right (5 step turn)", 3],
         21: ["Move forward 5 steps (fast but more unstable)", 1],
         22: ["Move backward 5 steps (fast but more unstable)", 1],
         23: ["Move left 5 steps (fast but more unstable)", 1],
@@ -291,8 +295,7 @@ class Conf:
     # OpenCV settings  #######################################################
     ##########################################################################
     CV_WINDOW = "Image window"
-    CV_WINDOW_LEFT = "Image window left"
-    CV_WINDOW_RIGHT = "Image window right"
+    CV_WINDOW_NOTE = "Note window"
     CV_WINDOW_ROBOT = "Robot instructions window"
     CV_FONT = cv2.FONT_HERSHEY_PLAIN
     CV_FONT_SCALE = 1
@@ -334,11 +337,19 @@ class Conf:
     if not os.path.isfile(CAM_SETTINGS_FILE):
         with open(CAM_SETTINGS_FILE, 'w') as file:
             file.write("{}")
+    else:
+        with open(CAM_SETTINGS_FILE) as file:
+            if file.read() == "":
+                empty = True
+            else:
+                empty = False
+        if empty:
+            with open(CAM_SETTINGS_FILE, "w") as file:
+                file.write("{}")
 
     # CS = camera settings
     CS_DEFAULT = "default"
     CS_DEFAULT1 = "default_non_pi_cam"
-    CS_DEFAULT2 = "default_dual"
     CS_IS_PI_CAM = "is_pi_cam"
     CS_FOCAL = "focal_len"
     CS_LENS_TYPE = "lens_type"
@@ -350,7 +361,7 @@ class Conf:
 
     CS_MID_TOLERANCE = 20
     FREQUENCY_PIC = 30
-    LOOP_DUR_THRESHOLD = 200  # milliseconds before triggering a warning
+    LOOP_DUR_THRESHOLD = 300  # milliseconds before triggering a warning
 
     # Cam memory settings  ###################################################
     MEM_DIST_LIST_LEN = 1
@@ -368,10 +379,26 @@ class Conf:
     G_SLIDE_HEIGHT = 70
 
     ##########################################################################
+    # Socket server settings  ################################################
+    ##########################################################################
+    LOCAL_IP = "127.0.0.1"
+    PING_MONITOR_IP = "127.0.0.1"
+    PING_MONITOR_PORT = 1234
+    PRE_HEADER_LEN = 3
+    HEADER_LEN = 10
+    ENCODING = "utf-8"
+
+    NUM_SEGMENTS = 0
+    COM_IMG = 10
+    COM_IMG_REQUEST = 11
+    COM_TEST = 100
+    COM_TEST2 = 12
+
+    ##########################################################################
     # Log settings  ##########################################################
     ##########################################################################
     default_log_level_file = logging.DEBUG
-    default_log_level_terminal = logging.ERROR  #logging.INFO
+    default_log_level_terminal = logging.DEBUG  #logging.INFO
     LOG_ROOT = PATH_ROOT + "logs/"
     if not os.path.exists(LOG_ROOT):
         os.mkdir(LOG_ROOT)
@@ -391,6 +418,11 @@ class Conf:
     LOG_ROBOT_FILE_LEVEL = default_log_level_file
     LOG_ROBOT_STREAM_LEVEL = default_log_level_terminal
     # Robot log settings  ####################################################
+    LOG_SOCKET_NAME = "socket"
+    LOG_SOCKET_FILE = LOG_ROOT + LOG_SOCKET_NAME + ".log"
+    LOG_SOCKET_FILE_LEVEL = default_log_level_file
+    LOG_SOCKET_STREAM_LEVEL = default_log_level_terminal
+    # Robot log settings  ####################################################
     LOG_GUI_NAME = "gui"
     LOG_GUI_FILE = LOG_ROOT + LOG_GUI_NAME + ".log"
     LOG_GUI_FILE_LEVEL = default_log_level_file
@@ -400,7 +432,35 @@ class Conf:
     FORMAT = "%(asctime)s: %(levelname)s: %(message)s"
     FORMAT_TERMINAL = "%(asctime)s: %(name)s: %(levelname)s: %(message)s"
     FORMAT_DATE = "%Y-%m-%d %H:%M:%S"
-    WRITE_FREQUENCY = 30
+    MAX_BYTES = 5120
+    BACKUP_COUNT = 4
+
+    LAST_LOG = 0
+    FREQUENCY_LOG = 1
+    DEFAULT_LOG_FREQUENCY = 30  # seconds
+
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+    # Log Types  #############################################################
+    LOG_ROBOT_SEND_CMD = "send_command called"
+    LOG_ROBOT_AUTO_FAIL = "robot auto gen"
+    LOG_ROBOT_AUTO_FAIL_HEAD = "robot auto head"
+    LOG_ROBOT_SET_HEAD = "set head"
+    LOG_ROBOT_SUB_SEND = "sub send cmd"
+    LOG_ROBOT_CLEAR_CACHE = "clear cache"
+    LOG_ROBOT_GET_HEX_CMD = "get hex cmd"
+
+    LOG_CAM_NUM_OBJECTS = "num objects"
+    LOG_CAM_OBJECTS_NOT_FOUND = "not found"
+    LOG_CAM_STOP_SEARCH = "robot has stopped searching"
+    LOG_CAM_LOOP_TIME = "Total runtime"
+    LOG_CAM_RECOGNITION_TIME = "Recognition loop time"
+    LOG_CAM_DEVIATION = "deviation"
+    LOG_CAM_WRITE_VIDEO = "writing to video"
 
     ##########################################################################
     # Locks  #################################################################
@@ -420,10 +480,7 @@ class Conf:
     CMD_EXIT1 = "e"
     CMD_STOP = "stop"
     CMD_STOP1 = "s"
-    CMD_REMOTE = "remote"
     CMD_DICTIONARY = "dict"
-    CMD_CALIBRATE = "calibrate"
-    CMD_CALIBRATE_STOP = "calibrate stop"
     CMD_AUTO_ON = "auto"
     CMD_AUTO_OFF = "auto off"
     CMD_FORWARD = "forward"
@@ -438,10 +495,41 @@ class Conf:
     CMD_KICK1 = "k"
     CMD_DANCE = "dance"
     CMD_DANCE1 = "d"
-    CMD_RH_UP = "head up"
-    CMD_RH_DOWN = "head down"
-    CMD_RH_LEFT = "head left"
-    CMD_RH_RIGHT = "head right"
+    CMD_RH_UP = "head_up"
+    CMD_RH_UP1 = "U"
+    CMD_RH_DOWN = "head_down"
+    CMD_RH_DOWN1 = "D"
+    CMD_RH_LEFT = "head_left"
+    CMD_RH_LEFT1 = "L"
+    CMD_RH_RIGHT = "head_right"
+    CMD_RH_RIGHT1 = "R"
+    CMD_SET_HEAD_DELTA = "delta"
+    CMD_SET_HEAD_UD = "set_ud"
+    CMD_SET_HEAD_LR = "set_lr"
+    CMD_VARS = "dump"
+    CMD_VARS1 = "dump1"
+    CMD_VARS2 = "dump2"
 
+    # OpenCV window commands
+    CMD_CV_EXIT = ord("e")
+    CMD_CV_EXIT1 = ord("E")
+    CMD_CV_STOP = ord("s")
+    CMD_CV_STOP1 = ord("S")
+    CMD_CV_DANCE = ord("d")
+    CMD_CV_KICK = ord("k")
+    CMD_CV_FORWARD = ord("f")
+    CMD_CV_BACKWARD = ord("b")
+    CMD_CV_LEFT = ord("l")
+    CMD_CV_RIGHT = ord("r")
+    CMD_CV_HEAD_UP = ord("U")
+    CMD_CV_HEAD_DOWN = ord("D")
+    CMD_CV_HEAD_LEFT = ord("L")
+    CMD_CV_HEAD_RIGHT = ord("R")
+    CMD_CV_HEAD_DELTA_P = ord("+")
+    CMD_CV_HEAD_DELTA_M = ord("-")
+    CMD_CV_DUMP_CAM = ord("1")
+    CMD_CV_DUMP_ROBOT = ord("2")
+    CMD_CV_DUMP_CMD = ord("3")
+    ##########################################################################
     # Misc Constants
     CONST_MIDDLE = "Middle"
