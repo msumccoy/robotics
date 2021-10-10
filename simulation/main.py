@@ -16,7 +16,8 @@ from config import Conf
 from classes import Robot, Ball, Goal, ScoreNum
 from classes import all_sprites, robot_sprites, ball_sprites, goal_sprites
 
-from simulation.variables import ExitCtr
+from variables import ExitCtr, DoFlag
+from controls import Controllers
 
 
 def main():
@@ -30,38 +31,33 @@ def main():
     )
     pygame.init()
 
+    # Set up simulation window
     screen = pygame.display.set_mode(Conf.WIN_SIZE)
     background = pygame.Surface(Conf.WIN_SIZE).convert()
     background.fill(Conf.WHITE)
     screen.blit(background, (0, 0))
 
+    # Create the robot, ball, and goals
     robot0 = Robot(side=Conf.LEFT)
     ball0 = Ball()
     goal_left = Goal(Conf.LEFT)
     goal_right = Goal(Conf.RIGHT)
+
+    controller = Controllers(robot0, screen)
+
+    # Create clock for consistent loop intervals
     clock = pygame.time.Clock()
     while ExitCtr.gen:
+        # Control loop intervals
         clock.tick(Conf.FPS)
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_UP]:
-            robot0.move(Conf.UP)
-        if keys[pygame.K_DOWN]:
-            robot0.move(Conf.DOWN)
-        if keys[pygame.K_RIGHT]:
-            robot0.move(Conf.RIGHT)
-        if keys[pygame.K_LEFT]:
-            robot0.move(Conf.LEFT)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    sys.exit()
-                elif event.key == pygame.K_SPACE:
-                    robot0.kick()
-
         screen.fill(Conf.WHITE)
+
+        # Control robot
+        controller.manual_control()
+        if DoFlag.auto_calc:
+            controller.calculated_control()
+
+        # Update game state
         all_sprites.update()
         all_sprites.draw(screen)
         pygame.display.update()

@@ -10,3 +10,12 @@ class PlayerCount:
 
 class ExitCtr:
     gen = True
+
+
+class DoFlag:
+    auto_calc = True
+    chan = False
+
+
+class Gen:
+    key_a_pressed = 0
