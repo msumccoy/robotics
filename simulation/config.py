@@ -2,7 +2,8 @@ class Conf:
     FPS = 30
     WIN_SIZE = WIDTH, HEIGHT = 600, 400
     RBT_SIZE = [50] * 2
-    BALL_SIZE = [10, 10]
+    BALL_SIZE = [10] * 2
+    GOAL_SIZE = [6, HEIGHT // 3]  # [width, height]
     MOVE_VAL = 2
     WHITE = (255, 255, 255)
     BLACK = (0, 0, 0)
@@ -26,15 +27,25 @@ class Conf:
 
     COOLDOWN_TIME = .015
     HALF_RANGE = 10  # Distance unit
-    DIRECTION_OFFSET = 10  # Degrees
+    DIR_OFFSET = 5  # Degrees
     FORCE_LIMIT = 4
-    WALL_PENALTY = 1
+    WALL_PENALTY = .5
     FRICTION_DECREASE = -0.3  # Must be negative
 
     DEGREE = "degree"
+
+    CSV = "csv_files"
 
 
 class Physics:
     G = 9.81
     MU = 0.1
     BALL_MASS = 0.1  # Kilograms
+    FRICTION = -0.3
+
+
+class GS:  # Name to be changed
+    ROBOT_START = "robot_start"
+    BALL_START = "ball_start"
+    TIME_TO_SCORE = "time"
+    SIDE_SCORE = "side"
