@@ -27,12 +27,14 @@ class Conf:
 
     COOLDOWN_TIME = .015
     HALF_RANGE = 10  # Distance unit
-    DIRECTION_OFFSET = 5  # Degrees
+    DIR_OFFSET = 5  # Degrees
     FORCE_LIMIT = 4
     WALL_PENALTY = .5
     FRICTION_DECREASE = -0.3  # Must be negative
 
     DEGREE = "degree"
+
+    CSV = "csv_files"
 
 
 class Physics:
@@ -40,3 +42,10 @@ class Physics:
     MU = 0.1
     BALL_MASS = 0.1  # Kilograms
     FRICTION = -0.3
+
+
+class GS:  # Name to be changed
+    ROBOT_START = "robot_start"
+    BALL_START = "ball_start"
+    TIME_TO_SCORE = "time"
+    SIDE_SCORE = "side"

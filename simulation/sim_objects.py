@@ -158,14 +158,14 @@ class Robot(BaseClass):
             # Prevent excessive updates to angle change for a single press
             dur = time.time() - self.cool_down_l
             if dur > Conf.COOLDOWN_TIME:
-                self.move_angle -= Conf.DIRECTION_OFFSET
+                self.move_angle -= Conf.DIR_OFFSET
                 self.cool_down_l = time.time()
                 self.place_dir_arrow()
                 self.limit_angle()
         elif move_dir == Conf.RIGHT:
             dur = time.time() - self.cool_down_r
             if dur > Conf.COOLDOWN_TIME:
-                self.move_angle += Conf.DIRECTION_OFFSET
+                self.move_angle += Conf.DIR_OFFSET
                 self.cool_down_r = time.time()
                 self.place_dir_arrow()
                 self.limit_angle()
@@ -180,9 +180,9 @@ class Robot(BaseClass):
             if (
                     self.in_range(dist)
                     and
-                    self.move_angle - Conf.DIRECTION_OFFSET
+                    self.move_angle - Conf.DIR_OFFSET
                     < angle
-                    < self.move_angle + Conf.DIRECTION_OFFSET
+                    < self.move_angle + Conf.DIR_OFFSET
             ):
                 ball.get_kicked(speed=self.kick_speed(dist), angle=angle)
                 ball.move_angle = angle
@@ -210,7 +210,8 @@ class Robot(BaseClass):
         self.image.blit(self.dir_arrow, self.vec_arrow)
 
     def update(self):
-        self.draw_movement_line()
+        if DoFlag.show_directions:
+            self.draw_movement_line()
 
 
 class Ball(BaseClass):
@@ -218,6 +219,7 @@ class Ball(BaseClass):
         if pos is None:
             pos = (Conf.WIDTH//2, Conf.HEIGHT//2)
         super().__init__(size, pos=pos, color=color, text="B")
+        Gen.last_goal_time = time.time()
         Sprites.balls.add(self)
         self.move_dist = 0  # Move distance
         self.move_angle = 0  # Degrees from positive x-axis
@@ -231,6 +233,9 @@ class Ball(BaseClass):
         self.f_normal = self.mass * Physics.G
         self.f_friction = self.f_normal * Physics.MU  # Force due to friction
         self.a_friction = self.f_friction / self.mass  # Acceleration  ||
+
+        self.score_side = None
+        self.score_time = None
 
     def check_bounds(self):
         if self.rect.top < 0 or self.rect.bottom > Conf.HEIGHT:
@@ -252,16 +257,24 @@ class Ball(BaseClass):
         self.max_time = speed / self.a_friction
         self.do_move = True
 
+    def reset_record(self):
+        self.score_side = None
+        self.score_time = None
+
     def update(self):
-        self.draw_movement_line()
+        if DoFlag.show_directions:
+            self.draw_movement_line()
         for goal in Sprites.goals:
             enough_dur = (time.time() - goal.last_touch) > 0.1
             if self.rect.colliderect(goal) and enough_dur:
                 goal.last_touch = time.time()
                 if goal.side == Conf.LEFT:
+                    self.score_side = Conf.RIGHT
                     Score.right += 1
                 else:
+                    self.score_side = Conf.LEFT
                     Score.left += 1
+                self.score_time = time.time() - Gen.last_goal_time
                 self.score.update_score()
                 rest_positions()
 
@@ -367,6 +380,8 @@ def rest_positions():
         robot.rect.centery = random.randint(0, Conf.HEIGHT)
         if robot.side == Conf.LEFT:
             robot.rect.centerx = random.randint(0, Conf.WIDTH//2)
+            robot.direction_angle = 0
+            robot.place_dir_arrow()
         else:
             robot.rect.centerx = random.randint(Conf.WIDTH//2, Conf.WIDTH)
             robot.direction_angle = 180
@@ -374,7 +389,7 @@ def rest_positions():
         robot.check_bounds()
 
     for ball in Sprites.balls:
-        offset = 200
+        offset = 0
         ball.rect.centerx = random.randint(offset, Conf.WIDTH - offset)
         ball.rect.centery = random.randint(offset, Conf.HEIGHT - offset)
         # ball.rect.centerx = Conf.WIDTH//2

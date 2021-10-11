@@ -1,19 +1,25 @@
 """
 This file is used to control the robot via keyboard control
 """
+import os
 import sys
+import csv
 import pygame
 import time
 from pygame.math import Vector2
 
-from config import Conf
-from variables import DoFlag, Gen, Sprites
+from config import Conf, GS
+from variables import DoFlag, Gen, Sprites, ExitCtr
 
 
 class Controllers:
     def __init__(self, robot):
         self.robot = robot
+        self.ball = Sprites.balls.sprites()[0]
         self.side = robot.side
+
+        self.robot_start_pos = robot.rect.centerx, robot.rect.centery
+        self.ball_start_pos = self.ball.rect.centerx, self.ball.rect.centery
 
         self.vec_robot = Vector2()
         self.vec_ball = Vector2()
@@ -39,9 +45,32 @@ class Controllers:
             self.goal_top.x = self.goal_bot.x = self.goal_cen.x \
                 = self.goal.rect.x + self.goal.rect.width
 
-        self.to_way_point = False
+        self.to_waypoint = True
+        self.to_ball = True
+        self.is_new_waypoint = True
+        self.adjust_ball = False
 
-        self.ball = Sprites.balls.sprites()[0]
+        self.game_state = [  # NAME TO BE CHANGED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            (GS.ROBOT_START,  GS.BALL_START, GS.TIME_TO_SCORE, GS.SIDE_SCORE)
+        ]
+
+    def check_score(self):
+        if self.ball.score_side is not None:
+
+            record = (
+                self.robot_start_pos,
+                self.ball_start_pos,
+                self.ball.score_time,
+                self.ball.score_side
+            )
+            self.game_state.append(record)
+            self.ball.reset_record()
+            self.robot_start_pos = (
+                self.robot.rect.centerx, self.robot.rect.centery
+            )
+            self.ball_start_pos = (
+                self.ball.rect.centerx, self.ball.rect.centery
+            )
 
     def calculated_control(self):
         # Update robot and ball position
@@ -51,137 +80,80 @@ class Controllers:
         self.vec_ball.y = self.ball.rect.centery
 
         if self.side == Conf.LEFT:
-            vec_to_ball = self.vec_ball - self.vec_robot
-            vec_ball_to_goal_top = self.goal_top - self.vec_ball
-            vec_ball_to_goal_bot = self.goal_bot - self.vec_ball
-            dist, to_ball = vec_to_ball.as_polar()
-            _, ball_to_top = vec_ball_to_goal_top.as_polar()
-            _, ball_to_bot = vec_ball_to_goal_bot.as_polar()
+            if self.to_waypoint:
+                if self.is_new_waypoint:
+                    self.is_new_waypoint = False
 
-            target_dist = self.robot.half_len + Conf.HALF_RANGE
+                    # Save the position of where the ball should be
+                    self.waypoint_ball.x = self.vec_ball.x
+                    self.waypoint_ball.y = self.vec_ball.y
 
-            if self.to_way_point:
-                vec_ball_to_goal_cen = self.goal_cen - self.vec_ball
-                vec_ball_to_goal_cen.scale_to_length(100)
-                self.vec_ball.x = self.vec_ball.x - vec_ball_to_goal_cen.x
-                self.vec_ball.y = self.vec_ball.y - vec_ball_to_goal_cen.y
-                # print(vec_ball_to_goal_cen)
-            elif dist < target_dist or self.vec_robot.x > self.vec_ball.x:
-                if self.robot.in_range(dist) and self.vec_robot.x < self.vec_ball.x:
-                    print(f"{self.vec_robot}, {self.vec_ball}")
-                    angle = self.robot.limit_angle(self.robot.move_angle)
-                    if angle <= to_ball - Conf.DIRECTION_OFFSET:
-                        print(angle, to_ball - Conf.DIRECTION_OFFSET)
-                        print(f"MOVE right {self.vec_robot}!!!!!!!!!!!!!!!!!!!!!!!")
-                        self.robot.move(Conf.RIGHT)
-                    elif angle >= to_ball + Conf.DIRECTION_OFFSET:
-                        print(f"MOVE left {self.vec_robot}!!!!!!!!!!!!!!!!!!!!!!!!")
+                    # Set way point
+                    offset = self.goal_cen - self.vec_ball
+                    if self.goal_cen == self.vec_ball:
+                        offset.x = Conf.WIDTH
+                        offset.y = Conf.HEIGHT
+                    offset.scale_to_length(-50)
+                    self.waypoint = self.vec_ball + offset
+                    if self.robot.half_len > self.waypoint.x:
+                        self.waypoint.x = self.vec_ball.x - offset.x
+                    elif Conf.WIDTH - self.robot.half_len < self.waypoint.x:
+                        self.waypoint.x = self.vec_ball.x - self.robot.half_len
+                    if not(
+                            self.robot.half_len
+                            < self.waypoint.y
+                            < Conf.HEIGHT - self.robot.half_len
+                    ):
+                        self.waypoint.y = self.vec_ball.y - offset.y
+
+                if self.waypoint_ball == self.vec_ball:
+                    to_waypoint = self.waypoint - self.vec_robot
+                    dist, angle = to_waypoint.as_polar()
+                    angle_dif = angle - self.robot.move_angle
+                    if angle_dif < -Conf.DIR_OFFSET:
                         self.robot.move(Conf.LEFT)
-                    elif self.vec_robot.x < self.vec_ball.x - x_offset:
-                        print(f"KICK {self.vec_robot}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    elif angle_dif > Conf.DIR_OFFSET:
+                        self.robot.move(Conf.RIGHT)
+                    else:
+                        if dist < 5:
+                            self.to_waypoint = False
+                            self.to_ball = True
+                        else:
+                            self.robot.move(Conf.FORWARD)
+                else:
+                    self.is_new_waypoint = True
+            elif self.to_ball:
+                if self.waypoint_ball == self.vec_ball:
+                    to_ball = self.vec_ball - self.vec_robot
+                    dist, angle = to_ball.as_polar()
+                    if angle + Conf.DIR_OFFSET - 1 < self.robot.move_angle:
+                        self.robot.move(Conf.LEFT)
+                    elif angle - Conf.DIR_OFFSET + 1 > self.robot.move_angle:
+                        self.robot.move(Conf.RIGHT)
+                    else:
                         self.robot.kick()
-                    else:
-                        self.to_way_point = True
-                        print("self.robot.move(Conf.DOWN)")
-                else:
-                    if self.vec_ball.y < self.goal_top.y:
-                        y_offset = -50
-                    elif self.vec_ball.y > self.goal_bot.y:
-                        y_offset = 50
-                    else:
-                        y_offset = 0
-
-                    self.vec_ball.y -= y_offset
-                    self.vec_ball.x -= x_offset
-
-                    vec_to_ball = self.vec_ball - self.vec_robot
-                    dist, to_ball = vec_to_ball.as_polar()
-                    max_angle = to_ball + Conf.DIRECTION_OFFSET + 1
-                    min_angle = to_ball - Conf.DIRECTION_OFFSET - 1
-                    if min_angle > self.robot.move_angle:
-                        self.robot.move(Conf.RIGHT)
-                    elif max_angle < self.robot.move_angle:
-                        print("self.robot.move(Conf.LEFT)")
-                        self.robot.move(Conf.LEFT)
-                    else:
                         self.robot.move(Conf.FORWARD)
-                    print(self.vec_robot, self.vec_ball, dist, target_dist)
-            else:
-                while x_offset > dist:
-                    x_offset /= 2
-                if x_offset < target_dist:
-                    x_offset = target_dist
-
-                if not(ball_to_top < to_ball < ball_to_bot) and dist > x_offset:
-                    self.vec_ball.x -= x_offset
-                    vec_to_ball = self.vec_ball - self.vec_robot
-                    dist, to_ball = vec_to_ball.as_polar()
-                max_angle = to_ball + Conf.DIRECTION_OFFSET + 1
-                min_angle = to_ball - Conf.DIRECTION_OFFSET - 1
-
-                if min_angle > self.robot.move_angle:
-                    self.robot.move(Conf.RIGHT)
-                elif max_angle < self.robot.move_angle:
-                    self.robot.move(Conf.LEFT)
                 else:
-                    self.robot.move(Conf.FORWARD)
-                if ball_to_top < to_ball < ball_to_bot:
-                    self.robot.kick()
+                    self.is_new_waypoint = True
+                    self.to_waypoint = True
+                    self.to_ball = False
 
-            # in_range = self.robot.in_range(dist)
-            # if ball_to_top < to_ball < ball_to_bot and in_range:
-            #     angle = self.robot.move_angle
-            #     if angle - Conf.DIRECTION_OFFSET + 1> angle:
-            #         self.robot.move(Conf.RIGHT)
-            #     elif angle + Conf.DIRECTION_OFFSET - 1 <= angle:
-            #         self.robot.move(Conf.LEFT)
-            #     else:
-            #         self.robot.kick()
-            # elif ball_to_top < to_ball < ball_to_bot:
-            #
-            # else:
-            #     if min_angle > self.robot.move_angle:
-            #         self.robot.move(Conf.RIGHT)
-            #     elif max_angle < self.robot.move_angle:
-            #         self.robot.move(Conf.LEFT)
-            #     else:
-            #         self.robot.move(Conf.FORWARD)
-            if DoFlag.temp_b:
-                print(f"dist {dist}, angle {to_ball}")
-                print(f"angle to top {ball_to_top}")
-                print(f"angle to bottom {ball_to_bot}")
-                # print()
-                print(f"vec_to_ball {vec_to_ball}")
-                print(f"ball to top {vec_ball_to_goal_top}")
-                print(f"ball to bot {vec_ball_to_goal_bot}")
-                print()
-
-        # else:
-        #     self.vec_ball.x = self.ball.rect.x + self.ball.rect.width
-        #     self.vec_ball.y = self.ball.rect.centery
-        #     self.vec_goal.x = self.goal.rect.x
-        #     self.vec_goal.y = self.goal.rect.centery
-        #     self.vec.x = self.robot.rect.centerx
-        #     self.vec.y = self.robot.rect.centery
-
-        pygame.draw.line(
-            Gen.screen, (255, 0, 0), self.vec_ball, self.goal_top
-        )
-        pygame.draw.line(
-            Gen.screen, (255, 0, 0), self.vec_ball, self.goal_bot
-        )
-        pygame.draw.line(
-            Gen.screen, (255, 0, 0), self.vec_ball, self.goal_cen
-        )
-        pygame.draw.line(Gen.screen, (0, 0, 0), self.vec_ball, self.vec_robot, 3)
-        # pygame.draw.line(
-        #     Gen.screen, (255, 0, 0),
-        #     (self.ball.rect.centerx, self.ball.rect.centery),
-        #     (
-        #         self.ball.rect.centerx + vec_ball_to_goal_top.x,
-        #         self.ball.rect.centery + vec_ball_to_goal_top.y
-        #     ),
-        # )
+            if DoFlag.show_vectors:
+                pygame.draw.line(
+                    Gen.screen, (255, 0, 0), self.vec_ball, self.goal_top
+                )
+                pygame.draw.line(
+                    Gen.screen, (255, 0, 0), self.vec_ball, self.goal_bot
+                )
+                pygame.draw.line(
+                    Gen.screen, (255, 0, 0), self.vec_ball, self.goal_cen
+                )
+                pygame.draw.line(
+                    Gen.screen, (255, 0, 0), self.vec_ball, self.waypoint
+                )
+                pygame.draw.line(
+                    Gen.screen, (0, 0, 0), self.waypoint, self.vec_robot, 3
+                )
 
     def manual_control(self):
         keys = pygame.key.get_pressed()
@@ -194,22 +166,69 @@ class Controllers:
         if keys[pygame.K_LEFT]:
             self.robot.move(Conf.LEFT)
         if keys[pygame.K_a]:
-            if time.time() - Gen.key_a_pressed > .5:
-                Gen.key_a_pressed = time.time()
+            if time.time() - Gen.key_a_time > 5 * Conf.COOLDOWN_TIME:
+                Gen.key_a_time = time.time()
                 DoFlag.auto_calc = not DoFlag.auto_calc
         if keys[pygame.K_b]:
-            if time.time() - Gen.key_b_pressed > .5:
-                Gen.key_b_pressed = time.time()
-                DoFlag.temp_b = not DoFlag.temp_b
+            if time.time() - Gen.key_b_time > 5 * Conf.COOLDOWN_TIME:
+                Gen.key_b_time = time.time()
+                DoFlag.show_vectors = not DoFlag.show_vectors
+        if keys[pygame.K_c]:
+            if time.time() - Gen.key_b_time > 5 * Conf.COOLDOWN_TIME:
+                Gen.key_c_time = time.time()
+                DoFlag.show_directions = not DoFlag.show_directions
+        ######################################################################
+        # To delete
+        dist = 5
+        if keys[pygame.K_KP8]:
+            self.ball.move(-90, dist)
+        if keys[pygame.K_KP2]:
+            self.ball.move(90, dist)
+        if keys[pygame.K_KP4]:
+            self.ball.move(180, dist)
+        if keys[pygame.K_KP6]:
+            self.ball.move(0, dist)
+        ######################################################################
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                ExitCtr.gen = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    sys.exit()
+                    ExitCtr.gen = False
                 elif event.key == pygame.K_SPACE:
                     self.robot.kick()
+
+    def save(self):
+        delete_index = []
+        bad_data = [self.game_state[0]]
+        index = 0
+        for record in self.game_state[1:]:
+            index += 1
+            if record[-1] != self.side:
+                delete_index.append(index)
+        delete_index.reverse()
+        for index in delete_index:
+            bad_data.append(self.game_state.pop(index))
+
+        good_data = self.game_state
+        good = f"{Conf.CSV}/good.csv"
+        bad = f"{Conf.CSV}/bad.csv"
+        if not os.path.isdir(Conf.CSV):
+            os.mkdir(Conf.CSV)
+        elif os.path.isfile(good):
+            if len(good_data) > 1:
+                good_data = self.game_state[1:]
+            else:
+                good_data = []
+        if os.path.isfile(bad):
+            bad_data.pop()
+
+        with open(good, 'a') as file:
+            writer = csv.writer(file)
+            writer.writerows(good_data)
+        with open(bad, 'a') as file:
+            writer = csv.writer(file)
+            writer.writerows(bad_data)
 
     # TODO: Enable multiple robot.
     #  - save robot controls in json file

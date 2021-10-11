@@ -14,13 +14,15 @@ class ExitCtr:
 
 class DoFlag:
     auto_calc = True
-    temp_b = False
+    show_vectors = False
+    show_directions = False
 
 
 class Gen:
     screen = None
-    key_a_pressed = 0
-    key_b_pressed = 0
+    key_a_time = 0
+    key_b_time = 0
+    key_c_time = 0
     last_goal_time = 0
 
 

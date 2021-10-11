@@ -54,6 +54,7 @@ def main():
 
         # Control robot
         controller.manual_control()
+        controller.check_score()
         if DoFlag.auto_calc:
             controller.calculated_control()
 
@@ -61,6 +62,9 @@ def main():
         Sprites.every.update()
         Sprites.every.draw(Gen.screen)
         pygame.display.update()
+
+    controller.save()
+    pygame.quit()
 
 
 if __name__ == '__main__':
