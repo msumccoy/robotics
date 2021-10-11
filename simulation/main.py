@@ -13,10 +13,9 @@ import pygame
 import random
 
 from config import Conf
-from classes import Robot, Ball, Goal, ScoreNum
-from classes import all_sprites, robot_sprites, ball_sprites, goal_sprites
+from sim_objects import Robot, Ball, Goal, ScoreNum
 
-from variables import ExitCtr, DoFlag
+from variables import ExitCtr, DoFlag, Sprites, Gen
 from controls import Controllers
 
 
@@ -32,25 +31,26 @@ def main():
     pygame.init()
 
     # Set up simulation window
-    screen = pygame.display.set_mode(Conf.WIN_SIZE)
+    Gen.screen = pygame.display.set_mode(Conf.WIN_SIZE)
     background = pygame.Surface(Conf.WIN_SIZE).convert()
     background.fill(Conf.WHITE)
-    screen.blit(background, (0, 0))
+    Gen.screen.blit(background, (0, 0))
 
     # Create the robot, ball, and goals
-    robot0 = Robot(side=Conf.LEFT)
-    ball0 = Ball()
+    robots = [Robot(side=Conf.LEFT)]
+    # robots = [Robot(side=Conf.RIGHT)]
+    balls = [Ball()]
     goal_left = Goal(Conf.LEFT)
     goal_right = Goal(Conf.RIGHT)
 
-    controller = Controllers(robot0, screen)
+    controller = Controllers(robots[0])
 
     # Create clock for consistent loop intervals
     clock = pygame.time.Clock()
     while ExitCtr.gen:
         # Control loop intervals
         clock.tick(Conf.FPS)
-        screen.fill(Conf.WHITE)
+        Gen.screen.fill(Conf.WHITE)
 
         # Control robot
         controller.manual_control()
@@ -58,8 +58,8 @@ def main():
             controller.calculated_control()
 
         # Update game state
-        all_sprites.update()
-        all_sprites.draw(screen)
+        Sprites.every.update()
+        Sprites.every.draw(Gen.screen)
         pygame.display.update()
 
 

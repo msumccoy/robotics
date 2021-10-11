@@ -14,11 +14,14 @@ class ExitCtr:
 
 class DoFlag:
     auto_calc = True
-    chan = False
+    temp_b = False
 
 
 class Gen:
+    screen = None
     key_a_pressed = 0
+    key_b_pressed = 0
+    last_goal_time = 0
 
 
 class Sprites:
