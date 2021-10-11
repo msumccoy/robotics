@@ -180,13 +180,17 @@ class Controllers:
         ######################################################################
         # To delete
         dist = 5
-        if keys[pygame.K_KP8]:
+        if keys[pygame.K_2] or keys[pygame.K_KP8]:
+            # Move up
             self.ball.move(-90, dist)
-        if keys[pygame.K_KP2]:
+        if keys[pygame.K_3] or keys[pygame.K_KP5]:
+            # Move down
             self.ball.move(90, dist)
-        if keys[pygame.K_KP4]:
+        if keys[pygame.K_1] or keys[pygame.K_KP4]:
+            # Move left
             self.ball.move(180, dist)
-        if keys[pygame.K_KP6]:
+        if keys[pygame.K_4] or keys[pygame.K_KP6]:
+            # Move right
             self.ball.move(0, dist)
         ######################################################################
         for event in pygame.event.get():
