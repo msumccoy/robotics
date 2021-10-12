@@ -96,9 +96,17 @@ class Controllers:
                     offset.scale_to_length(-50)
                     self.waypoint = self.vec_ball + offset
                     if self.robot.half_len > self.waypoint.x:
-                        self.waypoint.x = self.vec_ball.x - offset.x
+                        if (
+                                self.goal_top.y - 50
+                                < self.waypoint.y
+                                < self.goal_bot.y + 50
+                        ):
+                            self.waypoint.y = self.vec_ball.y + 50
+                            self.waypoint.x = self.robot.half_len + 1
+                        else:
+                            self.waypoint.x = self.vec_ball.x - offset.x
                     elif Conf.WIDTH - self.robot.half_len < self.waypoint.x:
-                        self.waypoint.x = self.vec_ball.x - self.robot.half_len
+                        self.waypoint.x = self.vec_ball.x - self.robot.half_len - 1
                     if not(
                             self.robot.half_len
                             < self.waypoint.y
@@ -166,15 +174,15 @@ class Controllers:
         if keys[pygame.K_LEFT]:
             self.robot.move(Conf.LEFT)
         if keys[pygame.K_a]:
-            if time.time() - Gen.key_a_time > 5 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_a_time > 10 * Conf.COOLDOWN_TIME:
                 Gen.key_a_time = time.time()
                 DoFlag.auto_calc = not DoFlag.auto_calc
         if keys[pygame.K_b]:
-            if time.time() - Gen.key_b_time > 5 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_b_time > 10 * Conf.COOLDOWN_TIME:
                 Gen.key_b_time = time.time()
                 DoFlag.show_vectors = not DoFlag.show_vectors
         if keys[pygame.K_c]:
-            if time.time() - Gen.key_b_time > 5 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_b_time > 10 * Conf.COOLDOWN_TIME:
                 Gen.key_c_time = time.time()
                 DoFlag.show_directions = not DoFlag.show_directions
         ######################################################################

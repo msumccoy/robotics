@@ -389,7 +389,7 @@ def rest_positions():
         robot.check_bounds()
 
     for ball in Sprites.balls:
-        offset = 0
+        offset = Conf.RBT_SIZE[0]
         ball.rect.centerx = random.randint(offset, Conf.WIDTH - offset)
         ball.rect.centery = random.randint(offset, Conf.HEIGHT - offset)
         # ball.rect.centerx = Conf.WIDTH//2
