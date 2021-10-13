@@ -9,7 +9,7 @@ import time
 from pygame.math import Vector2
 
 from config import Conf, GS
-from variables import DoFlag, Gen, Sprites, ExitCtr
+from variables import DoFlag, Gen, Sprites, ExitCtr, Frames
 
 
 class Controllers:
@@ -173,6 +173,7 @@ class Controllers:
             self.robot.move(Conf.RIGHT)
         if keys[pygame.K_LEFT]:
             self.robot.move(Conf.LEFT)
+        # User toggle based on real world time
         if keys[pygame.K_a]:
             if time.time() - Gen.key_a_time > 10 * Conf.COOLDOWN_TIME:
                 Gen.key_a_time = time.time()

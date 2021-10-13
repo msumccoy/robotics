@@ -1,13 +1,3 @@
-"""
-boundary limits
-goal limit
-have side
-record score
-robot and robot collision
-robot and ball collision
-robot kick ball
-
-"""
 import sys
 import pygame
 import random
@@ -15,7 +5,7 @@ import random
 from config import Conf
 from sim_objects import Robot, Ball, Goal, ScoreNum
 
-from variables import ExitCtr, DoFlag, Sprites, Gen
+from variables import ExitCtr, DoFlag, Sprites, Gen, Frames
 from controls import Controllers
 
 
@@ -48,9 +38,9 @@ def main():
     # Create clock for consistent loop intervals
     clock = pygame.time.Clock()
     while ExitCtr.gen:
+        Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
         # Control loop intervals
         clock.tick(Conf.FPS)
-        Gen.screen.fill(Conf.WHITE)
 
         # Control robot
         controller.manual_control()
@@ -62,6 +52,7 @@ def main():
         Sprites.every.update()
         Sprites.every.draw(Gen.screen)
         pygame.display.update()
+        Frames.update()
 
     controller.save()
     pygame.quit()

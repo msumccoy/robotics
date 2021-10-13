@@ -8,7 +8,7 @@ import pygame
 from pygame.math import Vector2
 
 from config import Conf, Physics
-from variables import Score, PlayerCount, ExitCtr, DoFlag, Sprites, Gen
+from variables import Score, PlayerCount, ExitCtr, DoFlag, Sprites, Gen, Frames
 
 
 class BaseClass(pygame.sprite.Sprite):
@@ -156,17 +156,17 @@ class Robot(BaseClass):
             super().move(self.move_angle + 180)
         elif move_dir == Conf.LEFT:
             # Prevent excessive updates to angle change for a single press
-            dur = time.time() - self.cool_down_l
+            dur = Frames.time() - self.cool_down_l
             if dur > Conf.COOLDOWN_TIME:
                 self.move_angle -= Conf.DIR_OFFSET
-                self.cool_down_l = time.time()
+                self.cool_down_l = Frames.time()
                 self.place_dir_arrow()
                 self.limit_angle()
         elif move_dir == Conf.RIGHT:
-            dur = time.time() - self.cool_down_r
+            dur = Frames.time() - self.cool_down_r
             if dur > Conf.COOLDOWN_TIME:
                 self.move_angle += Conf.DIR_OFFSET
-                self.cool_down_r = time.time()
+                self.cool_down_r = Frames.time()
                 self.place_dir_arrow()
                 self.limit_angle()
 
@@ -219,7 +219,7 @@ class Ball(BaseClass):
         if pos is None:
             pos = (Conf.WIDTH//2, Conf.HEIGHT//2)
         super().__init__(size, pos=pos, color=color, text="B")
-        Gen.last_goal_time = time.time()
+        Gen.last_goal_time = Frames.time()
         Sprites.balls.add(self)
         self.move_dist = 0  # Move distance
         self.move_angle = 0  # Degrees from positive x-axis
@@ -253,7 +253,7 @@ class Ball(BaseClass):
     def get_kicked(self, speed, angle):
         self.move_dist = speed
         self.move_angle = angle
-        self.kick_time = time.time()
+        self.kick_time = Frames.time()
         self.max_time = speed / self.a_friction
         self.do_move = True
 
@@ -265,21 +265,21 @@ class Ball(BaseClass):
         if DoFlag.show_directions:
             self.draw_movement_line()
         for goal in Sprites.goals:
-            enough_dur = (time.time() - goal.last_touch) > 0.1
+            enough_dur = (Frames.time() - goal.last_touch) > 0.1
             if self.rect.colliderect(goal) and enough_dur:
-                goal.last_touch = time.time()
+                goal.last_touch = Frames.time()
                 if goal.side == Conf.LEFT:
                     self.score_side = Conf.RIGHT
                     Score.right += 1
                 else:
                     self.score_side = Conf.LEFT
                     Score.left += 1
-                self.score_time = time.time() - Gen.last_goal_time
+                self.score_time = Frames.time() - Gen.last_goal_time
                 self.score.update_score()
                 rest_positions()
 
         if self.do_move:
-            dur = time.time() - self.kick_time
+            dur = Frames.time() - self.kick_time
             if dur < self.max_time:
                 distance = 0.5 * self.move_dist * (self.max_time - dur)
                 if distance < 2:
@@ -331,8 +331,8 @@ class ScoreNum(pygame.sprite.Sprite):
         self.text_render = self.font.render(self.text, True, Conf.BLACK)
         self.text_rect = self.text_render.get_rect()
         self.text_rect.center = (self.rect.width//2, self.rect.height//2)
-        print(f"time since last goal = {time.time() - Gen.last_goal_time}")
-        Gen.last_goal_time = time.time()
+        print(f"time since last goal = {Frames.time() - Gen.last_goal_time}")
+        Gen.last_goal_time = Frames.time()
         # Place text
         self.image.blit(self.text_render, self.text_rect)
 
@@ -375,25 +375,39 @@ class Goal(pygame.sprite.Sprite):
         Sprites.every.add(self)
 
 
-def rest_positions():
+def rest_positions(robot_xy=None, ball_xy=None):
+    # Get total score to know how many goals have been completed
+    Score.total = Score.left + Score.right
     for robot in Sprites.robots:
-        robot.rect.centery = random.randint(0, Conf.HEIGHT)
-        if robot.side == Conf.LEFT:
-            robot.rect.centerx = random.randint(0, Conf.WIDTH//2)
-            robot.direction_angle = 0
-            robot.place_dir_arrow()
-        else:
-            robot.rect.centerx = random.randint(Conf.WIDTH//2, Conf.WIDTH)
-            robot.direction_angle = 180
-            robot.place_dir_arrow()
-        robot.check_bounds()
+        if robot_xy is not None:
+            if Score.total > len(robot_xy):
+                # Get random positions if list exhausted
+                robot_xy = None
+            else:
+                # For each goal set the xy position
+                robot.rect.centerx, robot.rect.centery = robot_xy[Score.total]
+        if robot_xy is None:
+            robot.rect.centery = random.randint(0, Conf.HEIGHT)
+            if robot.side == Conf.LEFT:
+                robot.rect.centerx = random.randint(0, Conf.WIDTH//2)
+                robot.direction_angle = 0
+                robot.place_dir_arrow()
+            else:
+                robot.rect.centerx = random.randint(Conf.WIDTH//2, Conf.WIDTH)
+                robot.direction_angle = 180
+                robot.place_dir_arrow()
+            robot.check_bounds()
 
     for ball in Sprites.balls:
-        offset = Conf.RBT_SIZE[0]
-        ball.rect.centerx = random.randint(offset, Conf.WIDTH - offset)
-        ball.rect.centery = random.randint(offset, Conf.HEIGHT - offset)
-        # ball.rect.centerx = Conf.WIDTH//2
-        # ball.rect.centery = Conf.HEIGHT//2
-        ball.move_dist = 0
-
-    time.sleep(.5)
+        if ball_xy is not None:
+            if Score.total > len(ball_xy):
+                # Get random positions if list exhausted
+                ball_xy = None
+            else:
+                # For each goal set the xy position
+                ball.rect.centerx, ball.rect.centery = ball_xy[Score.total]
+        if ball_xy is None:
+            offset = Conf.RBT_SIZE[0]
+            ball.rect.centerx = random.randint(offset, Conf.WIDTH - offset)
+            ball.rect.centery = random.randint(offset, Conf.HEIGHT - offset)
+            ball.move_dist = 0
