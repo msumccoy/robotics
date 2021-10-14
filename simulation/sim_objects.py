@@ -331,7 +331,6 @@ class ScoreNum(pygame.sprite.Sprite):
         self.text_render = self.font.render(self.text, True, Conf.BLACK)
         self.text_rect = self.text_render.get_rect()
         self.text_rect.center = (self.rect.width//2, self.rect.height//2)
-        print(f"time since last goal = {Frames.time() - Gen.last_goal_time}")
         Gen.last_goal_time = Frames.time()
         # Place text
         self.image.blit(self.text_render, self.text_rect)

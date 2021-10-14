@@ -13,16 +13,19 @@ def main():
         "kicked by other players)"
     )
 
-    sim_masters = [SimMaster(0), SimMaster(1)]
+    num_sim = 1
+    sim_masters = []
+    sim_processes = []
+    for i in range(num_sim):
+        sim_masters.append(SimMaster(i))
+        sim_processes.append(
+            multiprocessing.Process(target=sim_masters[i].start)
+        )
 
-    master0 = multiprocessing.Process(target=sim_masters[0].start)
-    master1 = multiprocessing.Process(target=sim_masters[1].start)
-
-    master0.start()
-    master1.start()
-
-    master0.join()
-    master1.join()
+    for proc in sim_processes:
+        proc.start()
+    for proc in sim_processes:
+        proc.join()
 
 
 if __name__ == '__main__':
