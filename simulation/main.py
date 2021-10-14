@@ -1,6 +1,4 @@
-import sys
-import pygame
-import random
+import multiprocessing
 
 from sim_master import SimMaster
 
@@ -17,13 +15,20 @@ def main():
 
     sim_masters = [SimMaster(0), SimMaster(1)]
 
-    sim_masters[0].start()
+    master0 = multiprocessing.Process(target=sim_masters[0].start)
+    master1 = multiprocessing.Process(target=sim_masters[1].start)
+
+    master0.start()
+    master1.start()
+
+    master0.join()
+    master1.join()
 
 
 if __name__ == '__main__':
     main()
 
-
-
-
-
+# For realistic simulation
+# TODO: give a probabilistic location rather than precise
+#  - Get robot to look for markers to determine location
+#    > stop feeding position until markers found

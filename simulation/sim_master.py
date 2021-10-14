@@ -10,6 +10,13 @@ class SimMaster:
     def __init__(self, index):
         self.index = index
 
+        self.robots = []
+        self.balls = []
+        self.goals = []
+
+        self.controller = None
+        self.clock = None
+
     def start(self):
         pygame.init()
         # Set up simulation window
