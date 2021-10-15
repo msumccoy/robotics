@@ -1,6 +1,5 @@
-class Score:
-    left = 0
-    right = 0
+import time
+from config import Conf
 
 
 class PlayerCount:
@@ -32,3 +31,26 @@ class Sprites:
     robots = Group()
     balls = Group()
     goals = Group()
+
+
+class Frames:
+    """This class is used to handle time based operations"""
+    # _DESIGNED_FPS = Conf.FPS
+    _DESIGNED_FPS = 30
+
+    _frames = 0
+    _fps = Conf.FPS
+    _start = time.time()
+
+    @classmethod
+    def update(cls):
+        cls._frames += 1
+
+    @classmethod
+    def frames(cls):
+        return cls._frames
+
+    @classmethod
+    def time(cls):
+        time_passed = cls._frames / cls._DESIGNED_FPS  # frame * s/frame
+        return time_passed

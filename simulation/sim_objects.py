@@ -8,7 +8,7 @@ import pygame
 from pygame.math import Vector2
 
 from config import Conf, Physics
-from variables import Score, PlayerCount, ExitCtr, DoFlag, Sprites, Gen
+from variables import PlayerCount, DoFlag, Sprites, Gen, Frames
 
 
 class BaseClass(pygame.sprite.Sprite):
@@ -156,17 +156,17 @@ class Robot(BaseClass):
             super().move(self.move_angle + 180)
         elif move_dir == Conf.LEFT:
             # Prevent excessive updates to angle change for a single press
-            dur = time.time() - self.cool_down_l
+            dur = Frames.time() - self.cool_down_l
             if dur > Conf.COOLDOWN_TIME:
                 self.move_angle -= Conf.DIR_OFFSET
-                self.cool_down_l = time.time()
+                self.cool_down_l = Frames.time()
                 self.place_dir_arrow()
                 self.limit_angle()
         elif move_dir == Conf.RIGHT:
-            dur = time.time() - self.cool_down_r
+            dur = Frames.time() - self.cool_down_r
             if dur > Conf.COOLDOWN_TIME:
                 self.move_angle += Conf.DIR_OFFSET
-                self.cool_down_r = time.time()
+                self.cool_down_r = Frames.time()
                 self.place_dir_arrow()
                 self.limit_angle()
 
@@ -215,17 +215,20 @@ class Robot(BaseClass):
 
 
 class Ball(BaseClass):
-    def __init__(self, size=Conf.BALL_SIZE, pos=None, color=Conf.COLOR2):
+    def __init__(
+            self, size=Conf.BALL_SIZE, pos=None, color=Conf.COLOR2,
+            master=None
+    ):
         if pos is None:
             pos = (Conf.WIDTH//2, Conf.HEIGHT//2)
         super().__init__(size, pos=pos, color=color, text="B")
-        Gen.last_goal_time = time.time()
+        self.master = master
+        Gen.last_goal_time = Frames.time()
         Sprites.balls.add(self)
         self.move_dist = 0  # Move distance
         self.move_angle = 0  # Degrees from positive x-axis
         self.do_move = False
         self.friction = Physics.FRICTION
-        self.score = ScoreNum.get_inst()
 
         self.kick_time = 0
         self.max_time = 0
@@ -234,7 +237,6 @@ class Ball(BaseClass):
         self.f_friction = self.f_normal * Physics.MU  # Force due to friction
         self.a_friction = self.f_friction / self.mass  # Acceleration  ||
 
-        self.score_side = None
         self.score_time = None
 
     def check_bounds(self):
@@ -253,33 +255,30 @@ class Ball(BaseClass):
     def get_kicked(self, speed, angle):
         self.move_dist = speed
         self.move_angle = angle
-        self.kick_time = time.time()
+        self.kick_time = Frames.time()
         self.max_time = speed / self.a_friction
         self.do_move = True
 
-    def reset_record(self):
-        self.score_side = None
-        self.score_time = None
-
     def update(self):
+        # Draw direction lines if requested
         if DoFlag.show_directions:
             self.draw_movement_line()
-        for goal in Sprites.goals:
-            enough_dur = (time.time() - goal.last_touch) > 0.1
-            if self.rect.colliderect(goal) and enough_dur:
-                goal.last_touch = time.time()
-                if goal.side == Conf.LEFT:
-                    self.score_side = Conf.RIGHT
-                    Score.right += 1
-                else:
-                    self.score_side = Conf.LEFT
-                    Score.left += 1
-                self.score_time = time.time() - Gen.last_goal_time
-                self.score.update_score()
-                rest_positions()
 
+        # Check if a goal was scored
+        for goal in Sprites.goals:
+            enough_dur = (Frames.time() - goal.last_touch) > 0.1
+            if self.rect.colliderect(goal) and enough_dur:
+                goal.last_touch = Frames.time()
+                self.score_time = Frames.time() - Gen.last_goal_time
+                if goal.side == Conf.LEFT:
+                    side = Conf.RIGHT
+                else:
+                    side = Conf.LEFT
+                self.master.score_goal(self.score_time, side)
+
+        # Check if ball was kicked and move accordingly
         if self.do_move:
-            dur = time.time() - self.kick_time
+            dur = Frames.time() - self.kick_time
             if dur < self.max_time:
                 distance = 0.5 * self.move_dist * (self.max_time - dur)
                 if distance < 2:
@@ -289,17 +288,8 @@ class Ball(BaseClass):
                 self.do_move = False
 
 
-class ScoreNum(pygame.sprite.Sprite):
+class Score(pygame.sprite.Sprite):
     # This class stores the game score
-    _inst = None
-
-    @classmethod
-    def get_inst(cls):
-        # Used to the same instance to be available globally
-        if cls._inst is None:
-            cls._inst = cls()
-        return cls._inst
-
     def __init__(self):
         super().__init__()
 
@@ -322,31 +312,31 @@ class ScoreNum(pygame.sprite.Sprite):
         # Place text
         self.image.blit(self.text_render, self.text_rect)
 
+        # Score keeping
+        self.left = 0
+        self.right = 0
+        self.total = 0
+
         # Add to all sprites to allow being updated later
         Sprites.every.add(self)
 
-    def update_score(self):
+    def update_score(self, side):
+        if side == Conf.LEFT:
+            self.left += 1
+        elif side == Conf.RIGHT:
+            self.right += 1
+        self.total = self.left + self.right
         self.image.fill(Conf.ALPHA_COLOR)  # Clear score box
-        self.text = f"LEFT {Score.left} : RIGHT {Score.right}"  # Update text
+        self.text = f"LEFT {self.left} : RIGHT {self.right}"  # Update text
         self.text_render = self.font.render(self.text, True, Conf.BLACK)
         self.text_rect = self.text_render.get_rect()
         self.text_rect.center = (self.rect.width//2, self.rect.height//2)
-        print(f"time since last goal = {time.time() - Gen.last_goal_time}")
-        Gen.last_goal_time = time.time()
+        Gen.last_goal_time = Frames.time()
         # Place text
         self.image.blit(self.text_render, self.text_rect)
 
 
 class Goal(pygame.sprite.Sprite):
-    _inst = {Conf.LEFT: None, Conf.RIGHT: None}
-
-    @classmethod
-    # Allow each goal to be accessible globally
-    def get_inst(cls, side):
-        if cls._inst[side] is None:
-            cls._inst[side] = cls(side)
-        return cls._inst[side]
-
     def __init__(self, side):
         super().__init__()
         # self.width, self.height = Conf.GOAL_SIZE
@@ -373,27 +363,3 @@ class Goal(pygame.sprite.Sprite):
 
         Sprites.goals.add(self)
         Sprites.every.add(self)
-
-
-def rest_positions():
-    for robot in Sprites.robots:
-        robot.rect.centery = random.randint(0, Conf.HEIGHT)
-        if robot.side == Conf.LEFT:
-            robot.rect.centerx = random.randint(0, Conf.WIDTH//2)
-            robot.direction_angle = 0
-            robot.place_dir_arrow()
-        else:
-            robot.rect.centerx = random.randint(Conf.WIDTH//2, Conf.WIDTH)
-            robot.direction_angle = 180
-            robot.place_dir_arrow()
-        robot.check_bounds()
-
-    for ball in Sprites.balls:
-        offset = 0
-        ball.rect.centerx = random.randint(offset, Conf.WIDTH - offset)
-        ball.rect.centery = random.randint(offset, Conf.HEIGHT - offset)
-        # ball.rect.centerx = Conf.WIDTH//2
-        # ball.rect.centery = Conf.HEIGHT//2
-        ball.move_dist = 0
-
-    time.sleep(.5)

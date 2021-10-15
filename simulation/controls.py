@@ -9,7 +9,7 @@ import time
 from pygame.math import Vector2
 
 from config import Conf, GS
-from variables import DoFlag, Gen, Sprites, ExitCtr
+from variables import DoFlag, Gen, Sprites, ExitCtr, Frames
 
 
 class Controllers:
@@ -50,28 +50,6 @@ class Controllers:
         self.is_new_waypoint = True
         self.adjust_ball = False
 
-        self.game_state = [  # NAME TO BE CHANGED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            (GS.ROBOT_START,  GS.BALL_START, GS.TIME_TO_SCORE, GS.SIDE_SCORE)
-        ]
-
-    def check_score(self):
-        if self.ball.score_side is not None:
-
-            record = (
-                self.robot_start_pos,
-                self.ball_start_pos,
-                self.ball.score_time,
-                self.ball.score_side
-            )
-            self.game_state.append(record)
-            self.ball.reset_record()
-            self.robot_start_pos = (
-                self.robot.rect.centerx, self.robot.rect.centery
-            )
-            self.ball_start_pos = (
-                self.ball.rect.centerx, self.ball.rect.centery
-            )
-
     def calculated_control(self):
         # Update robot and ball position
         self.vec_robot.x = self.robot.rect.centerx
@@ -96,9 +74,17 @@ class Controllers:
                     offset.scale_to_length(-50)
                     self.waypoint = self.vec_ball + offset
                     if self.robot.half_len > self.waypoint.x:
-                        self.waypoint.x = self.vec_ball.x - offset.x
+                        if (
+                                self.goal_top.y - 50
+                                < self.waypoint.y
+                                < self.goal_bot.y + 50
+                        ):
+                            self.waypoint.y = self.vec_ball.y + 50
+                            self.waypoint.x = self.robot.half_len + 1
+                        else:
+                            self.waypoint.x = self.vec_ball.x - offset.x
                     elif Conf.WIDTH - self.robot.half_len < self.waypoint.x:
-                        self.waypoint.x = self.vec_ball.x - self.robot.half_len
+                        self.waypoint.x = self.vec_ball.x - self.robot.half_len - 1
                     if not(
                             self.robot.half_len
                             < self.waypoint.y
@@ -165,28 +151,33 @@ class Controllers:
             self.robot.move(Conf.RIGHT)
         if keys[pygame.K_LEFT]:
             self.robot.move(Conf.LEFT)
+        # User toggle based on real world time
         if keys[pygame.K_a]:
-            if time.time() - Gen.key_a_time > 5 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_a_time > 10 * Conf.COOLDOWN_TIME:
                 Gen.key_a_time = time.time()
                 DoFlag.auto_calc = not DoFlag.auto_calc
         if keys[pygame.K_b]:
-            if time.time() - Gen.key_b_time > 5 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_b_time > 10 * Conf.COOLDOWN_TIME:
                 Gen.key_b_time = time.time()
                 DoFlag.show_vectors = not DoFlag.show_vectors
         if keys[pygame.K_c]:
-            if time.time() - Gen.key_b_time > 5 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_b_time > 10 * Conf.COOLDOWN_TIME:
                 Gen.key_c_time = time.time()
                 DoFlag.show_directions = not DoFlag.show_directions
         ######################################################################
         # To delete
         dist = 5
-        if keys[pygame.K_KP8]:
+        if keys[pygame.K_2] or keys[pygame.K_KP8]:
+            # Move up
             self.ball.move(-90, dist)
-        if keys[pygame.K_KP2]:
+        if keys[pygame.K_3] or keys[pygame.K_KP5]:
+            # Move down
             self.ball.move(90, dist)
-        if keys[pygame.K_KP4]:
+        if keys[pygame.K_1] or keys[pygame.K_KP4]:
+            # Move left
             self.ball.move(180, dist)
-        if keys[pygame.K_KP6]:
+        if keys[pygame.K_4] or keys[pygame.K_KP6]:
+            # Move right
             self.ball.move(0, dist)
         ######################################################################
         for event in pygame.event.get():
@@ -197,38 +188,6 @@ class Controllers:
                     ExitCtr.gen = False
                 elif event.key == pygame.K_SPACE:
                     self.robot.kick()
-
-    def save(self):
-        delete_index = []
-        bad_data = [self.game_state[0]]
-        index = 0
-        for record in self.game_state[1:]:
-            index += 1
-            if record[-1] != self.side:
-                delete_index.append(index)
-        delete_index.reverse()
-        for index in delete_index:
-            bad_data.append(self.game_state.pop(index))
-
-        good_data = self.game_state
-        good = f"{Conf.CSV}/good.csv"
-        bad = f"{Conf.CSV}/bad.csv"
-        if not os.path.isdir(Conf.CSV):
-            os.mkdir(Conf.CSV)
-        elif os.path.isfile(good):
-            if len(good_data) > 1:
-                good_data = self.game_state[1:]
-            else:
-                good_data = []
-        if os.path.isfile(bad):
-            bad_data.pop()
-
-        with open(good, 'a') as file:
-            writer = csv.writer(file)
-            writer.writerows(good_data)
-        with open(bad, 'a') as file:
-            writer = csv.writer(file)
-            writer.writerows(bad_data)
 
     # TODO: Enable multiple robot.
     #  - save robot controls in json file

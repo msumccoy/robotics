@@ -1,22 +1,7 @@
-"""
-boundary limits
-goal limit
-have side
-record score
-robot and robot collision
-robot and ball collision
-robot kick ball
+import multiprocessing
 
-"""
-import sys
-import pygame
-import random
-
+from sim_master import SimMaster
 from config import Conf
-from sim_objects import Robot, Ball, Goal, ScoreNum
-
-from variables import ExitCtr, DoFlag, Sprites, Gen
-from controls import Controllers
 
 
 def main():
@@ -28,49 +13,25 @@ def main():
         "Namely robot collision, and ball collision (for blocking balls "
         "kicked by other players)"
     )
-    pygame.init()
 
-    # Set up simulation window
-    Gen.screen = pygame.display.set_mode(Conf.WIN_SIZE)
-    background = pygame.Surface(Conf.WIN_SIZE).convert()
-    background.fill(Conf.WHITE)
-    Gen.screen.blit(background, (0, 0))
+    sim_masters = []
+    sim_processes = []
+    for i in range(Conf.NUM_PROC):
+        sim_masters.append(SimMaster(i))
+        sim_processes.append(
+            multiprocessing.Process(target=sim_masters[i].start)
+        )
 
-    # Create the robot, ball, and goals
-    robots = [Robot(side=Conf.LEFT)]
-    # robots = [Robot(side=Conf.RIGHT)]
-    balls = [Ball()]
-    goal_left = Goal(Conf.LEFT)
-    goal_right = Goal(Conf.RIGHT)
-
-    controller = Controllers(robots[0])
-
-    # Create clock for consistent loop intervals
-    clock = pygame.time.Clock()
-    while ExitCtr.gen:
-        # Control loop intervals
-        clock.tick(Conf.FPS)
-        Gen.screen.fill(Conf.WHITE)
-
-        # Control robot
-        controller.manual_control()
-        controller.check_score()
-        if DoFlag.auto_calc:
-            controller.calculated_control()
-
-        # Update game state
-        Sprites.every.update()
-        Sprites.every.draw(Gen.screen)
-        pygame.display.update()
-
-    controller.save()
-    pygame.quit()
+    for proc in sim_processes:
+        proc.start()
+    for proc in sim_processes:
+        proc.join()
 
 
 if __name__ == '__main__':
     main()
 
-
-
-
-
+# For realistic simulation
+# TODO: give a probabilistic location rather than precise
+#  - Get robot to look for markers to determine location
+#    > stop feeding position until markers found

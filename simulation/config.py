@@ -1,4 +1,5 @@
 class Conf:
+    NUM_PROC = 2
     FPS = 30
     WIN_SIZE = WIDTH, HEIGHT = 600, 400
     RBT_SIZE = [50] * 2
