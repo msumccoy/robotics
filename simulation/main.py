@@ -1,6 +1,7 @@
 import multiprocessing
 
 from sim_master import SimMaster
+from config import Conf
 
 
 def main():
@@ -13,10 +14,9 @@ def main():
         "kicked by other players)"
     )
 
-    num_sim = 1
     sim_masters = []
     sim_processes = []
-    for i in range(num_sim):
+    for i in range(Conf.NUM_PROC):
         sim_masters.append(SimMaster(i))
         sim_processes.append(
             multiprocessing.Process(target=sim_masters[i].start)

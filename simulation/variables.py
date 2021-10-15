@@ -2,12 +2,6 @@ import time
 from config import Conf
 
 
-class Score:
-    left = 0
-    right = 0
-    total = 0
-
-
 class PlayerCount:
     left = 0
     right = 0
@@ -41,7 +35,7 @@ class Sprites:
 
 class Frames:
     """This class is used to handle time based operations"""
-    _DESIGNED_FPS = Conf.FPS
+    # _DESIGNED_FPS = Conf.FPS
     _DESIGNED_FPS = 30
 
     _frames = 0

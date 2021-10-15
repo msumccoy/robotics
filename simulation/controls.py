@@ -50,28 +50,6 @@ class Controllers:
         self.is_new_waypoint = True
         self.adjust_ball = False
 
-        self.game_state = [  # NAME TO BE CHANGED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            (GS.ROBOT_START,  GS.BALL_START, GS.TIME_TO_SCORE, GS.SIDE_SCORE)
-        ]
-
-    def check_score(self):
-        if self.ball.score_side is not None:
-
-            record = (
-                self.robot_start_pos,
-                self.ball_start_pos,
-                self.ball.score_time,
-                self.ball.score_side
-            )
-            self.game_state.append(record)
-            self.ball.reset_record()
-            self.robot_start_pos = (
-                self.robot.rect.centerx, self.robot.rect.centery
-            )
-            self.ball_start_pos = (
-                self.ball.rect.centerx, self.ball.rect.centery
-            )
-
     def calculated_control(self):
         # Update robot and ball position
         self.vec_robot.x = self.robot.rect.centerx
@@ -210,38 +188,6 @@ class Controllers:
                     ExitCtr.gen = False
                 elif event.key == pygame.K_SPACE:
                     self.robot.kick()
-
-    def save(self):
-        delete_index = []
-        bad_data = [self.game_state[0]]
-        index = 0
-        for record in self.game_state[1:]:
-            index += 1
-            if record[-1] != self.side:
-                delete_index.append(index)
-        delete_index.reverse()
-        for index in delete_index:
-            bad_data.append(self.game_state.pop(index))
-
-        good_data = self.game_state
-        good = f"{Conf.CSV}/good.csv"
-        bad = f"{Conf.CSV}/bad.csv"
-        if not os.path.isdir(Conf.CSV):
-            os.mkdir(Conf.CSV)
-        elif os.path.isfile(good):
-            if len(good_data) > 1:
-                good_data = self.game_state[1:]
-            else:
-                good_data = []
-        if os.path.isfile(bad):
-            bad_data.pop()
-
-        with open(good, 'a') as file:
-            writer = csv.writer(file)
-            writer.writerows(good_data)
-        with open(bad, 'a') as file:
-            writer = csv.writer(file)
-            writer.writerows(bad_data)
 
     # TODO: Enable multiple robot.
     #  - save robot controls in json file
