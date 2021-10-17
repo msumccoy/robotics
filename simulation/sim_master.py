@@ -90,7 +90,7 @@ class SimMaster:
             (self.balls[0].rect.centerx, self.balls[0].rect.centery),
             score_time,
             score_side,
-            GS.TYPE_ALG
+            GS.TYPE_ALG  # Has to be made dynamic when neural net implemented
         )
         self.game_records.append(record)
         self.rest_positions()
@@ -145,10 +145,11 @@ class SimMaster:
     def save(self):
         delete_index = []
         bad_data = [self.game_records[0]]
+        side_index = bad_data[0].index(GS.SIDE_SCORE)
         index = 0
         for record in self.game_records[1:]:
             index += 1
-            if record[-1] != self.robots[0].side:
+            if record[side_index] != self.robots[0].side:
                 delete_index.append(index)
         delete_index.reverse()
         for index in delete_index:
