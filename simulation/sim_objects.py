@@ -291,6 +291,50 @@ class Ball(BaseClass):
                 self.do_move = False
 
 
+class SysInfo(pygame.sprite.Sprite):
+    # This class stores the game score
+    def __init__(self, master):
+        super().__init__()
+        self.master = master
+
+        # Create base image
+        self.image = pygame.Surface((500, 30))
+        self.image.fill(Conf.ALPHA_COLOR)  # Fill with color to be invisible
+        self.image.set_colorkey(Conf.ALPHA_COLOR)  # Make color invisible
+        self.rect = self.image.get_rect()
+
+        # Set score position
+        self.rect.right = Conf.WIDTH + Conf.PADDING
+        self.rect.bottom = Conf.HEIGHT + Conf.PADDING
+
+        # Create text for score
+        self.font = pygame.font.SysFont('arial', 20)
+        self.text = f"#{self.master.index}: Total time 0 -- FPS 0"
+        self.text_render = self.font.render(self.text, True, Conf.BLACK)
+        self.text_rect = self.text_render.get_rect()
+        self.text_rect.center = (self.rect.width//2, self.rect.height//2)
+        # Place text
+        self.image.blit(self.text_render, self.text_rect)
+
+        # Add to all sprites to allow being updated later
+        Sprites.every.add(self)
+
+    def update(self):
+        self.image.fill(Conf.ALPHA_COLOR)  # Clear score box
+        self.text = (
+            f"#{self.master.index}: "
+            f"Total time {int(Frames.real_time())}s "
+            f"-- Simulated {int(Frames.time())}s "
+            f"-- FPS {int(Frames.fps())}"  # Update
+        )
+        self.text_render = self.font.render(self.text, True, Conf.BLACK)
+        self.text_rect = self.text_render.get_rect()
+        self.text_rect.center = (self.rect.width//2, self.rect.height//2)
+        Gen.last_goal_time = Frames.time()
+        # Place text
+        self.image.blit(self.text_render, self.text_rect)
+
+
 class Score(pygame.sprite.Sprite):
     # This class stores the game score
     def __init__(self):

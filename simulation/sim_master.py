@@ -7,7 +7,7 @@ import pygame
 from config import Conf, GS
 from controls import Controllers
 from variables import Gen, ExitCtr, Frames, Sprites, DoFlag
-from sim_objects import Robot, Ball, Goal, Score
+from sim_objects import Robot, Ball, Goal, Score, SysInfo
 X = Conf.X
 Y = Conf.Y
 
@@ -23,6 +23,7 @@ class SimMaster:
         self.controller = None
         self.clock = None
         self.score = None
+        self.sys_info = None
 
         self.robot_xy = []
         self.ball_xy = []
@@ -52,6 +53,7 @@ class SimMaster:
         self.balls = [Ball(master=self)]
         self.goals = [Goal(Conf.LEFT), Goal(Conf.RIGHT)]
         self.score = Score()
+        self.sys_info = SysInfo(self)
         self.controller = Controllers(self.robots[0])
 
         # Create clock for consistent loop intervals

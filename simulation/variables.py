@@ -40,15 +40,38 @@ class Frames:
 
     _frames = 0
     _fps = Conf.FPS
+    _calc_fps = 0
+    _fps_sum = 0
+    _fps_list = []
+    _list_len = 30 * Conf.FPS
     _start = time.time()
+    _last = time.time()
 
     @classmethod
     def update(cls):
         cls._frames += 1
+        tmps_fps = 1 / (time.time() - cls._last)
+        cls._fps_list.append(tmps_fps)
+        cls._fps_sum += tmps_fps
+        if len(cls._fps_list) > cls._list_len:
+            tmps = cls._fps_list.pop(0)
+            cls._fps_sum -= tmps
+            cls._calc_fps = cls._fps_sum / cls._list_len
+        else:
+            cls._calc_fps = cls._fps_sum / len(cls._fps_list)
+        cls._last = time.time()
 
     @classmethod
     def frames(cls):
         return cls._frames
+
+    @classmethod
+    def real_time(cls):
+        return time.time() - cls._start
+
+    @classmethod
+    def fps(cls):
+        return cls._calc_fps
 
     @classmethod
     def time(cls):

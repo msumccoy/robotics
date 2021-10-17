@@ -1,8 +1,8 @@
 class Conf:
     X = 0  # used for coordinates
     Y = 1  # used for coordinates
-    NUM_PROC = 2
-    FPS = 300
+    NUM_PROC = 1
+    FPS = 30
     WIN_SIZE = WIDTH, HEIGHT = 600, 400
     PADDING = 200
     ORIGIN = (PADDING // 2, PADDING // 2)  # X, Y
