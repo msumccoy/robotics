@@ -17,12 +17,15 @@ Y = Conf.Y
 class Controllers:
     def __init__(self, robot):
         self.robot = robot
+        # Only get the first ball as we can't chase more than one
         self.ball = Sprites.balls.sprites()[0]
         self.side = robot.side
 
+        # Save starting location for later testing
         self.robot_start_pos = robot.rect.centerx, robot.rect.centery
         self.ball_start_pos = self.ball.rect.centerx, self.ball.rect.centery
 
+        # Vectors used for calculations
         self.vec_robot = Vector2()
         self.vec_ball = Vector2()
         self.waypoint_ball = Vector2()
@@ -31,12 +34,14 @@ class Controllers:
         self.goal_bot = Vector2()
         self.goal_cen = Vector2()
 
+        # Save instance of goals
         for goal in Sprites.goals:
             if goal.side == self.side:
                 self.own_goal = goal
             else:
                 self.goal = goal
 
+        # Save vector location of goal
         self.goal_top.y = self.goal.rect.y
         self.goal_cen.y = self.goal.rect.centery
         self.goal_bot.y = self.goal.rect.y + self.goal.rect.height
@@ -47,21 +52,22 @@ class Controllers:
             self.goal_top.x = self.goal_bot.x = self.goal_cen.x \
                 = self.goal.rect.x + self.goal.rect.width
 
+        # Flags
         self.to_waypoint = True
         self.to_ball = True
         self.is_new_waypoint = True
         self.adjust_ball = False
 
     def calculated_control(self):
-        # Update robot and ball position
+        # Update robot and ball vector position
         self.vec_robot.x = self.robot.rect.centerx
         self.vec_robot.y = self.robot.rect.centery
         self.vec_ball.x = self.ball.rect.centerx
         self.vec_ball.y = self.ball.rect.centery
 
-        if self.side == Conf.LEFT:
-            if self.to_waypoint:
-                if self.is_new_waypoint:
+        if self.side == Conf.LEFT:  # Must later be done for the right side
+            if self.to_waypoint:  # Go to way point if has not reached yet
+                if self.is_new_waypoint:  # Set new way point if ball has moved
                     self.is_new_waypoint = False
 
                     # Save the position of where the ball should be
@@ -71,12 +77,15 @@ class Controllers:
                     # Set way point
                     offset = self.goal_cen - self.vec_ball
                     if self.goal_cen == self.vec_ball:
+                        # Offest does not matter just can't be 0 when ball
+                        # which happens when ball hits the center
                         offset.x = Conf.WIDTH
                         offset.y = Conf.HEIGHT
                     offset.scale_to_length(-50)
                     self.waypoint = self.vec_ball + offset
+                    # If way point is too close to the left wall
                     if self.robot.half_len > self.waypoint.x - Conf.ORIGIN[X]:
-                        if (
+                        if (  # If ball is close to own goal
                                 self.goal_top.y - 50
                                 < self.waypoint.y
                                 < self.goal_bot.y + 50
@@ -87,30 +96,35 @@ class Controllers:
                             )
                         else:
                             self.waypoint.x = self.vec_ball.x - offset.x
-                    elif (
+                    elif (  # If way point is too close to the right wall
                             Conf.FIELD_RIGHT - self.robot.half_len
                             < self.waypoint.x
                     ):
                         self.waypoint.x = (
                                 self.vec_ball.x - self.robot.half_len - 1
                         )
-                    if not(
+                    if not(  # If way point too close to top or bottom
                             self.robot.half_len + Conf.ORIGIN[Y]
                             < self.waypoint.y
                             < Conf.FIELD_BOT - self.robot.half_len
                     ):
                         self.waypoint.y = self.vec_ball.y - offset.y
 
+                # If ball has not moved
                 if self.waypoint_ball == self.vec_ball:
                     to_waypoint = self.waypoint - self.vec_robot
                     dist, angle = to_waypoint.as_polar()
                     angle_dif = angle - self.robot.move_angle
+                    # If the angle difference is not within range change angle
                     if angle_dif < -Conf.DIR_OFFSET:
                         self.robot.move(Conf.LEFT)
                     elif angle_dif > Conf.DIR_OFFSET:
                         self.robot.move(Conf.RIGHT)
                     else:
+                        # If angle within range but not close to waypoint move
+                        # towards waypoint
                         if dist < 5:
+                            # If at way poin set to go to ball
                             self.to_waypoint = False
                             self.to_ball = True
                         else:
@@ -118,14 +132,17 @@ class Controllers:
                 else:
                     self.is_new_waypoint = True
             elif self.to_ball:
+                # If ball has not moved
                 if self.waypoint_ball == self.vec_ball:
                     to_ball = self.vec_ball - self.vec_robot
                     dist, angle = to_ball.as_polar()
+                    # If angle not within range change angle
                     if angle + Conf.DIR_OFFSET - 1 < self.robot.move_angle:
                         self.robot.move(Conf.LEFT)
                     elif angle - Conf.DIR_OFFSET + 1 > self.robot.move_angle:
                         self.robot.move(Conf.RIGHT)
                     else:
+                        # if angle within range try to kick the ball then move
                         self.robot.kick()
                         self.robot.move(Conf.FORWARD)
                 else:
@@ -133,7 +150,7 @@ class Controllers:
                     self.to_waypoint = True
                     self.to_ball = False
 
-            if DoFlag.show_vectors:
+            if DoFlag.show_vectors:  # Draw vector lines if desired
                 pygame.draw.line(
                     Gen.screen, (255, 0, 0), self.vec_ball, self.goal_top
                 )

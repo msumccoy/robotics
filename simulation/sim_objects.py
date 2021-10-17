@@ -12,6 +12,7 @@ from variables import PlayerCount, DoFlag, Sprites, Gen, Frames
 X = Conf.X
 Y = Conf.Y
 
+# TODO: Comment this file
 
 class BaseClass(pygame.sprite.Sprite):
     def __init__(self, size, pos=Conf.ORIGIN, color=Conf.COLOR1, text="Base"):

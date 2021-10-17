@@ -5,7 +5,7 @@ from config import Conf
 
 
 def main():
-    print(
+    print(  # Out dated info?
         "Take note that this game is primarily designed for one robot and "
         "one ball.\n"
         "While the game does have the functionality to have multiple balls "
@@ -14,14 +14,17 @@ def main():
         "kicked by other players)"
     )
 
-    sim_masters = []
-    sim_processes = []
+    sim_masters = []  # store different simulation controllers
+    sim_processes = []  # store the individual simulation processes
+
+    # Create a simulation controller and process for the set number
     for i in range(Conf.NUM_PROC):
         sim_masters.append(SimMaster(i))
         sim_processes.append(
             multiprocessing.Process(target=sim_masters[i].start)
         )
 
+    # Start the processes and wait for them to end
     for proc in sim_processes:
         proc.start()
     for proc in sim_processes:

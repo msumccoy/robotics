@@ -29,8 +29,12 @@ class SimMaster:
         self.ball_xy = []
         self.pos_offset = Conf.RBT_SIZE[0]
 
+        # Record information for later benchmarking neural net against "math"
         self.game_records = [
-            (GS.ROBOT_START, GS.BALL_START, GS.TIME_TO_SCORE, GS.SIDE_SCORE)
+            (
+                GS.ROBOT_START, GS.BALL_START,
+                GS.TIME_TO_SCORE, GS.SIDE_SCORE, GS.METHOD
+            )
         ]
 
         if len(self.robot_xy) != len(self.ball_xy):
@@ -43,12 +47,11 @@ class SimMaster:
         width = Conf.WIDTH + Conf.PADDING
         Gen.screen = pygame.display.set_mode((width, height))
         Gen.screen.fill(Conf.WHITE)
-        Gen.field = pygame.Surface(Conf.WIN_SIZE)
-        Gen.field.fill(Conf.WHITE)
 
+        # Field border rectangle dimensions
         rect = (Conf.ORIGIN[X], Conf.ORIGIN[Y], Conf.WIDTH, Conf.HEIGHT)
 
-        # Create the robot, ball, and goals
+        # Create all simulation objects
         self.robots = [Robot(side=Conf.LEFT)]
         self.balls = [Ball(master=self)]
         self.goals = [Goal(Conf.LEFT), Goal(Conf.RIGHT)]
@@ -59,10 +62,12 @@ class SimMaster:
         # Create clock for consistent loop intervals
         self.clock = pygame.time.Clock()
         while ExitCtr.gen:
-            Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
-            pygame.draw.rect(Gen.screen, (9, 9, 9), rect, 1)
             # Control loop intervals
             self.clock.tick(Conf.FPS)
+            Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
+
+            # Draw field borders
+            pygame.draw.rect(Gen.screen, (9, 9, 9), rect, 1)
 
             # Control robot
             self.controller.manual_control()
@@ -85,6 +90,7 @@ class SimMaster:
             (self.balls[0].rect.centerx, self.balls[0].rect.centery),
             score_time,
             score_side,
+            GS.TYPE_ALG
         )
         self.game_records.append(record)
         self.rest_positions()
