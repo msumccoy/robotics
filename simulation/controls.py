@@ -10,6 +10,8 @@ from pygame.math import Vector2
 
 from config import Conf, GS
 from variables import DoFlag, Gen, Sprites, ExitCtr, Frames
+X = Conf.X
+Y = Conf.Y
 
 
 class Controllers:
@@ -73,22 +75,29 @@ class Controllers:
                         offset.y = Conf.HEIGHT
                     offset.scale_to_length(-50)
                     self.waypoint = self.vec_ball + offset
-                    if self.robot.half_len > self.waypoint.x:
+                    if self.robot.half_len > self.waypoint.x - Conf.ORIGIN[X]:
                         if (
                                 self.goal_top.y - 50
                                 < self.waypoint.y
                                 < self.goal_bot.y + 50
                         ):
                             self.waypoint.y = self.vec_ball.y + 50
-                            self.waypoint.x = self.robot.half_len + 1
+                            self.waypoint.x = (
+                                    self.robot.half_len + 1 + Conf.ORIGIN[X]
+                            )
                         else:
                             self.waypoint.x = self.vec_ball.x - offset.x
-                    elif Conf.WIDTH - self.robot.half_len < self.waypoint.x:
-                        self.waypoint.x = self.vec_ball.x - self.robot.half_len - 1
+                    elif (
+                            Conf.FIELD_RIGHT - self.robot.half_len
+                            < self.waypoint.x
+                    ):
+                        self.waypoint.x = (
+                                self.vec_ball.x - self.robot.half_len - 1
+                        )
                     if not(
-                            self.robot.half_len
+                            self.robot.half_len + Conf.ORIGIN[Y]
                             < self.waypoint.y
-                            < Conf.HEIGHT - self.robot.half_len
+                            < Conf.FIELD_BOT - self.robot.half_len
                     ):
                         self.waypoint.y = self.vec_ball.y - offset.y
 
@@ -126,19 +135,19 @@ class Controllers:
 
             if DoFlag.show_vectors:
                 pygame.draw.line(
-                    Gen.field, (255, 0, 0), self.vec_ball, self.goal_top
+                    Gen.screen, (255, 0, 0), self.vec_ball, self.goal_top
                 )
                 pygame.draw.line(
-                    Gen.field, (255, 0, 0), self.vec_ball, self.goal_bot
+                    Gen.screen, (255, 0, 0), self.vec_ball, self.goal_bot
                 )
                 pygame.draw.line(
-                    Gen.field, (255, 0, 0), self.vec_ball, self.goal_cen
+                    Gen.screen, (255, 0, 0), self.vec_ball, self.goal_cen
                 )
                 pygame.draw.line(
-                    Gen.field, (255, 0, 0), self.vec_ball, self.waypoint
+                    Gen.screen, (255, 0, 0), self.vec_ball, self.waypoint
                 )
                 pygame.draw.line(
-                    Gen.field, (0, 0, 0), self.waypoint, self.vec_robot, 3
+                    Gen.screen, (0, 0, 0), self.waypoint, self.vec_robot, 3
                 )
 
     def manual_control(self):

@@ -18,7 +18,7 @@ class DoFlag:
 
 
 class Gen:
-    field = None
+    screen = None
     key_a_time = 0
     key_b_time = 0
     key_c_time = 0

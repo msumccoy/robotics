@@ -1,8 +1,14 @@
 class Conf:
+    X = 0  # used for coordinates
+    Y = 1  # used for coordinates
     NUM_PROC = 2
-    FPS = 30
+    FPS = 300
     WIN_SIZE = WIDTH, HEIGHT = 600, 400
     PADDING = 200
+    ORIGIN = (PADDING // 2, PADDING // 2)  # X, Y
+    CENTER = ((WIDTH + PADDING) // 2, (HEIGHT + PADDING) // 2)  # X, Y
+    FIELD_RIGHT = ORIGIN[X] + WIDTH
+    FIELD_BOT = ORIGIN[Y] + HEIGHT
     RBT_SIZE = [50] * 2
     BALL_SIZE = [10] * 2
     GOAL_SIZE = [6, HEIGHT // 3]  # [width, height]

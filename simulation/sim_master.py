@@ -8,6 +8,8 @@ from config import Conf, GS
 from controls import Controllers
 from variables import Gen, ExitCtr, Frames, Sprites, DoFlag
 from sim_objects import Robot, Ball, Goal, Score
+X = Conf.X
+Y = Conf.Y
 
 
 class SimMaster:
@@ -27,7 +29,7 @@ class SimMaster:
         self.pos_offset = Conf.RBT_SIZE[0]
 
         self.game_records = [
-            (GS.ROBOT_START,  GS.BALL_START, GS.TIME_TO_SCORE, GS.SIDE_SCORE)
+            (GS.ROBOT_START, GS.BALL_START, GS.TIME_TO_SCORE, GS.SIDE_SCORE)
         ]
 
         if len(self.robot_xy) != len(self.ball_xy):
@@ -38,8 +40,12 @@ class SimMaster:
         # Set up simulation window
         height = Conf.HEIGHT + Conf.PADDING
         width = Conf.WIDTH + Conf.PADDING
-        Gen.field = pygame.display.set_mode(Conf.WIN_SIZE)
+        Gen.screen = pygame.display.set_mode((width, height))
+        Gen.screen.fill(Conf.WHITE)
+        Gen.field = pygame.Surface(Conf.WIN_SIZE)
         Gen.field.fill(Conf.WHITE)
+
+        rect = (Conf.ORIGIN[X], Conf.ORIGIN[Y], Conf.WIDTH, Conf.HEIGHT)
 
         # Create the robot, ball, and goals
         self.robots = [Robot(side=Conf.LEFT)]
@@ -51,7 +57,8 @@ class SimMaster:
         # Create clock for consistent loop intervals
         self.clock = pygame.time.Clock()
         while ExitCtr.gen:
-            Gen.field.fill(Conf.WHITE)  # Reset screen for fresh drawings
+            Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
+            pygame.draw.rect(Gen.screen, (9, 9, 9), rect, 1)
             # Control loop intervals
             self.clock.tick(Conf.FPS)
 
@@ -62,7 +69,7 @@ class SimMaster:
 
             # Update game state
             Sprites.every.update()
-            Sprites.every.draw(Gen.field)
+            Sprites.every.draw(Gen.screen)
             pygame.display.update()
             Frames.update()
 
@@ -91,17 +98,19 @@ class SimMaster:
             else:  # get random pos
                 # Random y position within offset
                 robot.rect.centery = random.randint(
-                    self.pos_offset, Conf.HEIGHT-self.pos_offset
+                    self.pos_offset + Conf.ORIGIN[Y],
+                    Conf.FIELD_BOT - self.pos_offset
                 )
+                # Random x pos based on side
                 if robot.side == Conf.LEFT:
                     robot.rect.centerx = random.randint(
-                        self.pos_offset, Conf.WIDTH//2
+                        self.pos_offset + Conf.ORIGIN[X], Conf.CENTER[X]
                     )
                     robot.direction_angle = 0
                     robot.place_dir_arrow()
                 else:
                     robot.rect.centerx = random.randint(
-                        Conf.WIDTH//2, Conf.WIDTH-self.pos_offset
+                        Conf.CENTER[X], Conf.FIELD_RIGHT - self.pos_offset
                     )
                     robot.direction_angle = 180
                     robot.place_dir_arrow()
@@ -116,10 +125,12 @@ class SimMaster:
             else:
                 # Get random position
                 ball.rect.centerx = random.randint(
-                    self.pos_offset, Conf.WIDTH - self.pos_offset
+                    self.pos_offset + Conf.ORIGIN[X],
+                    Conf.FIELD_RIGHT - self.pos_offset
                 )
                 ball.rect.centery = random.randint(
-                    self.pos_offset, Conf.HEIGHT - self.pos_offset
+                    self.pos_offset + Conf.ORIGIN[Y],
+                    Conf.FIELD_BOT - self.pos_offset
                 )
             ball.move_dist = 0
 
