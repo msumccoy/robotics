@@ -126,19 +126,19 @@ class Controllers:
 
             if DoFlag.show_vectors:
                 pygame.draw.line(
-                    Gen.screen, (255, 0, 0), self.vec_ball, self.goal_top
+                    Gen.field, (255, 0, 0), self.vec_ball, self.goal_top
                 )
                 pygame.draw.line(
-                    Gen.screen, (255, 0, 0), self.vec_ball, self.goal_bot
+                    Gen.field, (255, 0, 0), self.vec_ball, self.goal_bot
                 )
                 pygame.draw.line(
-                    Gen.screen, (255, 0, 0), self.vec_ball, self.goal_cen
+                    Gen.field, (255, 0, 0), self.vec_ball, self.goal_cen
                 )
                 pygame.draw.line(
-                    Gen.screen, (255, 0, 0), self.vec_ball, self.waypoint
+                    Gen.field, (255, 0, 0), self.vec_ball, self.waypoint
                 )
                 pygame.draw.line(
-                    Gen.screen, (0, 0, 0), self.waypoint, self.vec_robot, 3
+                    Gen.field, (0, 0, 0), self.waypoint, self.vec_robot, 3
                 )
 
     def manual_control(self):

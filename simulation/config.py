@@ -2,6 +2,7 @@ class Conf:
     NUM_PROC = 2
     FPS = 30
     WIN_SIZE = WIDTH, HEIGHT = 600, 400
+    PADDING = 200
     RBT_SIZE = [50] * 2
     BALL_SIZE = [10] * 2
     GOAL_SIZE = [6, HEIGHT // 3]  # [width, height]

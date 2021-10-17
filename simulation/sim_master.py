@@ -36,10 +36,10 @@ class SimMaster:
     def start(self):
         pygame.init()
         # Set up simulation window
-        Gen.screen = pygame.display.set_mode(Conf.WIN_SIZE)
-        background = pygame.Surface(Conf.WIN_SIZE).convert()
-        background.fill(Conf.WHITE)
-        Gen.screen.blit(background, (0, 0))
+        height = Conf.HEIGHT + Conf.PADDING
+        width = Conf.WIDTH + Conf.PADDING
+        Gen.field = pygame.display.set_mode(Conf.WIN_SIZE)
+        Gen.field.fill(Conf.WHITE)
 
         # Create the robot, ball, and goals
         self.robots = [Robot(side=Conf.LEFT)]
@@ -51,7 +51,7 @@ class SimMaster:
         # Create clock for consistent loop intervals
         self.clock = pygame.time.Clock()
         while ExitCtr.gen:
-            Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
+            Gen.field.fill(Conf.WHITE)  # Reset screen for fresh drawings
             # Control loop intervals
             self.clock.tick(Conf.FPS)
 
@@ -62,7 +62,7 @@ class SimMaster:
 
             # Update game state
             Sprites.every.update()
-            Sprites.every.draw(Gen.screen)
+            Sprites.every.draw(Gen.field)
             pygame.display.update()
             Frames.update()
 

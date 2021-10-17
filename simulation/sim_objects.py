@@ -95,7 +95,7 @@ class BaseClass(pygame.sprite.Sprite):
         self.vec.x += self.rect.centerx
         self.vec.y += self.rect.centery
         start = Vector2(self.vec)
-        pygame.draw.line(Gen.screen, (25, 255, 245), start, end)
+        pygame.draw.line(Gen.field, (25, 255, 245), start, end)
 
 
 class Robot(BaseClass):
