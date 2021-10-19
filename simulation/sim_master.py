@@ -83,6 +83,42 @@ class SimMaster:
         self.save()
         pygame.quit()
 
+    def frame_step(self, action):
+        """
+        param:
+        action --> tuple(
+            direction --> 0 (left), 1 (right)
+            angle --> 0 to 180/angle_increment (multiplied by 15 for angle increment)
+            distance --> 0 to 300/move_dist (multiplied by 5 for distance step)
+            kick --> 0 (dont kick) or 1 (kick)
+            continue --> 0 (don't continue) or 1 (continue)
+        )
+
+        return:
+        x --> 0 to 600 (x coordinate)
+        y --> 0 to 400 (y coordinate)
+
+        # Ball relative conditions
+        ball_flag --> 0 (not seen) or 1 (seen)
+        ball_theta --> 0 to 360/angle_increment
+        ball_dist --> 0 to 600/move_dist
+
+        # Own goal relative conditions
+        own_goal_theta --> 0 to 360/angle_increment
+        own_goal_dist --> 0 to 600/move_dist
+
+        # Opponent goal conditions
+        opp_goal_theta --> 0 to 360/angle_increment
+        opp_goal_dist --> 0 to 600/move_dist
+        time --> time since start (calculated based on frames)
+
+        # State flags
+        is_kicking --> 0 (not kicking) or 1 (is kicking)
+        is_moving --> 0 (not moving) or 1 (is moving)
+        is_ball_moved -- > 0 (not moved recently) or 1 (moved recently)
+        """
+        pass
+
     def score_goal(self, score_time, score_side):
         self.score.update_score(score_side)
         record = (
