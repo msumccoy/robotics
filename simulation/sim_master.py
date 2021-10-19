@@ -7,7 +7,9 @@ import pygame
 from config import Conf, GS
 from controls import Controllers
 from variables import Gen, ExitCtr, Frames, Sprites, DoFlag
-from sim_objects import Robot, Ball, Goal, Score
+from sim_objects import Robot, Ball, Goal, Score, SysInfo
+X = Conf.X
+Y = Conf.Y
 
 
 class SimMaster:
@@ -21,39 +23,59 @@ class SimMaster:
         self.controller = None
         self.clock = None
         self.score = None
+        self.sys_info = None
 
         self.robot_xy = []
         self.ball_xy = []
         self.pos_offset = Conf.RBT_SIZE[0]
 
+        # Record information for later benchmarking neural net against "math"
         self.game_records = [
-            (GS.ROBOT_START,  GS.BALL_START, GS.TIME_TO_SCORE, GS.SIDE_SCORE)
+            (
+                GS.ROBOT_START, GS.BALL_START,
+                GS.TIME_TO_SCORE, GS.SIDE_SCORE, GS.METHOD
+            )
         ]
+
+        self.net = {
+            Conf.DIRECTION: None,
+            Conf.THETA: None,
+            Conf.DIST: None,
+            Conf.KICK: None,
+            Conf.CONT: None,
+        }
 
         if len(self.robot_xy) != len(self.ball_xy):
             raise IndexError("None matching data set for ball and robot pos")
 
-    def start(self):
+    def start_man_calc(self):  # manual and calculated
         pygame.init()
         # Set up simulation window
-        Gen.screen = pygame.display.set_mode(Conf.WIN_SIZE)
-        background = pygame.Surface(Conf.WIN_SIZE).convert()
-        background.fill(Conf.WHITE)
-        Gen.screen.blit(background, (0, 0))
+        height = Conf.HEIGHT + Conf.PADDING
+        width = Conf.WIDTH + Conf.PADDING
+        Gen.screen = pygame.display.set_mode((width, height))
+        Gen.screen.fill(Conf.WHITE)
 
-        # Create the robot, ball, and goals
+        # Field border rectangle dimensions
+        rect = (Conf.ORIGIN[X], Conf.ORIGIN[Y], Conf.WIDTH, Conf.HEIGHT)
+
+        # Create all simulation objects
         self.robots = [Robot(side=Conf.LEFT)]
         self.balls = [Ball(master=self)]
         self.goals = [Goal(Conf.LEFT), Goal(Conf.RIGHT)]
         self.score = Score()
+        self.sys_info = SysInfo(self)
         self.controller = Controllers(self.robots[0])
 
         # Create clock for consistent loop intervals
         self.clock = pygame.time.Clock()
         while ExitCtr.gen:
-            Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
             # Control loop intervals
             self.clock.tick(Conf.FPS)
+            Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
+
+            # Draw field borders
+            pygame.draw.rect(Gen.screen, (9, 9, 9), rect, 1)
 
             # Control robot
             self.controller.manual_control()
@@ -69,6 +91,48 @@ class SimMaster:
         self.save()
         pygame.quit()
 
+    def frame_step(self, action):
+        """
+        param:
+        action --> tuple(
+            direction --> 0 (left), 1 (right)
+            angle --> 1 - 12 (0 to 180/angle_increment )
+            distance --> 0 to 60 (0 to 300/move_dist)
+            kick --> 0 (don't kick) or 1 (kick)
+            continue --> 0 (don't continue) or 1 (continue)
+        )
+
+        return:
+        x --> 0 to 600 (x coordinate)
+        y --> 0 to 400 (y coordinate)
+
+        # Ball relative conditions
+        ball_flag --> 0 (not seen) or 1 (seen)
+        ball_theta --> 0 to 360/angle_increment
+        ball_dist --> 0 to 600/move_dist
+
+        # Own goal relative conditions
+        own_goal_theta --> 0 to 360/angle_increment
+        own_goal_dist --> 0 to 600/move_dist
+
+        # Opponent goal conditions
+        opp_goal_theta --> 0 to 360/angle_increment
+        opp_goal_dist --> 0 to 600/move_dist
+        time --> time since start (calculated based on frames)
+
+        # State flags
+        is_kicking --> 0 (not kicking) or 1 (is kicking)
+        is_moving --> 0 (not moving) or 1 (is moving)
+        is_ball_moved -- > 0 (not moved recently) or 1 (moved recently)
+        """
+        direction, theta, dist, kick, cont = action
+        if cont:
+            if direction == Conf.RIGHT:
+                theta = -theta
+        else:
+            if self.net[Conf.THETA] == self.robots[0].angle:
+                pass
+
     def score_goal(self, score_time, score_side):
         self.score.update_score(score_side)
         record = (
@@ -76,6 +140,7 @@ class SimMaster:
             (self.balls[0].rect.centerx, self.balls[0].rect.centery),
             score_time,
             score_side,
+            GS.TYPE_ALG  # Has to be made dynamic when neural net implemented
         )
         self.game_records.append(record)
         self.rest_positions()
@@ -91,17 +156,19 @@ class SimMaster:
             else:  # get random pos
                 # Random y position within offset
                 robot.rect.centery = random.randint(
-                    self.pos_offset, Conf.HEIGHT-self.pos_offset
+                    self.pos_offset + Conf.ORIGIN[Y],
+                    Conf.FIELD_BOT - self.pos_offset
                 )
+                # Random x pos based on side
                 if robot.side == Conf.LEFT:
                     robot.rect.centerx = random.randint(
-                        self.pos_offset, Conf.WIDTH//2
+                        self.pos_offset + Conf.ORIGIN[X], Conf.CENTER[X]
                     )
                     robot.direction_angle = 0
                     robot.place_dir_arrow()
                 else:
                     robot.rect.centerx = random.randint(
-                        Conf.WIDTH//2, Conf.WIDTH-self.pos_offset
+                        Conf.CENTER[X], Conf.FIELD_RIGHT - self.pos_offset
                     )
                     robot.direction_angle = 180
                     robot.place_dir_arrow()
@@ -116,20 +183,23 @@ class SimMaster:
             else:
                 # Get random position
                 ball.rect.centerx = random.randint(
-                    self.pos_offset, Conf.WIDTH - self.pos_offset
+                    self.pos_offset + Conf.ORIGIN[X],
+                    Conf.FIELD_RIGHT - self.pos_offset
                 )
                 ball.rect.centery = random.randint(
-                    self.pos_offset, Conf.HEIGHT - self.pos_offset
+                    self.pos_offset + Conf.ORIGIN[Y],
+                    Conf.FIELD_BOT - self.pos_offset
                 )
             ball.move_dist = 0
 
     def save(self):
         delete_index = []
         bad_data = [self.game_records[0]]
+        side_index = bad_data[0].index(GS.SIDE_SCORE)
         index = 0
         for record in self.game_records[1:]:
             index += 1
-            if record[-1] != self.robots[0].side:
+            if record[side_index] != self.robots[0].side:
                 delete_index.append(index)
         delete_index.reverse()
         for index in delete_index:

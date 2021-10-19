@@ -9,10 +9,13 @@ from pygame.math import Vector2
 
 from config import Conf, Physics
 from variables import PlayerCount, DoFlag, Sprites, Gen, Frames
+X = Conf.X
+Y = Conf.Y
 
+# TODO: Comment this file
 
 class BaseClass(pygame.sprite.Sprite):
-    def __init__(self, size, pos=(0, 0), color=Conf.COLOR1, text="Base"):
+    def __init__(self, size, pos=Conf.ORIGIN, color=Conf.COLOR1, text="Base"):
         super().__init__()
         self.image = pygame.Surface(size)
         self.image.fill(Conf.ALPHA_COLOR)
@@ -31,12 +34,12 @@ class BaseClass(pygame.sprite.Sprite):
         self.image.blit(text, text_rect)
         ######################################################################
         self.vec = Vector2()
-        self.rect.x = pos[0]
-        self.rect.y = pos[1]
+        self.rect.x = pos[X]
+        self.rect.y = pos[Y]
         self.move_dist = 5
         self.size = size
         self.move_angle = 0
-        self.half_len = size[0]//2
+        self.half_len = size[X]//2
         Sprites.every.add(self)
 
     def move(self, move_dir, distance=None):
@@ -48,18 +51,18 @@ class BaseClass(pygame.sprite.Sprite):
         self.check_bounds()  # Make sure did not move out of field
 
     def check_bounds(self):
-        if self.rect.top < 0:
+        if self.rect.top < Conf.ORIGIN[Y]:
             # If higher than 0 on y axis
-            self.rect.y = 0
-        elif self.rect.bottom > Conf.HEIGHT:
+            self.rect.y = Conf.ORIGIN[Y]
+        elif self.rect.bottom > Conf.FIELD_BOT:
             # If lower than the bottom of y axis
-            self.rect.y = Conf.HEIGHT - self.rect.height
-        if self.rect.left < 0:
+            self.rect.y = Conf.FIELD_BOT - self.rect.height
+        if self.rect.left < Conf.ORIGIN[X]:
             # If further than 0 on x axis
-            self.rect.x = 0
-        elif self.rect.right > Conf.WIDTH:
+            self.rect.x = Conf.ORIGIN[X]
+        elif self.rect.right > Conf.FIELD_RIGHT:
             # If further than max on x axis
-            self.rect.x = Conf.WIDTH - self.rect.width
+            self.rect.x = Conf.FIELD_RIGHT - self.rect.width
 
     def change_speed(self, direction):
         if direction == Conf.UP:
@@ -104,17 +107,17 @@ class Robot(BaseClass):
             color = Conf.COLOR_LEFT
             PlayerCount.left += 1
             if pos is None:
-                pos = (
-                    random.randint(0, Conf.WIDTH//2),
-                    random.randint(0, Conf.HEIGHT)
+                pos = (  # x, y
+                    random.randint(Conf.ORIGIN[X], Conf.CENTER[X]),
+                    random.randint(Conf.ORIGIN[Y], Conf.FIELD_BOT)
                 )
         elif side == Conf.RIGHT:
             color = Conf.COLOR_RIGHT
             PlayerCount.left += 1
             if pos is None:
-                pos = (
-                    random.randint(Conf.WIDTH//2, Conf.WIDTH),
-                    random.randint(0, Conf.HEIGHT)
+                pos = (  # x, y
+                    random.randint(Conf.CENTER[X], Conf.FIELD_RIGHT),
+                    random.randint(Conf.ORIGIN[Y], Conf.FIELD_BOT)
                 )
             self.move_angle = 180
         else:
@@ -127,7 +130,7 @@ class Robot(BaseClass):
         self.image_org = self.image.copy()  # Save a copy of image for refresh
 
         # Create direction indicator
-        arrow_size = (size[0] // 5, size[1] // 5)
+        arrow_size = (size[X] // 5, size[Y] // 5)
         self.dir_arrow = pygame.Surface(arrow_size)
         self.dir_arrow.fill(Conf.BLACK)
         self.dir_arrow_rect = self.dir_arrow.get_rect()
@@ -224,7 +227,6 @@ class Ball(BaseClass):
         super().__init__(size, pos=pos, color=color, text="B")
         self.master = master
         Gen.last_goal_time = Frames.time()
-        Sprites.balls.add(self)
         self.move_dist = 0  # Move distance
         self.move_angle = 0  # Degrees from positive x-axis
         self.do_move = False
@@ -239,13 +241,15 @@ class Ball(BaseClass):
 
         self.score_time = None
 
+        Sprites.balls.add(self)
+
     def check_bounds(self):
-        if self.rect.top < 0 or self.rect.bottom > Conf.HEIGHT:
+        if self.rect.top < Conf.ORIGIN[Y] or self.rect.bottom >Conf.FIELD_BOT:
             self.move_dist -= Conf.WALL_PENALTY
             self.move_angle *= -1
             self.limit_angle()
             self.get_kicked(self.move_dist, self.move_angle)
-        if self.rect.left < 0 or self.rect.right > Conf.WIDTH:
+        if self.rect.left <Conf.ORIGIN[X] or self.rect.right>Conf.FIELD_RIGHT:
             self.move_dist -= Conf.WALL_PENALTY
             self.move_angle = -self.move_angle + 180
             self.limit_angle()
@@ -288,6 +292,49 @@ class Ball(BaseClass):
                 self.do_move = False
 
 
+class SysInfo(pygame.sprite.Sprite):
+    # This class stores the game score
+    def __init__(self, master):
+        super().__init__()
+        self.master = master
+
+        # Create base image
+        self.image = pygame.Surface((500, 30))
+        self.image.fill(Conf.ALPHA_COLOR)  # Fill with color to be invisible
+        self.image.set_colorkey(Conf.ALPHA_COLOR)  # Make color invisible
+        self.rect = self.image.get_rect()
+
+        # Set score position
+        self.rect.right = Conf.WIDTH + Conf.PADDING
+        self.rect.bottom = Conf.HEIGHT + Conf.PADDING
+
+        # Create text for score
+        self.font = pygame.font.SysFont('arial', 20)
+        self.text = f"#{self.master.index}: Total time 0 -- FPS 0"
+        self.text_render = self.font.render(self.text, True, Conf.BLACK)
+        self.text_rect = self.text_render.get_rect()
+        self.text_rect.center = (self.rect.width//2, self.rect.height//2)
+        # Place text
+        self.image.blit(self.text_render, self.text_rect)
+
+        # Add to all sprites to allow being updated later
+        Sprites.every.add(self)
+
+    def update(self):
+        self.image.fill(Conf.ALPHA_COLOR)  # Clear score box
+        self.text = (
+            f"#{self.master.index}: "
+            f"Total time {int(Frames.real_time())}s "
+            f"-- Simulated {int(Frames.time())}s "
+            f"-- FPS {int(Frames.fps())}"  # Update
+        )
+        self.text_render = self.font.render(self.text, True, Conf.BLACK)
+        self.text_rect = self.text_render.get_rect()
+        self.text_rect.center = (self.rect.width//2, self.rect.height//2)
+        # Place text
+        self.image.blit(self.text_render, self.text_rect)
+
+
 class Score(pygame.sprite.Sprite):
     # This class stores the game score
     def __init__(self):
@@ -300,8 +347,8 @@ class Score(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
         # Set score position
+        self.rect.centerx = Conf.CENTER[X]
         self.rect.y = 0
-        self.rect.centerx = Conf.WIDTH//2
 
         # Create text for score
         self.font = pygame.font.SysFont('arial', 20)
@@ -348,18 +395,18 @@ class Goal(pygame.sprite.Sprite):
         else:
             raise ValueError(
                 f"Error side must either be '{Conf.LEFT}' or '{Conf.RIGHT}'"
-                f"but {side} was recieved"
+                f"but {side} was received"
             )
         self.image.fill(self.color)
         self.side = side
         self.last_touch = 0  # Used to check for scoring
 
         self.rect = self.image.get_rect()
-        self.rect.centery = Conf.HEIGHT // 2
+        self.rect.centery = Conf.CENTER[Y]
         if side == Conf.LEFT:
-            self.rect.x = 0
+            self.rect.x = Conf.ORIGIN[X]
         else:
-            self.rect.x = Conf.WIDTH - Conf.GOAL_SIZE[0]
+            self.rect.x = Conf.FIELD_RIGHT - Conf.GOAL_SIZE[X]
 
         Sprites.goals.add(self)
         Sprites.every.add(self)
