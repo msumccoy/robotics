@@ -39,6 +39,13 @@ class Conf:
 
     CSV = "csv_files"
 
+    # Neural net constants
+    DIRECTION = ""
+    THETA = ""
+    DIST = ""
+    KICK = ""
+    CONT = ""
+
 
 class Physics:
     G = 9.81

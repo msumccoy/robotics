@@ -37,6 +37,14 @@ class SimMaster:
             )
         ]
 
+        self.net = {
+            Conf.DIRECTION: None,
+            Conf.THETA: None,
+            Conf.DIST: None,
+            Conf.KICK: None,
+            Conf.CONT: None,
+        }
+
         if len(self.robot_xy) != len(self.ball_xy):
             raise IndexError("None matching data set for ball and robot pos")
 
@@ -88,9 +96,9 @@ class SimMaster:
         param:
         action --> tuple(
             direction --> 0 (left), 1 (right)
-            angle --> 0 to 180/angle_increment (multiplied by 15 for angle increment)
-            distance --> 0 to 300/move_dist (multiplied by 5 for distance step)
-            kick --> 0 (dont kick) or 1 (kick)
+            angle --> 1 - 12 (0 to 180/angle_increment )
+            distance --> 0 to 60 (0 to 300/move_dist)
+            kick --> 0 (don't kick) or 1 (kick)
             continue --> 0 (don't continue) or 1 (continue)
         )
 
@@ -117,7 +125,13 @@ class SimMaster:
         is_moving --> 0 (not moving) or 1 (is moving)
         is_ball_moved -- > 0 (not moved recently) or 1 (moved recently)
         """
-        pass
+        direction, theta, dist, kick, cont = action
+        if cont:
+            if direction == Conf.RIGHT:
+                theta = -theta
+        else:
+            if self.net[Conf.THETA] == self.robots[0].angle:
+                pass
 
     def score_goal(self, score_time, score_side):
         self.score.update_score(score_side)
