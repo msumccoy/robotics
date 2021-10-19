@@ -40,7 +40,7 @@ class SimMaster:
         if len(self.robot_xy) != len(self.ball_xy):
             raise IndexError("None matching data set for ball and robot pos")
 
-    def start(self):
+    def start_man_calc(self):  # manual and calculated
         pygame.init()
         # Set up simulation window
         height = Conf.HEIGHT + Conf.PADDING

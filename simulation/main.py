@@ -21,7 +21,7 @@ def main():
     for i in range(Conf.NUM_PROC):
         sim_masters.append(SimMaster(i))
         sim_processes.append(
-            multiprocessing.Process(target=sim_masters[i].start)
+            multiprocessing.Process(target=sim_masters[i].start_man_calc)
         )
 
     # Start the processes and wait for them to end
