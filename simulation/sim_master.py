@@ -13,10 +13,12 @@ Y = Conf.Y
 
 
 class SimMaster:
-    def __init__(self, index):
-        self.index = index
+    def __init__(self, index=-1, algorithm=GS.TYPE_MAN):
+        self.index = index  # Used to denote process instance
+        self.initialized = False  # Used to determine if first call or not
 
-        self.robots = []
+        self.robots = []  # To be used later to control multiple robots
+        self.robot = None  # Used to control first robot
         self.balls = []
         self.goals = []
 
@@ -24,6 +26,7 @@ class SimMaster:
         self.clock = None
         self.score = None
         self.sys_info = None
+        self.rect = None
 
         self.robot_xy = []
         self.ball_xy = []
@@ -36,20 +39,27 @@ class SimMaster:
                 GS.TIME_TO_SCORE, GS.SIDE_SCORE, GS.METHOD
             )
         ]
+        self.good_data_file = f"{Conf.CSV_FOLDER}/good-{index}.csv"
+        self.bad_data_file = f"{Conf.CSV_FOLDER}/bad-{index}.csv"
 
         self.net = {
-            Conf.DIRECTION: None,
-            Conf.THETA: None,
-            Conf.DIST: None,
-            Conf.KICK: None,
-            Conf.CONT: None,
+            Conf.DIRECTION: "",
+            Conf.THETA: 0,
+            Conf.DIST: 0,
+            Conf.KICK: 0,
+            Conf.CONT: 0,
         }
+        self.algorithm = algorithm
 
         if len(self.robot_xy) != len(self.ball_xy):
             raise IndexError("None matching data set for ball and robot pos")
 
-    def start_man_calc(self):  # manual and calculated
+    def _init(self):
+        if self.initialized:  # If already initialize exit
+            return
+        self.initialized = True
         pygame.init()
+
         # Set up simulation window
         height = Conf.HEIGHT + Conf.PADDING
         width = Conf.WIDTH + Conf.PADDING
@@ -57,25 +67,29 @@ class SimMaster:
         Gen.screen.fill(Conf.WHITE)
 
         # Field border rectangle dimensions
-        rect = (Conf.ORIGIN[X], Conf.ORIGIN[Y], Conf.WIDTH, Conf.HEIGHT)
+        self.rect = (Conf.ORIGIN[X], Conf.ORIGIN[Y], Conf.WIDTH, Conf.HEIGHT)
 
         # Create all simulation objects
         self.robots = [Robot(side=Conf.LEFT)]
+        self.robot = self.robots[0]
         self.balls = [Ball(master=self)]
         self.goals = [Goal(Conf.LEFT), Goal(Conf.RIGHT)]
         self.score = Score()
         self.sys_info = SysInfo(self)
-        self.controller = Controllers(self.robots[0])
+        self.controller = Controllers(self.robot)
 
         # Create clock for consistent loop intervals
         self.clock = pygame.time.Clock()
+
+    def start_man_calc(self):  # manual and calculated
+        self._init()
         while ExitCtr.gen:
             # Control loop intervals
             self.clock.tick(Conf.FPS)
             Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
 
             # Draw field borders
-            pygame.draw.rect(Gen.screen, (9, 9, 9), rect, 1)
+            pygame.draw.rect(Gen.screen, Conf.BLACK, self.rect, 1)
 
             # Control robot
             self.controller.manual_control()
@@ -88,8 +102,7 @@ class SimMaster:
             pygame.display.update()
             Frames.update()
 
-        self.save()
-        pygame.quit()
+        self.exit()
 
     def frame_step(self, action):
         """
@@ -124,29 +137,52 @@ class SimMaster:
         is_kicking --> 0 (not kicking) or 1 (is kicking)
         is_moving --> 0 (not moving) or 1 (is moving)
         is_ball_moved -- > 0 (not moved recently) or 1 (moved recently)
+        is_goal_scored --> -1 (own goal scored) 0 (not scored) or 1 (scored)
         """
         direction, theta, dist, kick, cont = action
-        if cont:
+        if not cont:
             if direction == Conf.RIGHT:
                 theta = -theta
-        else:
-            if self.net[Conf.THETA] == self.robots[0].angle:
-                pass
+            self.net[Conf.THETA] = theta
+            self.net[Conf.DIST] = dist
+            self.net[Conf.KICK] = kick
+
+        if self.net[Conf.KICK]:
+            self.robot.kick()
+            self.net[Conf.KICK] = False
+        elif self.net[Conf.THETA] > 0:
+            self.robot.move(self.net[Conf.DIRECTION])
+            self.net[Conf.THETA] -= Conf.DIR_OFFSET
+        elif self.net[Conf.DIST] > 0:
+            self.robot.move(Conf.FORWARD)
+            self.net[Conf.DIST] -= Conf.MOVE_DIST
+
+        if DoFlag.update_frame:
+            # self.clock.tick(Conf.FPS)  # regulate FPS if desired
+            Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
+
+            # Draw field borders
+            pygame.draw.rect(Gen.screen, Conf.BLACK, self.rect, 1)
+
+            # Update game state
+            Sprites.every.update()
+            Sprites.every.draw(Gen.screen)
+            pygame.display.update()
+            Frames.update()
 
     def score_goal(self, score_time, score_side):
         self.score.update_score(score_side)
         record = (
-            (self.robots[0].rect.centerx, self.robots[0].rect.centery),
+            (self.robot.rect.centerx, self.robot.rect.centery),
             (self.balls[0].rect.centerx, self.balls[0].rect.centery),
             score_time,
             score_side,
-            GS.TYPE_ALG  # Has to be made dynamic when neural net implemented
+            self.algorithm
         )
         self.game_records.append(record)
         self.rest_positions()
 
     def rest_positions(self):
-        # Get total score to know how many goals have been completed
         for robot in Sprites.robots:
             if self.score.total < len(self.robot_xy):
                 # For each goal set the xy position
@@ -199,28 +235,31 @@ class SimMaster:
         index = 0
         for record in self.game_records[1:]:
             index += 1
-            if record[side_index] != self.robots[0].side:
+            if record[side_index] != self.robot.side:
                 delete_index.append(index)
         delete_index.reverse()
         for index in delete_index:
             bad_data.append(self.game_records.pop(index))
 
         good_data = self.game_records
-        good = f"{Conf.CSV}/good.csv"
-        bad = f"{Conf.CSV}/bad.csv"
-        if not os.path.isdir(Conf.CSV):
-            os.mkdir(Conf.CSV)
-        elif os.path.isfile(good):
+        if not os.path.isdir(Conf.CSV_FOLDER):
+            os.mkdir(Conf.CSV_FOLDER)
+        elif os.path.isfile(self.good_data_file):
             if len(good_data) > 1:
                 good_data = self.game_records[1:]
             else:
                 good_data = []
-        if os.path.isfile(bad):
+        if os.path.isfile(self.bad_data_file):
             bad_data.pop()
 
-        with open(good, 'a') as file:
+        with open(self.good_data_file, 'a') as file:
             writer = csv.writer(file)
             writer.writerows(good_data)
-        with open(bad, 'a') as file:
+        with open(self.bad_data_file, 'a') as file:
             writer = csv.writer(file)
             writer.writerows(bad_data)
+
+    def exit(self):
+        if DoFlag.save_data:
+            self.save()
+        pygame.quit()

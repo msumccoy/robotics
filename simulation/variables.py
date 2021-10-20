@@ -15,6 +15,8 @@ class DoFlag:
     auto_calc = True
     show_vectors = False
     show_directions = False
+    update_frame = False
+    save_data = True
 
 
 class Gen:

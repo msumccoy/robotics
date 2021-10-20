@@ -14,6 +14,7 @@ Y = Conf.Y
 
 # TODO: Comment this file
 
+
 class BaseClass(pygame.sprite.Sprite):
     def __init__(self, size, pos=Conf.ORIGIN, color=Conf.COLOR1, text="Base"):
         super().__init__()
@@ -36,7 +37,7 @@ class BaseClass(pygame.sprite.Sprite):
         self.vec = Vector2()
         self.rect.x = pos[X]
         self.rect.y = pos[Y]
-        self.move_dist = 5
+        self.move_dist = Conf.MOVE_DIST
         self.size = size
         self.move_angle = 0
         self.half_len = size[X]//2
