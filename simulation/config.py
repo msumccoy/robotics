@@ -28,6 +28,7 @@ class Conf:
     LEFT = 'left'
     RIGHT = 'right'
 
+    KICK_COOLDOWN = 0.5
     COOLDOWN_TIME = .015  # Used to prevent excessive activations
     HALF_RANGE = 10  # Half kick range
     DIR_OFFSET = 5  # Angle offset
@@ -64,3 +65,7 @@ class GS:  # Name to be changed  # Used for csv file to save game state
     # Method types
     TYPE_MAN = "manual/calculated"
     TYPE_NET = "network"
+
+
+class FrameStepReturn:
+    pass

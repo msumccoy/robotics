@@ -15,7 +15,7 @@ class DoFlag:
     auto_calc = True
     show_vectors = False
     show_directions = False
-    update_frame = False
+    update_frame = True
     save_data = True
 
 
@@ -24,7 +24,9 @@ class Gen:
     key_a_time = 0
     key_b_time = 0
     key_c_time = 0
+    key_d_time = 0
     last_goal_time = 0
+    last_kick_time = 0
 
 
 class Sprites:

@@ -84,13 +84,6 @@ class SimMaster:
     def start_man_calc(self):  # manual and calculated
         self._init()
         while ExitCtr.gen:
-            # Control loop intervals
-            self.clock.tick(Conf.FPS)
-            Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
-
-            # Draw field borders
-            pygame.draw.rect(Gen.screen, Conf.BLACK, self.rect, 1)
-
             # Control robot
             self.controller.manual_control()
             if DoFlag.auto_calc:
@@ -98,9 +91,21 @@ class SimMaster:
 
             # Update game state
             Sprites.every.update()
-            Sprites.every.draw(Gen.screen)
-            pygame.display.update()
             Frames.update()
+
+            if DoFlag.update_frame:
+                # Control loop intervals
+                self.clock.tick(Conf.FPS)
+
+                # Update drawing if required
+                Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
+
+                # Draw field borders
+                pygame.draw.rect(Gen.screen, Conf.BLACK, self.rect, 1)
+
+                # Draw everything and update the display
+                Sprites.every.draw(Gen.screen)
+                pygame.display.update()
 
         self.exit()
 
@@ -133,6 +138,10 @@ class SimMaster:
         opp_goal_dist --> 0 to 600/move_dist
         time --> time since start (calculated based on frames)
 
+        # Kick results given 0 or 1 for only one frame
+        is_kick_success --> -1 (null) or 0 (miss) or 1 (hit)
+        is_kick_accurate --> -1 (null) or 0(bad miss) or 1 (near miss)
+
         # State flags
         is_kicking --> 0 (not kicking) or 1 (is kicking)
         is_moving --> 0 (not moving) or 1 (is moving)
@@ -150,6 +159,7 @@ class SimMaster:
         if self.net[Conf.KICK]:
             self.robot.kick()
             self.net[Conf.KICK] = False
+            Gen.last_kick_time = Frames.time()
         elif self.net[Conf.THETA] > 0:
             self.robot.move(self.net[Conf.DIRECTION])
             self.net[Conf.THETA] -= Conf.DIR_OFFSET
@@ -157,6 +167,11 @@ class SimMaster:
             self.robot.move(Conf.FORWARD)
             self.net[Conf.DIST] -= Conf.MOVE_DIST
 
+        # Update game state
+        Sprites.every.update()
+        Frames.update()
+
+        # Update drawing if required
         if DoFlag.update_frame:
             # self.clock.tick(Conf.FPS)  # regulate FPS if desired
             Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
@@ -164,11 +179,9 @@ class SimMaster:
             # Draw field borders
             pygame.draw.rect(Gen.screen, Conf.BLACK, self.rect, 1)
 
-            # Update game state
-            Sprites.every.update()
+            # Draw everything and update the display
             Sprites.every.draw(Gen.screen)
             pygame.display.update()
-            Frames.update()
 
     def score_goal(self, score_time, score_side):
         self.score.update_score(score_side)

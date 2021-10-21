@@ -187,9 +187,13 @@ class Controllers:
                 Gen.key_b_time = time.time()
                 DoFlag.show_vectors = not DoFlag.show_vectors
         if keys[pygame.K_c]:
-            if time.time() - Gen.key_b_time > 10 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_c_time > 10 * Conf.COOLDOWN_TIME:
                 Gen.key_c_time = time.time()
                 DoFlag.show_directions = not DoFlag.show_directions
+        if keys[pygame.K_d]:
+            if time.time() - Gen.key_d_time > 10 * Conf.COOLDOWN_TIME:
+                Gen.key_d_time = time.time()
+                DoFlag.update_frame = not DoFlag.update_frame
         ######################################################################
         # To delete
         dist = 5

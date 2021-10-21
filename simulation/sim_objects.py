@@ -300,13 +300,13 @@ class SysInfo(pygame.sprite.Sprite):
         self.master = master
 
         # Create base image
-        self.image = pygame.Surface((500, 30))
+        self.image = pygame.Surface((600, 30))
         self.image.fill(Conf.ALPHA_COLOR)  # Fill with color to be invisible
         self.image.set_colorkey(Conf.ALPHA_COLOR)  # Make color invisible
         self.rect = self.image.get_rect()
 
         # Set score position
-        self.rect.right = Conf.WIDTH + Conf.PADDING
+        self.rect.left = 0
         self.rect.bottom = Conf.HEIGHT + Conf.PADDING
 
         # Create text for score
@@ -342,7 +342,7 @@ class Score(pygame.sprite.Sprite):
         super().__init__()
 
         # Create base image
-        self.image = pygame.Surface((200, 30))
+        self.image = pygame.Surface((500, 30))
         self.image.fill(Conf.ALPHA_COLOR)  # Fill with color to be invisible
         self.image.set_colorkey(Conf.ALPHA_COLOR)  # Make color invisible
         self.rect = self.image.get_rect()
