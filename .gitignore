@@ -20,3 +20,4 @@ Tools/.idea/
 /Code/cam_settings.json
 *.log.*
 *.fuse_hidden*
+*.csv
