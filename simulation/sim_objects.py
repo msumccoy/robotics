@@ -14,6 +14,7 @@ Y = Conf.Y
 
 # TODO: Comment this file
 
+
 class BaseClass(pygame.sprite.Sprite):
     def __init__(self, size, pos=Conf.ORIGIN, color=Conf.COLOR1, text="Base"):
         super().__init__()
@@ -36,7 +37,7 @@ class BaseClass(pygame.sprite.Sprite):
         self.vec = Vector2()
         self.rect.x = pos[X]
         self.rect.y = pos[Y]
-        self.move_dist = 5
+        self.move_dist = Conf.MOVE_DIST
         self.size = size
         self.move_angle = 0
         self.half_len = size[X]//2
@@ -174,12 +175,12 @@ class Robot(BaseClass):
                 self.limit_angle()
 
     def kick(self):
+        kicked = False
         for ball in Sprites.balls:
             self.vec.x = ball.rect.centerx - self.rect.centerx
             self.vec.y = ball.rect.centery - self.rect.centery
             dist, angle = self.vec.as_polar()
             self.limit_angle()
-
             if (
                     self.in_range(dist)
                     and
@@ -189,6 +190,8 @@ class Robot(BaseClass):
             ):
                 ball.get_kicked(speed=self.kick_speed(dist), angle=angle)
                 ball.move_angle = angle
+                kicked = True
+        return kicked
 
     def in_range(self, distance):
         if (
@@ -240,7 +243,6 @@ class Ball(BaseClass):
         self.a_friction = self.f_friction / self.mass  # Acceleration  ||
 
         self.score_time = None
-
         Sprites.balls.add(self)
 
     def check_bounds(self):
@@ -299,13 +301,13 @@ class SysInfo(pygame.sprite.Sprite):
         self.master = master
 
         # Create base image
-        self.image = pygame.Surface((500, 30))
+        self.image = pygame.Surface((600, 30))
         self.image.fill(Conf.ALPHA_COLOR)  # Fill with color to be invisible
         self.image.set_colorkey(Conf.ALPHA_COLOR)  # Make color invisible
         self.rect = self.image.get_rect()
 
         # Set score position
-        self.rect.right = Conf.WIDTH + Conf.PADDING
+        self.rect.left = 0
         self.rect.bottom = Conf.HEIGHT + Conf.PADDING
 
         # Create text for score
@@ -341,7 +343,7 @@ class Score(pygame.sprite.Sprite):
         super().__init__()
 
         # Create base image
-        self.image = pygame.Surface((200, 30))
+        self.image = pygame.Surface((500, 30))
         self.image.fill(Conf.ALPHA_COLOR)  # Fill with color to be invisible
         self.image.set_colorkey(Conf.ALPHA_COLOR)  # Make color invisible
         self.rect = self.image.get_rect()
