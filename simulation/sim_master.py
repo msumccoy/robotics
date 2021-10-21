@@ -1,13 +1,14 @@
 import csv
 import os
 import random
-
 import pygame
+import numpy as np
 
 from config import Conf, GS
 from controls import Controllers
 from variables import Gen, ExitCtr, Frames, Sprites, DoFlag
 from sim_objects import Robot, Ball, Goal, Score, SysInfo
+from config import FrameStepReturn as fsr
 X = Conf.X
 Y = Conf.Y
 
@@ -20,6 +21,7 @@ class SimMaster:
         self.robots = []  # To be used later to control multiple robots
         self.robot = None  # Used to control first robot
         self.balls = []
+        self.ball = None
         self.goals = []
 
         self.controller = None
@@ -50,6 +52,8 @@ class SimMaster:
             Conf.CONT: 0,
         }
         self.algorithm = algorithm
+        self.is_goal_scored = False
+        self.ball_bounce_x = 0
 
         if len(self.robot_xy) != len(self.ball_xy):
             raise IndexError("None matching data set for ball and robot pos")
@@ -73,10 +77,17 @@ class SimMaster:
         self.robots = [Robot(side=Conf.LEFT)]
         self.robot = self.robots[0]
         self.balls = [Ball(master=self)]
+        self.ball = self.balls[0]
         self.goals = [Goal(Conf.LEFT), Goal(Conf.RIGHT)]
         self.score = Score()
         self.sys_info = SysInfo(self)
         self.controller = Controllers(self.robot)
+
+        # Set up some variables for neural net step function
+        if self.robot.side == Conf.LEFT:
+            self.ball_bounce_x = Conf.ORIGIN[X] + self.ball.rect.width
+        else:
+            self.ball_bounce_x = Conf.FIELD_RIGHT - self.ball.rect.width
 
         # Create clock for consistent loop intervals
         self.clock = pygame.time.Clock()
@@ -136,7 +147,6 @@ class SimMaster:
         # Opponent goal conditions
         opp_goal_theta --> 0 to 360/angle_increment
         opp_goal_dist --> 0 to 600/move_dist
-        time --> time since start (calculated based on frames)
 
         # Kick results given 0 or 1 for only one frame
         is_kick_success --> -1 (null) or 0 (miss) or 1 (hit)
@@ -147,8 +157,19 @@ class SimMaster:
         is_moving --> 0 (not moving) or 1 (is moving)
         is_ball_moved -- > 0 (not moved recently) or 1 (moved recently)
         is_goal_scored --> -1 (own goal scored) 0 (not scored) or 1 (scored)
+
+        time --> time since start (calculated based on frames)
         """
+        self._init()
+        self._goal_scored(reset=True)
         direction, theta, dist, kick, cont = action
+        ret_val = np.zeros(fsr.NUM_VAL)
+        ret_val[fsr.ACTION] = action
+
+        # Get vector positions (relative positions)
+        to_ball_s, _, _ = self.controller.get_vec()
+        ball_dist, ball_theta = to_ball_s.as_polar()
+
         if not cont:
             if direction == Conf.RIGHT:
                 theta = -theta
@@ -156,10 +177,21 @@ class SimMaster:
             self.net[Conf.DIST] = dist
             self.net[Conf.KICK] = kick
 
-        if self.net[Conf.KICK]:
-            self.robot.kick()
+        # In case no kick was performed set to null value
+        ret_val[fsr.IS_KICK_ACCURATE] = ret_val[fsr.IS_KICK_SUCCESS] = -1
+        if Frames.time() - Gen.last_kick_time < Conf.KICK_COOLDOWN:
+            ret_val[fsr.IS_KICKING] = 1
+        elif self.net[Conf.KICK]:
+            is_kicked = self.robot.kick()
             self.net[Conf.KICK] = False
             Gen.last_kick_time = Frames.time()
+
+            # If within kick range
+            if is_kicked:
+                ret_val[fsr.IS_KICK_SUCCESS] = 1
+            else:
+                ret_val[fsr.IS_KICK_SUCCESS] = 0
+
         elif self.net[Conf.THETA] > 0:
             self.robot.move(self.net[Conf.DIRECTION])
             self.net[Conf.THETA] -= Conf.DIR_OFFSET
@@ -183,7 +215,57 @@ class SimMaster:
             Sprites.every.draw(Gen.screen)
             pygame.display.update()
 
+        # Update return Values
+        to_ball, to_goal, to_own_goal = self.controller.get_vec()
+        ret_val[fsr.BALL_DIST], ret_val[fsr.BALL_THETA] = to_ball.as_polar()
+        ret_val[fsr.OPP_GOAL_DIST], ret_val[fsr.OPP_GOAL_THETA] = (
+            to_goal.as_polar()
+        )
+        ret_val[fsr.OWN_GOAL_DIST], ret_val[fsr.OWN_GOAL_THETA] = (
+            to_own_goal.as_polar()
+        )
+        if abs(ball_theta) <= Conf.VISION_THETA//2:  # If within field of view
+            ret_val[fsr.BALL_FLAG] = 1
+
+        # If ball_start_pos != current_ball_pos then ball moving
+        if to_ball != to_ball_s:
+            ret_val[fsr.IS_BALL_MOVED] = 1
+
+        # If still has angle change or distance change then moving
+        if self.net[Conf.THETA] > 0 or self.net[Conf.DIST] > 0:
+            ret_val[fsr.IS_MOVING] = 1
+
+        # Check if goal scored this frame
+        if self.is_goal_scored:
+            if (  # If close to target goal then scored on opponent
+                    self.controller.goal_cen.x - Conf.HALF_RANGE
+                    < self.balls[0].rect.centerx
+                    < self.controller.goal_cen.x + Conf.HALF_RANGE
+            ):
+                ret_val[fsr.IS_GOAL_SCORED] = 1
+            else:
+                ret_val[fsr.IS_GOAL_SCORED] = -1
+            ret_val[fsr.IS_KICK_ACCURATE] = 1
+        elif (  # if ball in wall bounce x location  check next condition
+                self.ball.rect.centerx == self.ball_bounce_x
+                and  # If ball is within range of y value
+                self.controller.goal_cen.y
+                - 2 * self.controller.goal.rect.height
+                < self.balls[0].rect.centery <
+                self.controller.goal_cen.y
+                + 2 * self.controller.goal.rect.height
+        ):  # If hit the wall close to the goal
+            ret_val[fsr.IS_KICK_ACCURATE] = 1
+        else:
+            ret_val[fsr.IS_KICK_ACCURATE] = 0
+
+        ret_val[fsr.X] = self.robot.rect.centerx
+        ret_val[fsr.Y] = self.robot.rect.centery
+        ret_val[fsr.TIME] = Frames.time()
+        return ret_val
+
     def score_goal(self, score_time, score_side):
+        self._goal_scored()
         self.score.update_score(score_side)
         record = (
             (self.robot.rect.centerx, self.robot.rect.centery),
@@ -240,6 +322,12 @@ class SimMaster:
                     Conf.FIELD_BOT - self.pos_offset
                 )
             ball.move_dist = 0
+
+    def _goal_scored(self, reset=False):
+        if reset:
+            self.is_goal_scored = False
+        else:
+            self.is_goal_scored = True
 
     def save(self):
         delete_index = []

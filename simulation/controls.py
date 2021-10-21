@@ -33,6 +33,9 @@ class Controllers:
         self.goal_top = Vector2()
         self.goal_bot = Vector2()
         self.goal_cen = Vector2()
+        self.own_goal_top = Vector2()
+        self.own_goal_bot = Vector2()
+        self.own_goal_cen = Vector2()
 
         # Save instance of goals
         for goal in Sprites.goals:
@@ -41,16 +44,23 @@ class Controllers:
             else:
                 self.goal = goal
 
-        # Save vector location of goal
+        # Save vector location of goals
         self.goal_top.y = self.goal.rect.y
         self.goal_cen.y = self.goal.rect.centery
         self.goal_bot.y = self.goal.rect.y + self.goal.rect.height
+        self.own_goal_top.y = self.own_goal.rect.y
+        self.own_goal_cen.y = self.own_goal.rect.centery
+        self.own_goal_bot.y = self.own_goal.rect.y + self.goal.rect.height
         if self.goal.side == Conf.RIGHT:
             self.goal_top.x = self.goal_bot.x = self.goal_cen.x \
                 = self.goal.rect.x
+            self.own_goal_top.x = self.own_goal_bot.x = self.own_goal_cen.x \
+                = self.own_goal.rect.x - self.own_goal.rect.width
         else:
             self.goal_top.x = self.goal_bot.x = self.goal_cen.x \
                 = self.goal.rect.x + self.goal.rect.width
+            self.own_goal_top.x = self.own_goal_bot.x = self.own_goal_cen.x \
+                = self.own_goal.rect.x
 
         # Flags
         self.to_waypoint = True
@@ -218,6 +228,17 @@ class Controllers:
                     ExitCtr.gen = False
                 elif event.key == pygame.K_SPACE:
                     self.robot.kick()
+
+    def get_vec(self):
+        # Update robot and ball vector position
+        self.vec_robot.x = self.robot.rect.centerx
+        self.vec_robot.y = self.robot.rect.centery
+        self.vec_ball.x = self.ball.rect.centerx
+        self.vec_ball.y = self.ball.rect.centery
+        to_ball = self.vec_ball - self.vec_robot
+        to_goal = self.goal_cen - self.vec_robot
+        to_own_goal = self.own_goal_cen - self.vec_robot
+        return to_ball, to_goal, to_own_goal
 
     # TODO: Enable multiple robot.
     #  - save robot controls in json file

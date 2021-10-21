@@ -28,9 +28,11 @@ class Conf:
     LEFT = 'left'
     RIGHT = 'right'
 
+    VISION_THETA = 120  # Viewing angle directly in front robot
     KICK_COOLDOWN = 0.5
     COOLDOWN_TIME = .015  # Used to prevent excessive activations
     HALF_RANGE = 10  # Half kick range
+    CLOSE_RANGE = HALF_RANGE * 5  # To determine if robot was "close" to ball
     DIR_OFFSET = 5  # Angle offset
     MOVE_DIST = 5  # Default move distance
     FORCE_LIMIT = 4  # Max kick limit
@@ -68,4 +70,25 @@ class GS:  # Name to be changed  # Used for csv file to save game state
 
 
 class FrameStepReturn:
-    pass
+    """
+    This function is used with sim_master.SimMaster.frame_step to denote index
+    of return values in numpy array
+    """
+    NUM_VAL = 17
+    X = 0
+    Y = 1
+    BALL_FLAG = 2
+    BALL_THETA = 3
+    BALL_DIST = 4
+    OWN_GOAL_THETA = 5
+    OWN_GOAL_DIST = 6
+    OPP_GOAL_THETA = 7
+    OPP_GOAL_DIST = 8
+    IS_KICK_SUCCESS = 9
+    IS_KICK_ACCURATE = 10
+    IS_KICKING = 11
+    IS_MOVING = 12
+    IS_BALL_MOVED = 13
+    IS_GOAL_SCORED = 14
+    ACTION = 15
+    TIME = 16

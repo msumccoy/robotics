@@ -175,12 +175,12 @@ class Robot(BaseClass):
                 self.limit_angle()
 
     def kick(self):
+        kicked = False
         for ball in Sprites.balls:
             self.vec.x = ball.rect.centerx - self.rect.centerx
             self.vec.y = ball.rect.centery - self.rect.centery
             dist, angle = self.vec.as_polar()
             self.limit_angle()
-
             if (
                     self.in_range(dist)
                     and
@@ -190,6 +190,8 @@ class Robot(BaseClass):
             ):
                 ball.get_kicked(speed=self.kick_speed(dist), angle=angle)
                 ball.move_angle = angle
+                kicked = True
+        return kicked
 
     def in_range(self, distance):
         if (
@@ -241,7 +243,6 @@ class Ball(BaseClass):
         self.a_friction = self.f_friction / self.mass  # Acceleration  ||
 
         self.score_time = None
-
         Sprites.balls.add(self)
 
     def check_bounds(self):
