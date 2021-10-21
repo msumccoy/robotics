@@ -95,7 +95,7 @@ class SimMaster:
 
             if DoFlag.update_frame:
                 # Control loop intervals
-                self.clock.tick(Conf.FPS)
+                # self.clock.tick(Conf.FPS)  # Comment out to remove fps limit
 
                 # Update drawing if required
                 Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
