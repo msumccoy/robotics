@@ -3,6 +3,7 @@ import multiprocessing
 from sim_master import SimMaster
 from config import FrameStepReturn as fsr
 from config import Conf
+from variables import ExitCtr, DoFlag, Gen, Frames
 
 
 def frame_step_tester():
@@ -44,10 +45,9 @@ def frame_step_tester():
         print(f"scored {is_scored}, time {t_ime}")
         print(f"action : {action}")
 
-
     def neural_net_simulator(index):
         sim_master = SimMaster(index)
-        for i in range(300):
+        while ExitCtr.gen:
             if i == 0:
                 a = 300
                 b = 0
@@ -55,6 +55,7 @@ def frame_step_tester():
                 a = 0
                 b = 1
             ret = sim_master.frame_step([0,0,a,0,b])
+            print_return(ret)
             time.sleep(.01)
         sim_master.exit()
 

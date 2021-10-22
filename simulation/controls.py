@@ -205,7 +205,7 @@ class Controllers:
                 Gen.key_d_time = time.time()
                 DoFlag.update_frame = not DoFlag.update_frame
         ######################################################################
-        # To delete
+        # To delete: Currently used to control the ball directly
         dist = 5
         if keys[pygame.K_2] or keys[pygame.K_KP8]:
             # Move up
