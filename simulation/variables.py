@@ -67,6 +67,7 @@ class Frames:
 
     @classmethod
     def frames(cls):
+        # Return the number of frames that have passed thus far
         return cls._frames
 
     @classmethod
