@@ -43,11 +43,11 @@ class Conf:
     CSV_FOLDER = "csv_files"
 
     # Neural net constants
-    DIRECTION = ""
-    THETA = ""
-    DIST = ""
-    KICK = ""
-    CONT = ""
+    DIRECTION = "Direction"
+    THETA = "Theta"
+    DIST = "Distance"
+    KICK = "Kick"
+    CONT = "Continue"
 
 
 class Physics:
@@ -74,7 +74,7 @@ class FrameStepReturn:
     This function is used with sim_master.SimMaster.frame_step to denote index
     of return values in numpy array
     """
-    NUM_VAL = 17
+    NUM_VAL = 21
     X = 0
     Y = 1
     BALL_FLAG = 2
@@ -90,5 +90,9 @@ class FrameStepReturn:
     IS_MOVING = 12
     IS_BALL_MOVED = 13
     IS_GOAL_SCORED = 14
-    ACTION = 15
-    TIME = 16
+    TIME = 15
+    ACT_DIR = 16
+    ACT_THETA = 17
+    ACT_DIST = 18
+    ACT_KICK = 19
+    ACT_CONT = 20

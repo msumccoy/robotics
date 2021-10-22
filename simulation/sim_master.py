@@ -51,6 +51,7 @@ class SimMaster:
             Conf.KICK: 0,
             Conf.CONT: 0,
         }
+        print(Conf.DIRECTION)
         self.algorithm = algorithm
         self.is_goal_scored = False
         self.ball_bounce_x = 0
@@ -160,11 +161,30 @@ class SimMaster:
 
         time --> time since start (calculated based on frames)
         """
+        # Attempt to instantiate which will only be done if not done already
         self._init()
+
+        # Reset goal to not scored
         self._goal_scored(reset=True)
+
+        # Get action commands
         direction, theta, dist, kick, cont = action
+        if direction == 1:
+            direction = Conf.RIGHT
+        elif direction == 0:
+            direction = Conf.LEFT
+        else:
+            raise ValueError(
+                f"{direction} is not a valid option. Must be 0 or 1"
+            )
+
+        # Create return away
         ret_val = np.zeros(fsr.NUM_VAL)
-        ret_val[fsr.ACTION] = action
+        ret_val[fsr.ACT_DIR] = action[0]
+        ret_val[fsr.ACT_THETA] = action[1]
+        ret_val[fsr.ACT_DIST] = action[2]
+        ret_val[fsr.ACT_KICK] = action[3]
+        ret_val[fsr.ACT_CONT] = action[4]
 
         # Get vector positions (relative positions)
         to_ball_s, _, _ = self.controller.get_vec()
@@ -176,6 +196,7 @@ class SimMaster:
             self.net[Conf.THETA] = theta
             self.net[Conf.DIST] = dist
             self.net[Conf.KICK] = kick
+        # print(f"action {action}, {self.net}, {dist}")##############################################
 
         # In case no kick was performed set to null value
         ret_val[fsr.IS_KICK_ACCURATE] = ret_val[fsr.IS_KICK_SUCCESS] = -1
