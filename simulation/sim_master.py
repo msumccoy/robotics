@@ -51,7 +51,6 @@ class SimMaster:
             Conf.KICK: 0,
             Conf.CONT: 0,
         }
-        print(Conf.DIRECTION)
         self.algorithm = algorithm
         self.is_goal_scored = False
         self.ball_bounce_x = 0

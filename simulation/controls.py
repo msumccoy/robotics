@@ -189,19 +189,19 @@ class Controllers:
             self.robot.move(Conf.LEFT)
         # User toggle based on real world time
         if keys[pygame.K_a]:
-            if time.time() - Gen.key_a_time > 10 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_a_time > 10 * Conf.CD_TIME:
                 Gen.key_a_time = time.time()
                 DoFlag.auto_calc = not DoFlag.auto_calc
         if keys[pygame.K_b]:
-            if time.time() - Gen.key_b_time > 10 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_b_time > 10 * Conf.CD_TIME:
                 Gen.key_b_time = time.time()
                 DoFlag.show_vectors = not DoFlag.show_vectors
         if keys[pygame.K_c]:
-            if time.time() - Gen.key_c_time > 10 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_c_time > 10 * Conf.CD_TIME:
                 Gen.key_c_time = time.time()
                 DoFlag.show_directions = not DoFlag.show_directions
         if keys[pygame.K_d]:
-            if time.time() - Gen.key_d_time > 10 * Conf.COOLDOWN_TIME:
+            if time.time() - Gen.key_d_time > 10 * Conf.CD_TIME:
                 Gen.key_d_time = time.time()
                 DoFlag.update_frame = not DoFlag.update_frame
         ######################################################################

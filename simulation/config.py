@@ -30,7 +30,7 @@ class Conf:
 
     VISION_THETA = 120  # Viewing angle directly in front robot
     KICK_COOLDOWN = 0.5
-    COOLDOWN_TIME = .015  # Used to prevent excessive activations
+    CD_TIME = .15  # Used to prevent excessive activations
     HALF_RANGE = 10  # Half kick range
     CLOSE_RANGE = HALF_RANGE * 5  # To determine if robot was "close" to ball
     DIR_OFFSET = 5  # Angle offset

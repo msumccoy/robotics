@@ -161,14 +161,14 @@ class Robot(BaseClass):
         elif move_dir == Conf.LEFT:
             # Prevent excessive updates to angle change for a single press
             dur = Frames.time() - self.cool_down_l
-            if dur > Conf.COOLDOWN_TIME:
+            if dur > Conf.CD_TIME:
                 self.move_angle -= Conf.DIR_OFFSET
                 self.cool_down_l = Frames.time()
                 self.place_dir_arrow()
                 self.limit_angle()
         elif move_dir == Conf.RIGHT:
             dur = Frames.time() - self.cool_down_r
-            if dur > Conf.COOLDOWN_TIME:
+            if dur > Conf.CD_TIME:
                 self.move_angle += Conf.DIR_OFFSET
                 self.cool_down_r = Frames.time()
                 self.place_dir_arrow()
