@@ -36,14 +36,14 @@ def frame_step_tester():
             ret[fsr.ACT_KICK], ret[fsr.ACT_CONT]
         )
         print(f"robot x: {x}, robot y: {y}")
-        print(f"ball: flag-{b_flag}, theta-{b_theta}, dist-{b_dist}")
-        print(f"o-goal: theta-{o_g_theta}, dist-{o_g_dist}")
-        print(f"goal: theta-{g_theta}, dist-{g_dist}")
+        print(f"ball: flag-->{b_flag}, theta-->{b_theta}, dist-->{b_dist}")
+        print(f"o-goal: theta-->{o_g_theta}, dist-->{o_g_dist}")
+        print(f"goal: theta-->{g_theta}, dist-->{g_dist}")
         print(
-            f"kick: success-{is_kick}, accurate--{is_accurate},"
-            f" kicking{is_kicking}"
+            f"kick: success-->{is_kick}, accurate-->{is_accurate},"
+            f" kicking-->{is_kicking}"
         )
-        print(f"moving: robot-{is_moving}, ball-{is_b_move}")
+        print(f"moving: robot-->{is_moving}, ball-->{is_b_move}")
         print(f"scored {is_scored}, time {t_ime}")
         print(f"action : {action}")
         print(f"Current time {Frames.time()}\n")
@@ -51,6 +51,7 @@ def frame_step_tester():
     def neural_net_simulator(index):
         sim_master = SimMaster(index)
         direction = theta = dist = kick = cont = 0
+        num = 1
 
         # Last time timeout was reset
         timeout1 = timeout2 = timeout3 = timeout4 = 0
@@ -71,13 +72,13 @@ def frame_step_tester():
             # Activate different testing functionality  ######################
             # Manual control)
             if keys[pygame.K_UP]:
-                dist = Conf.MOVE_DIST * 30
+                dist = num
             if keys[pygame.K_RIGHT]:
                 direction = 1
-                theta = Conf.DIR_OFFSET * 3
+                theta = num * 2
             if keys[pygame.K_LEFT]:
                 direction = 0
-                theta = Conf.DIR_OFFSET * 3
+                theta = num * 2
 
             # Activate print function
             if keys[pygame.K_p]:
@@ -92,6 +93,34 @@ def frame_step_tester():
             if keys[pygame.K_s] and time.time() - timeout2 > Conf.CD_TIME:
                 timeout2 = time.time()
                 cont = 0
+
+            #  Manually reset game
+            if keys[pygame.K_r] and time.time() - timeout3 > Conf.CD_TIME:
+                timeout3 = time.time()
+                sim_master.rest_positions()
+
+            # Set move/angle adjustment value
+            if keys[pygame.K_1]:
+                num = 1
+            elif keys[pygame.K_2]:
+                num = 2
+            elif keys[pygame.K_3]:
+                num = 3
+            elif keys[pygame.K_4]:
+                num = 4
+            elif keys[pygame.K_5]:
+                num = 5
+            elif keys[pygame.K_6]:
+                num = 6
+            elif keys[pygame.K_7]:
+                num = 7
+            elif keys[pygame.K_8]:
+                num = 10
+            elif keys[pygame.K_9]:
+                num = 15
+            elif keys[pygame.K_w]:
+                num = 20
+
             ##################################################################
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -101,7 +130,6 @@ def frame_step_tester():
                         ExitCtr.gen = False
             if f_print:
                 print_return(ret)
-            time.sleep(.01)
         sim_master.exit()
 
     net_sims = []

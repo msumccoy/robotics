@@ -106,7 +106,7 @@ class SimMaster:
 
             if DoFlag.update_frame:
                 # Control loop intervals
-                # self.clock.tick(Conf.FPS)  # Comment out to remove fps limit
+                self.clock.tick(Conf.FPS)  # Comment out to remove fps limit
 
                 # Update drawing if required
                 Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
@@ -168,6 +168,8 @@ class SimMaster:
 
         # Get action commands
         direction, theta, dist, kick, cont = action
+        theta *= Conf.DIR_OFFSET
+        dist *= Conf.MOVE_DIST
         if direction == 1:
             direction = Conf.RIGHT
         elif direction == 0:
@@ -190,18 +192,16 @@ class SimMaster:
         ball_dist, ball_theta = to_ball_s.as_polar()
 
         if not cont:
-            if direction == Conf.RIGHT:
-                theta = -theta
+            self.net[Conf.DIRECTION] = direction
             self.net[Conf.THETA] = theta
             self.net[Conf.DIST] = dist
             self.net[Conf.KICK] = kick
-        # print(f"action {action}, {self.net}, {dist}")##############################################
 
         # In case no kick was performed set to null value
         ret_val[fsr.IS_KICK_ACCURATE] = ret_val[fsr.IS_KICK_SUCCESS] = -1
         if Frames.time() - Gen.last_kick_time < Conf.KICK_COOLDOWN:
             ret_val[fsr.IS_KICKING] = 1
-        elif self.net[Conf.KICK]:
+        elif self.net[Conf.KICK] == 1:
             is_kicked = self.robot.kick()
             self.net[Conf.KICK] = False
             Gen.last_kick_time = Frames.time()
@@ -225,7 +225,7 @@ class SimMaster:
 
         # Update drawing if required
         if DoFlag.update_frame:
-            # self.clock.tick(Conf.FPS)  # regulate FPS if desired
+            self.clock.tick(Conf.FPS)  # regulate FPS if desired
             Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
 
             # Draw field borders
