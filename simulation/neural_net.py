@@ -15,6 +15,8 @@ def frame_step_tester():
     """
 
     def print_return(ret):
+        if ret is None:
+            return
         x, y = ret[fsr.X],ret[fsr.Y]
         b_flag = ret[fsr.BALL_FLAG]
         b_theta = ret[fsr.BALL_THETA]
@@ -56,18 +58,28 @@ def frame_step_tester():
         # Last time timeout was reset
         timeout1 = timeout2 = timeout3 = timeout4 = 0
 
+        # Stop flags
+        wait = False
+        s_kick = False
+
         # Start the test loop and continue while generic exit control allows
         while ExitCtr.gen:
             # Run simulation step and get return state
-            ret = sim_master.frame_step([direction, theta, dist, kick, cont])
+            if not wait:
+                ret = sim_master.frame_step(
+                    [direction, theta, dist, kick, cont]
+                )
+            else:
+                ret = None
+                time.sleep(0.1)
 
             # Get keys currently being pressed
             keys = pygame.key.get_pressed()
+            mods = pygame.key.get_mods()
 
             # Reset all variables
             theta = dist = kick = 0
             cont = 1
-            f_print = False  # Flag for printing
 
             # Activate different testing functionality  ######################
             # Manual control)
@@ -80,23 +92,35 @@ def frame_step_tester():
                 direction = 0
                 theta = num * 2
 
+            # Stop when specific events occur
+            # If left control is pressed (4160)
+            if mods == 4160 and time.time() - timeout1 > Conf.CD_TIME:
+                if keys[pygame.K_a]:
+                    timeout1 = time.time()
+                    s_kick = not s_kick
+                    if s_kick:
+                        print("Stop on kick activated")
+                    else:
+                        print("Stop on kick disabled")
+
             # Activate print function
-            if keys[pygame.K_p]:
-                f_print = True
+            if keys[pygame.K_p] and time.time() - timeout1 > Conf.CD_TIME:
+                timeout1 = time.time()
+                print_return(ret)
 
             # Send kick
-            if keys[pygame.K_SPACE] and time.time() - timeout1 > Conf.CD_TIME:
-                timeout1 = time.time()
+            if keys[pygame.K_SPACE] and time.time() - timeout2 > Conf.CD_TIME:
+                timeout2 = time.time()
                 kick = 1
 
             # Actually send commands i.e. don't send continue
-            if keys[pygame.K_s] and time.time() - timeout2 > Conf.CD_TIME:
-                timeout2 = time.time()
+            if keys[pygame.K_s] and time.time() - timeout3 > Conf.CD_TIME:
+                timeout3 = time.time()
                 cont = 0
 
             #  Manually reset game
-            if keys[pygame.K_r] and time.time() - timeout3 > Conf.CD_TIME:
-                timeout3 = time.time()
+            if keys[pygame.K_r] and time.time() - timeout4 > Conf.CD_TIME:
+                timeout4 = time.time()
                 sim_master.rest_positions()
 
             # Set move/angle adjustment value
@@ -128,8 +152,6 @@ def frame_step_tester():
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         ExitCtr.gen = False
-            if f_print:
-                print_return(ret)
         sim_master.exit()
 
     net_sims = []
