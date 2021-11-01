@@ -59,8 +59,8 @@ def frame_step_tester():
         timeout1 = timeout2 = timeout3 = timeout4 = 0
 
         # Stop flags
-        wait = False
-        s_kick = False
+        wait = print_flag = False
+        s_kick = g_kick = a_kick = c_kick = r_move = b_move = False
 
         # Start the test loop and continue while generic exit control allows
         while ExitCtr.gen:
@@ -92,21 +92,89 @@ def frame_step_tester():
                 direction = 0
                 theta = num * 2
 
-            # Stop when specific events occur
-            # If left control is pressed (4160)
-            if mods == 4160 and time.time() - timeout1 > Conf.CD_TIME:
-                if keys[pygame.K_a]:
+            # Toggle condition flags (for stopping or printing ect.
+            # goal (own or otherwise)
+            # Kick accuracy
+            # Kick success (if a kick was done whether it connected and if
+            #   not what the current conditions are
+            # if moving
+            # if kicking
+            # if ball moved
+            # If control is pressed: left (4160) Right (4224)
+            if (
+                    (mods == 4160 or mods==4224)
+                    and time.time() - timeout1 > Conf.CD_TIME
+            ):
+                if keys[pygame.K_k]:  # Toggle kick stop flag
                     timeout1 = time.time()
                     s_kick = not s_kick
                     if s_kick:
                         print("Stop on kick activated")
                     else:
                         print("Stop on kick disabled")
+                if keys[pygame.K_g]:  # Toggle goal stop flag
+                    timeout1 = time.time()
+                    g_kick = not g_kick
+                    if g_kick:
+                        print("Stop on goal activated")
+                    else:
+                        print("Stop on goal disabled")
+                if keys[pygame.K_a]:  # Toggle accuracy stop flag
+                    timeout1 = time.time()
+                    a_kick = not a_kick
+                    if a_kick:
+                        print("Stop on accuracy activated")
+                    else:
+                        print("Stop on accuracy disabled")
+                if keys[pygame.K_c]:  # Toggle currently kicking print flag
+                    timeout1 = time.time()
+                    c_kick = not c_kick
+                    if c_kick:
+                        print("Stop on accuracy activated")
+                    else:
+                        print("Stop on accuracy disabled")
+                if keys[pygame.K_r]:  # Toggle robot moving print flag
+                    timeout1 = time.time()
+                    r_move = not r_move
+                    if r_move:
+                        print("Print on move activated")
+                    else:
+                        print("Print on move disabled")
+                if keys[pygame.K_b]:  # Toggle ball  moving print flag
+                    timeout1 = time.time()
+                    b_move = not b_move
+                    if b_move:
+                        print("Print on move activated")
+                    else:
+                        print("Print on move disabled")
+
+            # Stop when specific events occur
+            if s_kick and ret[fsr.ACT_KICK] == 1 and ret[fsr.ACT_CONT] == 0:
+                # If kick was attempted pause and print current conditions
+                print(keys)
+                time.sleep(5)
+                print_flag = True
+            if g_kick and ret[fsr.IS_GOAL_SCORED] == 1:
+                # If goal was scored pause and print current conditions
+                print_flag = True
+            elif a_kick and ret[fsr.IS_KICK_ACCURATE] == 1:
+                # If ball hit close to goal pause and print current conditions
+                print_flag = True
+            if c_kick and ret[fsr.IS_KICKING] == 1:
+                # If currently kicking print current conditions
+                print(keys)
+                print_flag = True
+            if r_move and ret[fsr.IS_MOVING] == 1:
+                # If robot is moving print current conditions
+                print_flag = True
+            if b_move and ret[fsr.IS_BALL_MOVED] == 1:
+                # If ball is moving print current conditions
+                print_flag = True
 
             # Activate print function
             if keys[pygame.K_p] and time.time() - timeout1 > Conf.CD_TIME:
                 timeout1 = time.time()
-                print_return(ret)
+                print_flag = True
 
             # Send kick
             if keys[pygame.K_SPACE] and time.time() - timeout2 > Conf.CD_TIME:
@@ -152,6 +220,9 @@ def frame_step_tester():
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         ExitCtr.gen = False
+            if print_flag:
+                print_flag = False
+                print_return(ret)
         sim_master.exit()
 
     net_sims = []

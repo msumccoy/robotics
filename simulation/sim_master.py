@@ -149,8 +149,8 @@ class SimMaster:
         opp_goal_dist --> 0 to 600/move_dist
 
         # Kick results given 0 or 1 for only one frame
-        is_kick_success --> -1 (null) or 0 (miss) or 1 (hit)
-        is_kick_accurate --> -1 (null) or 0(bad miss) or 1 (near miss)
+        is_kick_success --> 2 (null) or 0 (miss) or 1 (hit)
+        is_kick_accurate --> 2 (null) or 0(bad miss) or 1 (near miss)
 
         # State flags
         is_kicking --> 0 (not kicking) or 1 (is kicking)
@@ -198,7 +198,7 @@ class SimMaster:
             self.net[Conf.KICK] = kick
 
         # In case no kick was performed set to null value
-        ret_val[fsr.IS_KICK_ACCURATE] = ret_val[fsr.IS_KICK_SUCCESS] = -1
+        ret_val[fsr.IS_KICK_ACCURATE] = ret_val[fsr.IS_KICK_SUCCESS] = 2
         if Frames.time() - Gen.last_kick_time < Conf.KICK_COOLDOWN:
             ret_val[fsr.IS_KICKING] = 1
         elif self.net[Conf.KICK] == 1:
@@ -263,7 +263,7 @@ class SimMaster:
                     < self.controller.goal_cen.x + Conf.HALF_RANGE
             ):
                 ret_val[fsr.IS_GOAL_SCORED] = 1
-            else:
+            else:  # If not close to target then own goal
                 ret_val[fsr.IS_GOAL_SCORED] = -1
             ret_val[fsr.IS_KICK_ACCURATE] = 1
         elif (  # if ball in wall bounce x location  check next condition
