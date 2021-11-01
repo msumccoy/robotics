@@ -96,3 +96,15 @@ class FrameStepReturn:
     ACT_DIST = 18
     ACT_KICK = 19
     ACT_CONT = 20
+
+
+class Sock:
+    IP = "127.0.0.1"
+    PORT = 1234
+    PRE_HEADER_LEN = 3
+    HEADER_LEN = 10
+    ENCODING = "utf-8"
+
+
+class ComDataType:
+    TEXT = "TEXT"
