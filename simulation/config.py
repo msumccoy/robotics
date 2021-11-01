@@ -33,7 +33,7 @@ class Conf:
     CD_TIME = .15  # Used to prevent excessive activations
     HALF_RANGE = 10  # Half kick range
     CLOSE_RANGE = HALF_RANGE * 5  # To determine if robot was "close" to ball
-    DIR_OFFSET = 5  # Angle offset
+    DIR_OFFSET = 15  # Angle offset: Should be set at 15 for Neural network
     MOVE_DIST = 5  # Default move distance
     FORCE_LIMIT = 4  # Max kick limit
     WALL_PENALTY = .5

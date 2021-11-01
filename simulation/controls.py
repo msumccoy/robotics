@@ -124,11 +124,10 @@ class Controllers:
                 if self.waypoint_ball == self.vec_ball:
                     to_waypoint = self.waypoint - self.vec_robot
                     dist, angle = to_waypoint.as_polar()
-                    angle_dif = angle - self.robot.move_angle
                     # If the angle difference is not within range change angle
-                    if angle_dif < -Conf.DIR_OFFSET:
+                    if angle + Conf.DIR_OFFSET - 1 < self.robot.move_angle:
                         self.robot.move(Conf.LEFT)
-                    elif angle_dif > Conf.DIR_OFFSET:
+                    elif angle - Conf.DIR_OFFSET + 1 > self.robot.move_angle:
                         self.robot.move(Conf.RIGHT)
                     else:
                         # If angle within range but not close to waypoint move
