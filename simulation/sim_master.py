@@ -85,9 +85,9 @@ class SimMaster:
 
         # Set up some variables for neural net step function
         if self.robot.side == Conf.LEFT:
-            self.ball_bounce_x = Conf.ORIGIN[X] + self.ball.rect.width
-        else:
             self.ball_bounce_x = Conf.FIELD_RIGHT - self.ball.rect.width
+        else:
+            self.ball_bounce_x = Conf.ORIGIN[X] + self.ball.rect.width
 
         # Create clock for consistent loop intervals
         self.clock = pygame.time.Clock()
@@ -270,10 +270,10 @@ class SimMaster:
                 self.ball.rect.centerx == self.ball_bounce_x
                 and  # If ball is within range of y value
                 self.controller.goal_cen.y
-                - 2 * self.controller.goal.rect.height
+                - 1 * self.controller.goal.rect.height
                 < self.balls[0].rect.centery <
                 self.controller.goal_cen.y
-                + 2 * self.controller.goal.rect.height
+                + 1 * self.controller.goal.rect.height
         ):  # If hit the wall close to the goal
             ret_val[fsr.IS_KICK_ACCURATE] = 1
         else:

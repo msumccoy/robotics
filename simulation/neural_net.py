@@ -45,7 +45,7 @@ def frame_step_tester():
             f"o-goal: theta-->{int(o_g_theta):}, dist-->{int(o_g_dist)}\n"
             f"goal: theta-->{int(g_theta)}, dist-->{int(g_dist)}\n"
             f"kick: success-->{is_kick}, accurate-->{is_accurate}\n"
-            f" kicking-->{is_kicking}\n"
+            f"kicking-->{is_kicking}\n"
             f"moving: robot-->{is_moving}, ball-->{is_b_move}\n"
             f"scored {is_scored}, time {int(t_ime)}\n"
             f"action : {action}\n"
@@ -107,8 +107,8 @@ def frame_step_tester():
         timeout1 = timeout2 = timeout3 = timeout4 = 0
 
         # Stop flags
-        wait = print_flag = False
-        s_kick = g_kick = a_kick = c_kick = r_move = b_move = False
+        print_flag = False
+        s_kick = g_kick = a_kick = c_kick = t_move = b_move = False
 
         # Start the test loop and continue while generic exit control allows
         while ExitCtr.gen:
@@ -129,13 +129,36 @@ def frame_step_tester():
             # Activate different testing functionality  ######################
             # Manual control)
             if keys[pygame.K_UP]:
+                if num == 0:
+                    sim_master.robot.move(Conf.UP)
                 dist = num
+            elif keys[pygame.K_DOWN]:
+                if num == 0:
+                    sim_master.robot.move(Conf.DOWN)
             if keys[pygame.K_RIGHT]:
+                if num == 0:
+                    sim_master.robot.move(Conf.RIGHT)
                 direction = 1
-                theta = num * 2
-            if keys[pygame.K_LEFT]:
+                theta = num * 20
+            elif keys[pygame.K_LEFT]:
+                if num == 0:
+                    sim_master.robot.move(Conf.LEFT)
                 direction = 0
-                theta = num * 2
+                theta = num * 20
+            if num == 0:
+                dist_temp = 5
+                if keys[pygame.K_i] or keys[pygame.K_KP8]:
+                    # Move up
+                    sim_master.ball.move(-90, dist_temp)
+                elif keys[pygame.K_k] or keys[pygame.K_KP5]:
+                    # Move down
+                    sim_master.ball.move(90, dist_temp)
+                if keys[pygame.K_j] or keys[pygame.K_KP4]:
+                    # Move left
+                    sim_master.ball.move(180, dist_temp)
+                elif keys[pygame.K_l] or keys[pygame.K_KP6]:
+                    # Move right
+                    sim_master.ball.move(0, dist_temp)
 
             # Toggle condition flags (for stopping or printing ect.
             # goal (own or otherwise)
@@ -147,7 +170,7 @@ def frame_step_tester():
             # if ball moved
             # If control is pressed: left (4160) Right (4224)
             if (
-                    (mods == 4160 or mods==4224)
+                    (mods == 4160 or mods == 4224)
                     and time.time() - timeout1 > Conf.CD_TIME
             ):
                 if keys[pygame.K_k]:  # Toggle kick stop flag
@@ -175,13 +198,13 @@ def frame_step_tester():
                     timeout1 = time.time()
                     c_kick = not c_kick
                     if c_kick:
-                        print("Stop on accuracy activated")
+                        print("Currently kicking flag activated")
                     else:
-                        print("Stop on accuracy disabled")
-                if keys[pygame.K_r]:  # Toggle robot moving print flag
+                        print("Currently kicking flag disabled")
+                if keys[pygame.K_t]:  # Toggle robot moving print flag
                     timeout1 = time.time()
-                    r_move = not r_move
-                    if r_move:
+                    t_move = not t_move
+                    if t_move:
                         print("Print on move activated")
                     else:
                         print("Print on move disabled")
@@ -195,26 +218,26 @@ def frame_step_tester():
 
             # Stop when specific events occur  ###############################
             if s_kick and ret[fsr.ACT_KICK] == 1 and ret[fsr.ACT_CONT] == 0:
-                # If kick was attempted pause and print current conditions
-                time.sleep(2)
-                print_flag = True
+                # If kick was attempted pause and print
                 print("KICK ATTEMPTED")
+                time.sleep(2)
             if g_kick and ret[fsr.IS_GOAL_SCORED] == 1:
-                # If goal was scored pause and print current conditions
-                print_flag = True
+                # If goal was scored pause and print
+                print("Goal scored")
+                time.sleep(2)
             elif a_kick and ret[fsr.IS_KICK_ACCURATE] == 1:
-                # If ball hit close to goal pause and print current conditions
-                print_flag = True
+                # If ball hit close to goal pause and print
+                print("Ball hit close to goal")
+                time.sleep(2)
             if c_kick and ret[fsr.IS_KICKING] == 1:
-                # If currently kicking print current conditions
-                print(keys)
-                print_flag = True
-            if r_move and ret[fsr.IS_MOVING] == 1:
-                # If robot is moving print current conditions
-                print_flag = True
-            if b_move and ret[fsr.IS_BALL_MOVED] == 1:
-                # If ball is moving print current conditions
-                print_flag = True
+                # If currently kicking print
+                print("Currently kicking")
+            if t_move and ret[fsr.IS_MOVING] == 1:
+                # If robot is moving print
+                print("Robot is moving")
+            elif b_move and ret[fsr.IS_BALL_MOVED] == 1:
+                # If ball is moving print
+                print("The ball is currently moving")
             #################################################################
 
             # Activate print function and toggle show plt
@@ -240,7 +263,9 @@ def frame_step_tester():
                 sim_master.rest_positions()
 
             # Set move/angle adjustment value
-            if keys[pygame.K_1]:
+            if keys[pygame.K_0]:
+                num = 0
+            elif keys[pygame.K_1]:
                 num = 1
             elif keys[pygame.K_2]:
                 num = 2
