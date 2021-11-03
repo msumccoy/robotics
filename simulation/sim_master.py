@@ -193,8 +193,8 @@ class SimMaster:
 
         if not cont:
             self.net[Conf.DIRECTION] = direction
-            self.net[Conf.THETA] = theta
-            self.net[Conf.DIST] = dist
+            self.net[Conf.THETA] = theta * Conf.DIR_OFFSET
+            self.net[Conf.DIST] = dist * Conf.MOVE_DIST
             self.net[Conf.KICK] = kick
 
         # In case no kick was performed set to null value
@@ -267,17 +267,35 @@ class SimMaster:
                 ret_val[fsr.IS_GOAL_SCORED] = -1
             ret_val[fsr.IS_KICK_ACCURATE] = 1
         elif (  # if ball in wall bounce x location  check next condition
-                self.ball.rect.centerx == self.ball_bounce_x
-                and  # If ball is within range of y value
+                # If ball is within range of y value
                 self.controller.goal_cen.y
                 - 1 * self.controller.goal.rect.height
                 < self.balls[0].rect.centery <
                 self.controller.goal_cen.y
                 + 1 * self.controller.goal.rect.height
         ):  # If hit the wall close to the goal
-            ret_val[fsr.IS_KICK_ACCURATE] = 1
+            if (
+                    self.ball.rect.centerx > self.ball_bounce_x
+                    and self.robot.side == Conf.LEFT
+            ):
+                ret_val[fsr.IS_KICK_ACCURATE] = 1
+            elif (
+                    self.ball.rect.centerx < self.ball_bounce_x
+                    and self.robot.side == Conf.RIGHT
+            ):
+                ret_val[fsr.IS_KICK_ACCURATE] = 1
         else:
-            ret_val[fsr.IS_KICK_ACCURATE] = 0
+            if (
+                    self.ball.rect.centerx > self.ball_bounce_x
+                    and self.robot.side == Conf.LEFT
+            ):
+                ret_val[fsr.IS_KICK_ACCURATE] = 0
+                print(self.ball.rect.centerx - self.ball_bounce_x)
+            elif (
+                    self.ball.rect.centerx < self.ball_bounce_x
+                    and self.robot.side == Conf.RIGHT
+            ):
+                ret_val[fsr.IS_KICK_ACCURATE] = 0
 
         ret_val[fsr.X] = self.robot.rect.centerx
         ret_val[fsr.Y] = self.robot.rect.centery

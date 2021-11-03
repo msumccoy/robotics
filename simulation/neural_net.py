@@ -131,7 +131,10 @@ def frame_step_tester():
             if keys[pygame.K_UP]:
                 if num == 0:
                     sim_master.robot.move(Conf.UP)
-                dist = num
+                elif num == 1:
+                    dist = num
+                else:
+                    dist = num * 5
             elif keys[pygame.K_DOWN]:
                 if num == 0:
                     sim_master.robot.move(Conf.DOWN)
@@ -139,12 +142,12 @@ def frame_step_tester():
                 if num == 0:
                     sim_master.robot.move(Conf.RIGHT)
                 direction = 1
-                theta = num * 20
+                theta = num
             elif keys[pygame.K_LEFT]:
                 if num == 0:
                     sim_master.robot.move(Conf.LEFT)
                 direction = 0
-                theta = num * 20
+                theta = num
             if num == 0:
                 dist_temp = 5
                 if keys[pygame.K_i] or keys[pygame.K_KP8]:
@@ -282,9 +285,9 @@ def frame_step_tester():
             elif keys[pygame.K_8]:
                 num = 10
             elif keys[pygame.K_9]:
-                num = 15
+                num = 11
             elif keys[pygame.K_w]:
-                num = 20
+                num = 12
 
             ##################################################################
             for event in pygame.event.get():
