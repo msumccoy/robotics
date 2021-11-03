@@ -15,6 +15,7 @@ class DoFlag:
     auto_calc = True
     show_vectors = False
     show_directions = False
+    show_plt = True
     update_frame = True
     save_data = True
 
@@ -85,4 +86,9 @@ class Frames:
     @classmethod
     def time(cls):
         time_passed = cls._frames / cls._DESIGNED_FPS  # frame * s/frame
+        return time_passed
+
+    @classmethod
+    def time_from_start(cls):
+        time_passed = time.time() - cls._start
         return time_passed
