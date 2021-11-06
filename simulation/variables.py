@@ -15,6 +15,7 @@ class DoFlag:
     auto_calc = True
     show_vectors = False
     show_directions = False
+    show_plt = False
     update_frame = True
     save_data = True
 
@@ -54,7 +55,11 @@ class Frames:
     @classmethod
     def update(cls):
         cls._frames += 1
-        tmps_fps = 1 / (time.time() - cls._last)
+        current_time = time.time()
+        if current_time > cls._last + 0.000000001:
+            tmps_fps = 1 / (current_time - cls._last)
+        else:
+            tmps_fps = cls._calc_fps
         cls._fps_list.append(tmps_fps)
         cls._fps_sum += tmps_fps
         if len(cls._fps_list) > cls._list_len:
@@ -67,6 +72,7 @@ class Frames:
 
     @classmethod
     def frames(cls):
+        # Return the number of frames that have passed thus far
         return cls._frames
 
     @classmethod
@@ -80,4 +86,9 @@ class Frames:
     @classmethod
     def time(cls):
         time_passed = cls._frames / cls._DESIGNED_FPS  # frame * s/frame
+        return time_passed
+
+    @classmethod
+    def time_from_start(cls):
+        time_passed = time.time() - cls._start
         return time_passed

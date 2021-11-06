@@ -1,6 +1,8 @@
 import csv
 import os
 import random
+import warnings
+
 import pygame
 import numpy as np
 
@@ -52,8 +54,9 @@ class SimMaster:
             Conf.CONT: 0,
         }
         self.algorithm = algorithm
-        self.is_goal_scored = False
         self.ball_bounce_x = 0
+        self.is_goal_scored = False
+        self.is_accurate_sent = False
 
         if len(self.robot_xy) != len(self.ball_xy):
             raise IndexError("None matching data set for ball and robot pos")
@@ -85,9 +88,9 @@ class SimMaster:
 
         # Set up some variables for neural net step function
         if self.robot.side == Conf.LEFT:
-            self.ball_bounce_x = Conf.ORIGIN[X] + self.ball.rect.width
-        else:
             self.ball_bounce_x = Conf.FIELD_RIGHT - self.ball.rect.width
+        else:
+            self.ball_bounce_x = Conf.ORIGIN[X] + self.ball.rect.width
 
         # Create clock for consistent loop intervals
         self.clock = pygame.time.Clock()
@@ -106,7 +109,7 @@ class SimMaster:
 
             if DoFlag.update_frame:
                 # Control loop intervals
-                # self.clock.tick(Conf.FPS)  # Comment out to remove fps limit
+                self.clock.tick(Conf.FPS)  # Comment out to remove fps limit
 
                 # Update drawing if required
                 Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
@@ -149,48 +152,83 @@ class SimMaster:
         opp_goal_dist --> 0 to 600/move_dist
 
         # Kick results given 0 or 1 for only one frame
-        is_kick_success --> -1 (null) or 0 (miss) or 1 (hit)
-        is_kick_accurate --> -1 (null) or 0(bad miss) or 1 (near miss)
+        is_kick_success --> 0 (null) or 2 (miss) or 1 (hit)
+        is_kick_accurate --> 0 (null) or 2 (bad miss) or 1 (near miss)
 
         # State flags
         is_kicking --> 0 (not kicking) or 1 (is kicking)
         is_moving --> 0 (not moving) or 1 (is moving)
         is_ball_moved -- > 0 (not moved recently) or 1 (moved recently)
-        is_goal_scored --> -1 (own goal scored) 0 (not scored) or 1 (scored)
+        is_goal_scored --> 2 (own goal scored) 0 (not scored) or 1 (scored)
 
         time --> time since start (calculated based on frames)
         """
+        # Attempt to instantiate which will only be done if not done already
         self._init()
+
+        NULL = 0
+        STATE1 = 1
+        STATE2 = 2
+
+        # Reset goal to not scored
         self._goal_scored(reset=True)
+
+        # Get action commands
         direction, theta, dist, kick, cont = action
+        theta *= Conf.DIR_OFFSET
+        dist *= Conf.MOVE_DIST
+        if direction == 1:
+            direction = Conf.RIGHT
+        elif direction == 0:
+            direction = Conf.LEFT
+        else:
+            raise ValueError(
+                f"{direction} is not a valid option. Must be 0 or 1"
+            )
+
+        # Create return away
         ret_val = np.zeros(fsr.NUM_VAL)
-        ret_val[fsr.ACTION] = action
+        ret_val[fsr.ACT_DIR] = action[0]
+        ret_val[fsr.ACT_THETA] = action[1]
+        ret_val[fsr.ACT_DIST] = action[2]
+        ret_val[fsr.ACT_KICK] = action[3]
+        ret_val[fsr.ACT_CONT] = action[4]
 
         # Get vector positions (relative positions)
         to_ball_s, _, _ = self.controller.get_vec()
         ball_dist, ball_theta = to_ball_s.as_polar()
 
         if not cont:
-            if direction == Conf.RIGHT:
-                theta = -theta
-            self.net[Conf.THETA] = theta
-            self.net[Conf.DIST] = dist
+            # Validate data
+            if ret_val[fsr.ACT_THETA] > 360/Conf.DIR_OFFSET:
+                print(
+                    f"Warning {ret_val[fsr.ACT_THETA]} out of range "
+                    f"{360/Conf.DIR_OFFSET}"
+                )
+            if ret_val[fsr.ACT_DIST] > Conf.WIDTH/Conf.MOVE_DIST:
+                print(
+                    f"Warning {ret_val[fsr.ACT_DIST]} out of range "
+                    f"{Conf.WIDTH/Conf.MOVE_DIST}"
+                )
+            self.net[Conf.DIRECTION] = direction
+            self.net[Conf.THETA] = theta * Conf.DIR_OFFSET
+            self.net[Conf.DIST] = dist * Conf.MOVE_DIST
             self.net[Conf.KICK] = kick
 
         # In case no kick was performed set to null value
-        ret_val[fsr.IS_KICK_ACCURATE] = ret_val[fsr.IS_KICK_SUCCESS] = -1
+        ret_val[fsr.IS_KICK_ACCURATE] = ret_val[fsr.IS_KICK_SUCCESS] = NULL
         if Frames.time() - Gen.last_kick_time < Conf.KICK_COOLDOWN:
             ret_val[fsr.IS_KICKING] = 1
-        elif self.net[Conf.KICK]:
+        elif self.net[Conf.KICK] == 1:
             is_kicked = self.robot.kick()
             self.net[Conf.KICK] = False
             Gen.last_kick_time = Frames.time()
 
             # If within kick range
             if is_kicked:
-                ret_val[fsr.IS_KICK_SUCCESS] = 1
+                ret_val[fsr.IS_KICK_SUCCESS] = STATE1
             else:
-                ret_val[fsr.IS_KICK_SUCCESS] = 0
+                ret_val[fsr.IS_KICK_SUCCESS] = STATE2
 
         elif self.net[Conf.THETA] > 0:
             self.robot.move(self.net[Conf.DIRECTION])
@@ -205,7 +243,7 @@ class SimMaster:
 
         # Update drawing if required
         if DoFlag.update_frame:
-            # self.clock.tick(Conf.FPS)  # regulate FPS if desired
+            self.clock.tick(Conf.FPS)  # Regulate FPS if desired
             Gen.screen.fill(Conf.WHITE)  # Reset screen for fresh drawings
 
             # Draw field borders
@@ -224,40 +262,75 @@ class SimMaster:
         ret_val[fsr.OWN_GOAL_DIST], ret_val[fsr.OWN_GOAL_THETA] = (
             to_own_goal.as_polar()
         )
-        if abs(ball_theta) <= Conf.VISION_THETA//2:  # If within field of view
-            ret_val[fsr.BALL_FLAG] = 1
+        if self.robot.move_angle < -90 and ball_theta > 90:  # Edge case
+            if self.robot.move_angle + 360 - ball_theta <= Conf.HALF_VIS_THETA:
+                ret_val[fsr.BALL_FLAG] = STATE1
+        elif self.robot.move_angle > 90 and ball_theta < -90:  # Edge case
+            if ball_theta + 360 - self.robot.move_angle <= Conf.HALF_VIS_THETA:
+                ret_val[fsr.BALL_FLAG] = STATE1
+        elif abs(self.robot.move_angle - ball_theta) <= Conf.HALF_VIS_THETA:
+            # If within field of view
+            ret_val[fsr.BALL_FLAG] = STATE1
 
         # If ball_start_pos != current_ball_pos then ball moving
         if to_ball != to_ball_s:
-            ret_val[fsr.IS_BALL_MOVED] = 1
+            ret_val[fsr.IS_BALL_MOVED] = STATE1
 
         # If still has angle change or distance change then moving
         if self.net[Conf.THETA] > 0 or self.net[Conf.DIST] > 0:
-            ret_val[fsr.IS_MOVING] = 1
+            ret_val[fsr.IS_MOVING] = STATE1
 
         # Check if goal scored this frame
         if self.is_goal_scored:
-            if (  # If close to target goal then scored on opponent
-                    self.controller.goal_cen.x - Conf.HALF_RANGE
-                    < self.balls[0].rect.centerx
-                    < self.controller.goal_cen.x + Conf.HALF_RANGE
+            if (  # If close to opponent goal then scored and accurate
+                    self.ball.side == self.robot.side
             ):
-                ret_val[fsr.IS_GOAL_SCORED] = 1
-            else:
-                ret_val[fsr.IS_GOAL_SCORED] = -1
-            ret_val[fsr.IS_KICK_ACCURATE] = 1
+                ret_val[fsr.IS_GOAL_SCORED] = STATE1
+                ret_val[fsr.IS_KICK_ACCURATE] = STATE1
+            else:  # If not close to target then own goal
+                ret_val[fsr.IS_GOAL_SCORED] = STATE2
+                ret_val[fsr.IS_KICK_ACCURATE] = NULL
         elif (  # if ball in wall bounce x location  check next condition
-                self.ball.rect.centerx == self.ball_bounce_x
-                and  # If ball is within range of y value
+                # If ball is within range of y value
                 self.controller.goal_cen.y
-                - 2 * self.controller.goal.rect.height
+                - 1 * self.controller.goal.rect.height
                 < self.balls[0].rect.centery <
                 self.controller.goal_cen.y
-                + 2 * self.controller.goal.rect.height
-        ):  # If hit the wall close to the goal
-            ret_val[fsr.IS_KICK_ACCURATE] = 1
+                + 1 * self.controller.goal.rect.height
+        ):
+            if (  # If hit the wall close to the goal
+                    self.ball.rect.centerx > self.ball_bounce_x
+                    and self.robot.side == Conf.LEFT
+            ):
+                if not self.is_accurate_sent:
+                    ret_val[fsr.IS_KICK_ACCURATE] = STATE1
+                    self.is_accurate_sent = True
+            elif (
+                    self.ball.rect.centerx < self.ball_bounce_x
+                    and self.robot.side == Conf.RIGHT
+            ):
+                if not self.is_accurate_sent:
+                    ret_val[fsr.IS_KICK_ACCURATE] = STATE1
+                    self.is_accurate_sent = True
+            else:  # If not against respective wall accuracy was not sent
+                self.is_accurate_sent = False
         else:
-            ret_val[fsr.IS_KICK_ACCURATE] = 0
+            if (
+                    self.ball.rect.centerx > self.ball_bounce_x
+                    and self.robot.side == Conf.LEFT
+            ):
+                if not self.is_accurate_sent:
+                    ret_val[fsr.IS_KICK_ACCURATE] = STATE2
+                    self.is_accurate_sent = True
+            elif (
+                    self.ball.rect.centerx < self.ball_bounce_x
+                    and self.robot.side == Conf.RIGHT
+            ):
+                if not self.is_accurate_sent:
+                    ret_val[fsr.IS_KICK_ACCURATE] = STATE2
+                    self.is_accurate_sent = True
+            else:
+                self.is_accurate_sent = False
 
         ret_val[fsr.X] = self.robot.rect.centerx
         ret_val[fsr.Y] = self.robot.rect.centery
