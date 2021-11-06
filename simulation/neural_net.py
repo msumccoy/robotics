@@ -13,9 +13,9 @@ def frame_step_tester():
     This function is used to test sim_master.SimMaster.frame_step
     as well helps demonstrate how to utilize the method
     """
+    import matplotlib.pyplot as plt
 
     def show_window(ret):
-        import matplotlib.pyplot as plt
 
         x, y = ret[fsr.X],ret[fsr.Y]
         b_flag = ret[fsr.BALL_FLAG]

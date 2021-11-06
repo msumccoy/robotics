@@ -1,6 +1,8 @@
 import csv
 import os
 import random
+import warnings
+
 import pygame
 import numpy as np
 
@@ -197,6 +199,17 @@ class SimMaster:
         ball_dist, ball_theta = to_ball_s.as_polar()
 
         if not cont:
+            # Validate data
+            if ret_val[fsr.ACT_THETA] > 360/Conf.DIR_OFFSET:
+                print(
+                    f"Warning {ret_val[fsr.ACT_THETA]} out of range "
+                    f"{360/Conf.DIR_OFFSET}"
+                )
+            if ret_val[fsr.ACT_DIST] > Conf.WIDTH/Conf.MOVE_DIST:
+                print(
+                    f"Warning {ret_val[fsr.ACT_DIST]} out of range "
+                    f"{Conf.WIDTH/Conf.MOVE_DIST}"
+                )
             self.net[Conf.DIRECTION] = direction
             self.net[Conf.THETA] = theta * Conf.DIR_OFFSET
             self.net[Conf.DIST] = dist * Conf.MOVE_DIST
