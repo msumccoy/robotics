@@ -15,7 +15,7 @@ class DoFlag:
     auto_calc = True
     show_vectors = False
     show_directions = False
-    show_plt = True
+    show_plt = False
     update_frame = True
     save_data = True
 

@@ -37,7 +37,6 @@ def frame_step_tester():
             ret[fsr.ACT_DIR], ret[fsr.ACT_THETA], ret[fsr.ACT_DIST],
             ret[fsr.ACT_KICK], ret[fsr.ACT_CONT]
         )
-
         msg = (
             f"robot x: {x}, robot y: {y}\n"
             f"ball: flag-->{b_flag}, theta-->{int(b_theta)},"
@@ -108,14 +107,14 @@ def frame_step_tester():
 
         # Stop flags
         print_flag = False
-        s_kick = g_kick = a_kick = c_kick = t_move = b_move = False
+        s_kick = ss_kick = g_kick = a_kick = c_kick = m_move = b_move = False
 
         # Start the test loop and continue while generic exit control allows
         while ExitCtr.gen:
             # Run simulation step and get return state
             ret = sim_master.frame_step([direction, theta, dist, kick, cont])
 
-            # Diplay conditions in pyplot window
+            # Display conditions in pyplot window
             if DoFlag.show_plt:
                 show_window(ret)
             # Get keys currently being pressed
@@ -180,6 +179,13 @@ def frame_step_tester():
                     timeout1 = time.time()
                     s_kick = not s_kick
                     if s_kick:
+                        print("Stop on kick success activated")
+                    else:
+                        print("Stop on kick disabled")
+                if keys[pygame.K_s]:  # Toggle kick success stop flag
+                    timeout1 = time.time()
+                    ss_kick = not ss_kick
+                    if ss_kick:
                         print("Stop on kick activated")
                     else:
                         print("Stop on kick disabled")
@@ -206,8 +212,8 @@ def frame_step_tester():
                         print("Currently kicking flag disabled")
                 if keys[pygame.K_t]:  # Toggle robot moving print flag
                     timeout1 = time.time()
-                    t_move = not t_move
-                    if t_move:
+                    m_move = not m_move
+                    if m_move:
                         print("Print on move activated")
                     else:
                         print("Print on move disabled")
@@ -220,13 +226,17 @@ def frame_step_tester():
                         print("Print on move disabled")
 
             # Stop when specific events occur  ###############################
-            if s_kick and ret[fsr.ACT_KICK] == 1 and ret[fsr.ACT_CONT] == 0:
+            if ss_kick and ret[fsr.IS_KICK_SUCCESS] == 1:
+                # If kick was attempted pause and print
+                print("KICK Success")
+                time.sleep(2)
+            elif s_kick and ret[fsr.ACT_KICK] == 1 and ret[fsr.ACT_CONT] == 0:
                 # If kick was attempted pause and print
                 print("KICK ATTEMPTED")
                 time.sleep(2)
-            if g_kick and ret[fsr.IS_GOAL_SCORED] == 1:
+            if g_kick and ret[fsr.IS_GOAL_SCORED] != 0:
                 # If goal was scored pause and print
-                print("Goal scored")
+                print(f"Goal scored: {ret[fsr.IS_GOAL_SCORED]}")
                 time.sleep(2)
             elif a_kick and ret[fsr.IS_KICK_ACCURATE] == 1:
                 # If ball hit close to goal pause and print
@@ -235,7 +245,7 @@ def frame_step_tester():
             if c_kick and ret[fsr.IS_KICKING] == 1:
                 # If currently kicking print
                 print("Currently kicking")
-            if t_move and ret[fsr.IS_MOVING] == 1:
+            if m_move and ret[fsr.IS_MOVING] == 1:
                 # If robot is moving print
                 print("Robot is moving")
             elif b_move and ret[fsr.IS_BALL_MOVED] == 1:
