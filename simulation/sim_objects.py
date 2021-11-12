@@ -161,14 +161,14 @@ class Robot(BaseClass):
         elif move_dir == Conf.LEFT:
             # Prevent excessive updates to angle change for a single press
             dur = Frames.time() - self.cool_down_l
-            if dur > Conf.COOLDOWN_TIME:
+            if dur > Conf.CD_TIME:
                 self.move_angle -= Conf.DIR_OFFSET
                 self.cool_down_l = Frames.time()
                 self.place_dir_arrow()
                 self.limit_angle()
         elif move_dir == Conf.RIGHT:
             dur = Frames.time() - self.cool_down_r
-            if dur > Conf.COOLDOWN_TIME:
+            if dur > Conf.CD_TIME:
                 self.move_angle += Conf.DIR_OFFSET
                 self.cool_down_r = Frames.time()
                 self.place_dir_arrow()
@@ -241,6 +241,7 @@ class Ball(BaseClass):
         self.f_normal = self.mass * Physics.G
         self.f_friction = self.f_normal * Physics.MU  # Force due to friction
         self.a_friction = self.f_friction / self.mass  # Acceleration  ||
+        self.side = None  # The side the ball scored on
 
         self.score_time = None
         Sprites.balls.add(self)
@@ -277,10 +278,10 @@ class Ball(BaseClass):
                 goal.last_touch = Frames.time()
                 self.score_time = Frames.time() - Gen.last_goal_time
                 if goal.side == Conf.LEFT:
-                    side = Conf.RIGHT
+                    self.side = Conf.RIGHT
                 else:
-                    side = Conf.LEFT
-                self.master.score_goal(self.score_time, side)
+                    self.side = Conf.LEFT
+                self.master.score_goal(self.score_time, self.side)
 
         # Check if ball was kicked and move accordingly
         if self.do_move:
