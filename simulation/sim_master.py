@@ -1,7 +1,8 @@
+import ast
 import csv
 import os
 import random
-import warnings
+import re
 
 import pygame
 import numpy as np
@@ -16,7 +17,7 @@ Y = Conf.Y
 
 
 class SimMaster:
-    def __init__(self, index=-1, algorithm=GS.TYPE_MAN):
+    def __init__(self, index=-1, algorithm=GS.TYPE_NET):
         self.index = index  # Used to denote process instance
         self.initialized = False  # Used to determine if first call or not
 
@@ -31,9 +32,14 @@ class SimMaster:
         self.score = None
         self.sys_info = None
         self.rect = None
+        self.num_reset = -1
+
+        self.start_robot = None
+        self.start_ball = None
 
         self.robot_xy = []
         self.ball_xy = []
+        self.recorded_times = []
         self.pos_offset = Conf.RBT_SIZE[0]
 
         # Record information for later benchmarking neural net against "math"
@@ -43,8 +49,8 @@ class SimMaster:
                 GS.TIME_TO_SCORE, GS.SIDE_SCORE, GS.METHOD
             )
         ]
-        self.good_data_file = f"{Conf.CSV_FOLDER}/good-{index}.csv"
-        self.bad_data_file = f"{Conf.CSV_FOLDER}/bad-{index}.csv"
+        self.good_data_file = f"{Conf.CSV_FOLDER}/good_{algorithm}{index}.csv"
+        self.bad_data_file = f"{Conf.CSV_FOLDER}/bad_{algorithm}{index}.csv"
 
         self.net = {
             Conf.DIRECTION: "",
@@ -92,6 +98,7 @@ class SimMaster:
         else:
             self.ball_bounce_x = Conf.ORIGIN[X] + self.ball.rect.width
 
+        self.rest_positions()
         # Create clock for consistent loop intervals
         self.clock = pygame.time.Clock()
 
@@ -341,8 +348,8 @@ class SimMaster:
         self._goal_scored()
         self.score.update_score(score_side)
         record = (
-            (self.robot.rect.centerx, self.robot.rect.centery),
-            (self.balls[0].rect.centerx, self.balls[0].rect.centery),
+            self.start_robot,
+            self.start_ball,
             score_time,
             score_side,
             self.algorithm
@@ -351,11 +358,11 @@ class SimMaster:
         self.rest_positions()
 
     def rest_positions(self):
+        self.num_reset += 1
         for robot in Sprites.robots:
-            if self.score.total < len(self.robot_xy):
-                # For each goal set the xy position
+            if self.num_reset < len(self.robot_xy):
                 robot.rect.centerx, robot.rect.centery = (
-                    self.robot_xy[self.score.total]
+                    self.robot_xy[self.num_reset]
                 )
             else:  # get random pos
                 # Random y position within offset
@@ -379,10 +386,10 @@ class SimMaster:
                 robot.check_bounds()
 
         for ball in Sprites.balls:
-            if self.score.total < len(self.ball_xy):
+            if self.num_reset < len(self.ball_xy):
                 # For each goal set the xy position
                 ball.rect.centerx, ball.rect.centery = (
-                    self.ball_xy[self.score.total]
+                    self.ball_xy[self.num_reset]
                 )
             else:
                 # Get random position
@@ -395,12 +402,60 @@ class SimMaster:
                     Conf.FIELD_BOT - self.pos_offset
                 )
             ball.move_dist = 0
+        self.start_robot = (self.robot.rect.centerx, self.robot.rect.centery)
+        self.start_ball = (
+            self.balls[0].rect.centerx, self.balls[0].rect.centery
+        )
 
     def _goal_scored(self, reset=False):
         if reset:
             self.is_goal_scored = False
         else:
             self.is_goal_scored = True
+
+    def load(self, algorithm=GS.TYPE_MAN):
+        if self.algorithm == algorithm:
+            print(
+                "WARNING YOU ARE LOADING THE SAME TYPE OF ALGORITHM AS TO THE"
+                " ONE YOU WILL BE SAVING"
+            )
+        for root, dirs, files in os.walk(Conf.CSV_FOLDER):
+            for file in files:
+                if f"good_{algorithm}" in file:
+                    # index_loc = re.search(r"\d+.", file).span()
+                    with open(f"{Conf.CSV_FOLDER}/{file}") as f:
+                        data = list(csv.reader(f))
+                    robot_xy = data[0].index(GS.ROBOT_START)
+                    ball_xy = data[0].index(GS.BALL_START)
+                    time_to_score = data[0].index(GS.TIME_TO_SCORE)
+                    for record in data[1:]:
+                        self.robot_xy.append(
+                            ast.literal_eval(record[robot_xy])
+                        )
+                        self.ball_xy.append(ast.literal_eval(record[ball_xy]))
+                        self.recorded_times.append(
+                            ast.literal_eval(record[time_to_score])
+                        )
+        num_records = len(self.robot_xy)
+        rec_per_proc = num_records // Conf.NUM_PROC
+        if self.index >= 0:
+            if self.index == 0:
+                self.robot_xy = self.robot_xy[:rec_per_proc]
+                self.ball_xy = self.ball_xy[:rec_per_proc]
+                self.recorded_times = self.recorded_times[:rec_per_proc]
+            elif self.index+1 == Conf.NUM_PROC:
+                i = self.index
+                self.robot_xy = self.robot_xy[rec_per_proc*i:]
+                self.ball_xy = self.ball_xy[rec_per_proc*i:]
+                self.recorded_times = self.recorded_times[rec_per_proc*i:]
+            else:
+                i = self.index
+                j = self.index + 1
+                self.robot_xy = self.robot_xy[rec_per_proc*i:rec_per_proc*j]
+                self.ball_xy = self.ball_xy[rec_per_proc*i:rec_per_proc*j]
+                self.recorded_times = self.recorded_times[
+                                        rec_per_proc*i:rec_per_proc*j
+                                      ]
 
     def save(self):
         delete_index = []

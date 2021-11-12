@@ -4,7 +4,7 @@ import pygame
 
 from sim_master import SimMaster
 from config import FrameStepReturn as fsr
-from config import Conf
+from config import Conf, GS
 from variables import ExitCtr, DoFlag, Gen, Frames
 
 
@@ -98,7 +98,7 @@ def frame_step_tester():
         print(f"Current time {Frames.time()}\n")
 
     def neural_net_simulator(index):
-        sim_master = SimMaster(index)
+        sim_master = SimMaster(index, algorithm=GS.TYPE_NET)
         direction = theta = dist = kick = cont = 0
         num = 1
 

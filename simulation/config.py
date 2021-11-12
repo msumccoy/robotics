@@ -65,7 +65,7 @@ class GS:  # Name to be changed  # Used for csv file to save game state
     METHOD = "method"
 
     # Method types
-    TYPE_MAN = "manual/calculated"
+    TYPE_MAN = "man_calc"
     TYPE_NET = "network"
 
 
@@ -96,15 +96,3 @@ class FrameStepReturn:
     ACT_DIST = 18  # Action move distance
     ACT_KICK = 19  # Action kick
     ACT_CONT = 20  # Action continue (if to continue)
-
-
-class Sock:
-    IP = "127.0.0.1"
-    PORT = 1234
-    PRE_HEADER_LEN = 3
-    HEADER_LEN = 10
-    ENCODING = "utf-8"
-
-
-class ComDataType:
-    TEXT = "TEXT"
