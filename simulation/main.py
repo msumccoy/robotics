@@ -1,7 +1,7 @@
 import multiprocessing
 
 from sim_master import SimMaster
-from config import Conf
+from config import Conf, GS
 
 
 def main():
@@ -19,7 +19,8 @@ def main():
 
     # Create a simulation controller and process for the set number
     for i in range(Conf.NUM_PROC):
-        sim_masters.append(SimMaster(i))
+        sim_masters.append(SimMaster(i, algorithm=GS.TYPE_MAN))
+        sim_masters[i].load()
         sim_processes.append(
             multiprocessing.Process(target=sim_masters[i].start_man_calc)
         )
