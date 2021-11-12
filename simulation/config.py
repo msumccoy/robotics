@@ -67,6 +67,7 @@ class GS:  # Name to be changed  # Used for csv file to save game state
     # Method types
     TYPE_MAN = "man_calc"
     TYPE_NET = "network"
+    TYPE_NONE = "NONE"
 
 
 class FrameStepReturn:

@@ -383,7 +383,14 @@ class SimMaster:
                     )
                     robot.direction_angle = 180
                     robot.place_dir_arrow()
-                robot.check_bounds()
+            # Ensure robots always start facing same direction
+            if robot.side == Conf.LEFT:
+                robot.direction_angle = 0
+                robot.place_dir_arrow()
+            else:
+                robot.direction_angle = 180
+                robot.place_dir_arrow()
+            robot.check_bounds()
 
         for ball in Sprites.balls:
             if self.num_reset < len(self.ball_xy):
@@ -414,6 +421,9 @@ class SimMaster:
             self.is_goal_scored = True
 
     def load(self, algorithm=GS.TYPE_MAN):
+        if algorithm == GS.TYPE_NONE:
+            print("NOTHING DONE")
+            return
         if self.algorithm == algorithm:
             print(
                 "WARNING YOU ARE LOADING THE SAME TYPE OF ALGORITHM AS TO THE"
@@ -458,6 +468,8 @@ class SimMaster:
                                       ]
 
     def save(self):
+        if self.algorithm == GS.TYPE_NONE:
+            print("No data type so not saving")
         delete_index = []
         bad_data = [self.game_records[0]]
         side_index = bad_data[0].index(GS.SIDE_SCORE)
